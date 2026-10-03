@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>색 외관 모델 · ColorBook</title>
+<meta name="description" content="XYZ가 같아도 색이 달라 보이는 이유: 밝기·명도·컬러풀니스·채도·포화도의 정의, 동시 대비와 Hunt·Stevens·H–K 효과, 주변 조건과 시스템 감마, CAM16 순방향·역방향 계산과 CAM16-UCS 색차.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/appearance.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="색 외관 모델 · ColorBook">
+<meta property="og:description" content="XYZ가 같아도 색이 달라 보이는 이유: 밝기·명도·컬러풀니스·채도·포화도의 정의, 동시 대비와 Hunt·Stevens·H–K 효과, 주변 조건과 시스템 감마, CAM16 순방향·역방향 계산과 CAM16-UCS 색차.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/appearance.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"색 외관 모델","name":"색 외관 모델 · ColorBook","url":"https://colorbook.euiyun.com/chapters/appearance.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/appearance.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":9,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"XYZ가 같아도 색이 달라 보이는 이유: 밝기·명도·컬러풀니스·채도·포화도의 정의, 동시 대비와 Hunt·Stevens·H–K 효과, 주변 조건과 시스템 감마, CAM16 순방향·역방향 계산과 CAM16-UCS 색차."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"09 색 외관 모델","item":"https://colorbook.euiyun.com/chapters/appearance.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sw { display:inline-block; width:1.15em; height:1.15em; border-radius:4px; vertical-align:-.18em; border:1px solid var(--border); margin-right:6px; }
+  .sim input[type="color"] { width:100%; height:34px; border:1px solid var(--border); border-radius:8px; background:var(--surface); padding:2px; cursor:pointer; }
+  .sim-view canvas { touch-action: pan-y; }
+</style>
+</head>
+<body data-chapter="appearance">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 09</div>
+    <h1>색 외관 모델</h1>
+    <p class="lead">3장의 XYZ는 두 자극이 <strong>같은 색으로 보이는가</strong>에만 답한다. 그 색이 <strong>어떻게 보이는가</strong>는 답하지 않는다. 같은 XYZ의 패치라도 주변이 어두운지 밝은지, 관측자가 몇 cd/m²에 순응했는지, 배경이 무슨 색인지에 따라 밝기도 화려함도 색상도 달라진다. 색 외관 모델(CAM)은 XYZ에 관측 조건을 더해 이 지각 속성을 숫자로 예측한다. 이 장은 현상을 직접 보고, CAM16을 식 그대로 구현해 계산해 본다.</p>
+    <ul class="objectives">
+      <li>측색 일치와 외관 일치를 구분하고, 같은 영상이 영화관·거실·야외에서 다르게 보이는 이유를 설명한다.</li>
+      <li>밝기/명도, 컬러풀니스/채도/포화도, 색상을 CIE 정의에 따라 구분하고 절대·상대 속성으로 분류한다.</li>
+      <li>동시 대비, 크리스프닝, 동화, Hunt, Stevens, Bartleson–Breneman, Helmholtz–Kohlrausch, Bezold–Brücke, Abney 효과를 설명한다.</li>
+      <li>CAM16의 입력(XYZ, 백색, L<sub>A</sub>, Y<sub>b</sub>, 주변)과 계산 단계를 따라가 J, C, h, Q, M, s를 직접 계산한다.</li>
+      <li>역방향 모델로 대응색을 구하고, 주변 조건 차이를 보정하는 시스템 감마를 모델에서 유도한다.</li>
+      <li>CAM16-UCS로 색차를 계산하고 CIELAB 기반 색차와 비교한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="why">
+    <h2>측색과 외관은 다르다</h2>
+    <p><a href="colorimetry.html">3장</a>의 등색 실험은 두 자극을 <strong>나란히, 같은 조건에서</strong> 비교했다. 그 결과인 XYZ는 "두 자극이 구분되지 않는다"는 판정을 재현하는 좌표다. 이것을 <span class="term">기본 측색</span><span class="en">(basic colorimetry)</span>이라 한다. 그러나 엔지니어가 실제로 다루는 질문은 대부분 다르다. "이 영상이 관객에게 어떻게 보이는가", "모니터에서 본 색이 인쇄물에서도 같게 보이는가"는 서로 다른 조건에 놓인 자극의 <strong>외관</strong>을 비교하는 질문이다.</p>
+    <p>외관을 바꾸는 요인은 크게 세 가지다.</p>
+    <ul>
+      <li><strong>공간 문맥</strong>: 바로 옆의 배경과 주변. 같은 회색이 검은 배경에서는 밝게, 흰 배경에서는 어둡게 보인다(동시 대비).</li>
+      <li><strong>순응 상태</strong>: 관측자가 순응한 백색의 색도(<a href="adaptation.html">8장</a> 색순응)와 순응 휘도 수준. 휘도가 높아지면 같은 상대 색이 더 화려하게(Hunt), 더 대비 있게(Stevens) 보인다.</li>
+      <li><strong>주변 조건</strong>: 화면이나 인쇄물 바깥 시야의 밝기. 어두운 영화관에서는 같은 영상의 대비가 낮아 보인다(Bartleson–Breneman).</li>
+    </ul>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="같은 XYZ의 영상이 세 관측 환경에서 다르게 보이는 개념도">
+        <defs>
+          <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <rect x="20" y="40" width="230" height="160" rx="10" fill="#050505"/>
+        <rect x="55" y="70" width="160" height="100" rx="4" fill="#7a7a7a"/>
+        <rect x="105" y="95" width="60" height="50" fill="#b4603c"/>
+        <text x="135" y="28" text-anchor="middle" class="t">영화관 (dark)</text>
+        <text x="135" y="222" text-anchor="middle" class="t-mono">백색 48 cd/m² · 주변 ≈ 0</text>
+        <text x="135" y="242" text-anchor="middle" class="t-dim">대비가 낮아 보인다</text>
+        <text x="135" y="260" text-anchor="middle" class="t-dim">→ 높은 시스템 감마 필요</text>
+
+        <rect x="285" y="40" width="230" height="160" rx="10" fill="#3a3a3a"/>
+        <rect x="320" y="70" width="160" height="100" rx="4" fill="#7a7a7a"/>
+        <rect x="370" y="95" width="60" height="50" fill="#b4603c"/>
+        <text x="400" y="28" text-anchor="middle" class="t">거실 TV (dim)</text>
+        <text x="400" y="222" text-anchor="middle" class="t-mono">백색 100–200 cd/m² · 주변 &lt; 20%</text>
+        <text x="400" y="242" text-anchor="middle" class="t-dim">방송 마스터링 기준 조건</text>
+        <text x="400" y="260" text-anchor="middle" class="t-dim">시스템 감마 ≈ 1.2</text>
+
+        <rect x="550" y="40" width="230" height="160" rx="10" fill="#d9d9d9"/>
+        <rect x="585" y="70" width="160" height="100" rx="4" fill="#7a7a7a"/>
+        <rect x="635" y="95" width="60" height="50" fill="#b4603c"/>
+        <text x="665" y="28" text-anchor="middle" class="t">야외의 스마트폰 (average 이상)</text>
+        <text x="665" y="222" text-anchor="middle" class="t-mono">주변 휘도 ≫ 화면 백색</text>
+        <text x="665" y="242" text-anchor="middle" class="t-dim">화면이 어둡고 탁해 보인다</text>
+        <text x="665" y="260" text-anchor="middle" class="t-dim">→ 밝기·톤 곡선 보정</text>
+        <line x1="135" y1="280" x2="665" y2="280" class="s-line" marker-start="url(#ar1)" marker-end="url(#ar1)"/>
+        <text x="400" y="296" text-anchor="middle" class="t-mono">세 화면 가운데 패치의 XYZ(상대값)는 모두 같다</text>
+      </svg>
+      <figcaption><b>그림 9-1.</b> 같은 신호, 같은 상대 XYZ를 세 환경에서 본다. 측색값은 같지만 관측자의 순응 휘도와 주변 밝기가 달라 외관이 달라진다. (종이·화면에 그려진 이 그림 자체는 같은 회색 주변 안에 있으므로 효과를 재현하지 못한다. 개념도다.)</figcaption>
+    </figure>
+    <p>이 차이는 영상 산업에서 수치로 관리된다. 영화는 dark 주변에서 48 cd/m²(DCI 기준) 백색으로, HDTV는 dim 주변에서 100 cd/m² 안팎으로 마스터링한다. 같은 마스터를 다른 환경으로 옮길 때 톤 곡선을 바꾸는 이유가 바로 외관 현상이다. 색 외관 모델<span class="en">(Colour Appearance Model, CAM)</span>은 이 보정을 경험칙이 아니라 계산으로 하게 해 준다.</p>
+    <div class="callout">
+      <strong>정의 — 색 외관 모델</strong>
+      <p>CIE TC1-34의 정의에 따르면 색 외관 모델은 최소한 <strong>명도, 채도, 색상</strong>의 상대 속성을 예측하고, 순응을 다루는 색순응 변환을 포함하는 모델이다. 더 완전한 모델은 <strong>밝기와 컬러풀니스</strong>(절대 속성)까지 예측한다. CIELAB은 앞의 조건을 겨우 만족하는 가장 단순한 '외관 모델'이지만 휘도 수준과 주변 조건을 입력으로 받지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="attributes">
+    <h2>외관 속성의 정의</h2>
+    <p>일상어의 "밝다", "선명하다", "진하다"는 서로 다른 지각량을 섞어 쓴다. CIE 국제 조명 용어집(CIE S 017)은 이를 여섯 가지 속성으로 나눈다. 핵심은 <strong>절대 속성</strong>과, 그것을 어떤 기준으로 나눈 <strong>상대 속성</strong>의 구분이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>속성</th><th>정의 (요지)</th><th>종류</th><th>CAM16 기호</th></tr></thead>
+      <tbody>
+        <tr><td>밝기 <span class="en">(brightness)</span></td><td>영역이 빛을 더 많이 또는 적게 내는 것처럼 보이는 정도</td><td>절대</td><td class="num">Q</td></tr>
+        <tr><td>명도 <span class="en">(lightness)</span></td><td>비슷하게 조명된 <strong>백색의 밝기</strong>에 대한 상대 밝기</td><td>상대</td><td class="num">J</td></tr>
+        <tr><td>컬러풀니스 <span class="en">(colourfulness)</span></td><td>지각되는 색이 유채색 성분을 더 많이 또는 적게 띠는 정도</td><td>절대</td><td class="num">M</td></tr>
+        <tr><td>채도 <span class="en">(chroma)</span></td><td>비슷하게 조명된 <strong>백색의 밝기</strong>에 대한 상대 컬러풀니스</td><td>상대</td><td class="num">C</td></tr>
+        <tr><td>포화도 <span class="en">(saturation)</span></td><td><strong>자기 자신의 밝기</strong>에 대한 상대 컬러풀니스</td><td>상대</td><td class="num">s</td></tr>
+        <tr><td>색상 <span class="en">(hue)</span></td><td>빨강·노랑·초록·파랑 중 하나, 또는 인접한 둘의 조합과 비슷하게 보이는 정도</td><td>—</td><td class="num">h, H</td></tr>
+      </tbody>
+    </table></div>
+    <p>예를 들어 사과 한 개를 햇빛 아래와 실내에서 본다. 햇빛 아래에서 빛이 훨씬 많이 오므로 <strong>밝기</strong>와 <strong>컬러풀니스</strong>는 커진다. 그러나 사과를 같은 장면의 흰 종이와 비교한 <strong>명도</strong>와 <strong>채도</strong>는 거의 그대로다. 우리가 물체색이 "변하지 않는다"고 느끼는 것은 상대 속성이 일정하기 때문이다. 반면 자체 발광하는 화면을 볼 때는 절대 속성이 중요해진다. 밝은 화면이 "더 선명해 보이는" 것은 채도가 아니라 컬러풀니스가 커진 것이다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="절대 속성 Q, M과 상대 속성 J, C, s 사이의 관계도">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <text x="40" y="40" class="t-dim">절대 속성</text>
+        <text x="40" y="200" class="t-dim">상대 속성</text>
+        <rect x="150" y="18" width="190" height="56" rx="10" class="f-acc-soft"/>
+        <text x="245" y="42" text-anchor="middle" class="t-acc">밝기 Q</text>
+        <text x="245" y="62" text-anchor="middle" class="t-mono">brightness</text>
+        <rect x="470" y="18" width="190" height="56" rx="10" class="f-acc-soft"/>
+        <text x="565" y="42" text-anchor="middle" class="t-acc">컬러풀니스 M</text>
+        <text x="565" y="62" text-anchor="middle" class="t-mono">colourfulness</text>
+        <rect x="150" y="176" width="190" height="56" rx="10" class="f-acc2-soft"/>
+        <text x="245" y="200" text-anchor="middle" class="t">명도 J</text>
+        <text x="245" y="220" text-anchor="middle" class="t-mono">J ∝ (Q / Q_w)²</text>
+        <rect x="470" y="176" width="190" height="56" rx="10" class="f-acc2-soft"/>
+        <text x="565" y="200" text-anchor="middle" class="t">채도 C</text>
+        <text x="565" y="220" text-anchor="middle" class="t-mono">C ∝ M / Q_w</text>
+        <rect x="320" y="100" width="170" height="50" rx="10" class="f-acc2-soft"/>
+        <text x="405" y="122" text-anchor="middle" class="t">포화도 s</text>
+        <text x="405" y="140" text-anchor="middle" class="t-mono">s = 100·√(M / Q)</text>
+        <line x1="245" y1="76" x2="245" y2="172" class="s-line" marker-end="url(#ar2)"/>
+        <text x="236" y="128" text-anchor="end" class="t-dim">÷ 백색의 밝기</text>
+        <line x1="565" y1="76" x2="565" y2="172" class="s-line" marker-end="url(#ar2)"/>
+        <text x="574" y="128" class="t-dim">÷ 백색의 밝기</text>
+        <line x1="340" y1="62" x2="380" y2="98" class="s-line" marker-end="url(#ar2)"/>
+        <line x1="470" y1="62" x2="430" y2="98" class="s-line" marker-end="url(#ar2)"/>
+        <text x="405" y="262" text-anchor="middle" class="t-mono">색상 h(각도), H(고유 색상 기준 0–400)는 조명 수준과 무관한 속성으로 취급</text>
+      </svg>
+      <figcaption><b>그림 9-2.</b> 외관 속성의 관계. 상대 속성은 절대 속성을 기준(장면의 백색 또는 자기 자신의 밝기)으로 나눈 것이다. CAM16에서 실제 관계식은 \(Q = (4/c)\sqrt{J/100}\,(A_w+4)F_L^{0.25}\), \(M = C\,F_L^{0.25}\)로, 둘 다 순응 휘도의 함수 \(F_L\)을 통해 절대 수준이 들어간다.</figcaption>
+    </figure>
+    <p>한국어 '채도'는 chroma와 saturation 양쪽에 쓰여 혼동이 잦다. 이 책은 chroma를 <strong>채도</strong>, saturation을 <strong>포화도</strong>로 구분한다. 두 양의 차이는 그림자에서 분명하다. 빨간 공의 그림자 쪽은 백색(종이) 대비 채도는 떨어지지만, 자기 밝기 대비 포화도는 거의 같다. 균일하게 칠해진 물체가 "같은 색 물감"으로 보이는 이유를 설명하는 것은 포화도다.</p>
+    <div class="callout tip">
+      <strong>공학자 관점 — CIELAB은 어디에 해당하나</strong>
+      <p>L*은 명도, C*<sub>ab</sub>는 채도, h<sub>ab</sub>는 색상의 근사다. 밝기·컬러풀니스에 해당하는 양은 없다. L*은 Y/Y<sub>n</sub>만의 함수라 Y<sub>n</sub>이 80 cd/m²든 8,000 cd/m²든 같은 값을 준다. 따라서 "HDR 화면에서 더 화려해 보인다"는 현상은 CIELAB으로는 표현조차 되지 않는다(<a href="uniform.html">7장</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="viewing">
+    <h2>관측 조건: 자극·배경·주변·순응 휘도</h2>
+    <p>외관 모델의 입력은 자극의 XYZ만이 아니다. CIE는 시야를 동심원 영역으로 나누어 각 영역의 역할을 정한다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="자극, 근접장, 배경, 주변으로 나뉜 관측 시야의 구성">
+        <rect x="30" y="20" width="420" height="260" rx="12" fill="var(--surface-2)" stroke="var(--border)"/>
+        <circle cx="240" cy="150" r="108" fill="var(--surface)" stroke="var(--border)"/>
+        <circle cx="240" cy="150" r="52" fill="var(--bg-elev)" stroke="var(--border)" stroke-dasharray="4 3"/>
+        <circle cx="240" cy="150" r="22" class="f-acc"/>
+        <text x="240" y="154" text-anchor="middle" class="t-mono" style="fill:#fff">2°</text>
+        <text x="240" y="114" text-anchor="middle" class="t-mono">근접장</text>
+        <text x="240" y="70" text-anchor="middle" class="t-mono">배경 ~10°</text>
+        <text x="50" y="44" class="t-mono">주변 (나머지 시야)</text>
+        <text x="480" y="56" class="t-acc">자극 (stimulus)</text>
+        <text x="480" y="76" class="t-dim">약 2° 크기, XYZ로 주어짐</text>
+        <text x="480" y="108" class="t">근접장 (proximal field)</text>
+        <text x="480" y="128" class="t-dim">자극 바로 둘레 약 2°, 보통 배경과 같다고 둔다</text>
+        <text x="480" y="160" class="t">배경 (background)</text>
+        <text x="480" y="180" class="t-dim">약 10°까지. 상대 휘도 Y_b (보통 20)</text>
+        <text x="480" y="212" class="t">주변 (surround)</text>
+        <text x="480" y="232" class="t-dim">그 밖의 시야. average / dim / dark</text>
+        <text x="480" y="264" class="t">순응장 (adapting field)</text>
+        <text x="480" y="284" class="t-dim">전체 시야의 평균 → 순응 휘도 L_A</text>
+      </svg>
+      <figcaption><b>그림 9-3.</b> CIECAM02/CAM16이 가정하는 관측 시야. 자극의 XYZ 외에 백색 XYZ<sub>w</sub>, 배경 상대 휘도 Y<sub>b</sub>, 순응 휘도 L<sub>A</sub>[cd/m²], 주변 분류가 입력이다.</figcaption>
+    </figure>
+    <p>순응 휘도는 보통 순응장의 평균 휘도로 잡는다. 장면이 평균적으로 20% 회색이라는 "회색 세계" 가정을 쓰면 백색 휘도 \(L_W\)나 백색면 조도 \(E_W\)에서 바로 구할 수 있다.</p>
+    <div class="formula">$$L_A = \frac{L_W\,Y_b}{Y_w} \approx \frac{L_W}{5}, \qquad L_A = \frac{E_W}{\pi}\cdot\frac{Y_b}{100} = \frac{E_W}{5\pi}\quad(Y_b=20)$$<div class="where">여기서 \(L_W\)는 백색의 휘도[cd/m²], \(E_W\)는 완전 확산 백색면의 조도[lx]. 완전 확산면의 휘도는 \(E/\pi\)다.</div></div>
+    <p>주변은 주변 휘도와 장면 백색 휘도의 비 \(S_R = L_{SW}/L_{DW}\)로 분류한다. \(S_R \ge 0.2\)이면 average, \(0 < S_R < 0.2\)이면 dim, \(S_R = 0\)이면 dark다(CIE 159:2004).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>관측 상황</th><th class="num">백색 휘도 [cd/m²]</th><th class="num">L<sub>A</sub> ≈ L<sub>W</sub>/5</th><th>주변</th><th>근거</th></tr></thead>
+      <tbody>
+        <tr><td>디지털 시네마 상영</td><td class="num">48</td><td class="num">9.6</td><td>dark</td><td>DCI, SMPTE RP 431-2</td></tr>
+        <tr><td>HDTV(SDR) 마스터링</td><td class="num">100</td><td class="num">20</td><td>dim</td><td>ITU-R BT.1886, BT.2035</td></tr>
+        <tr><td>sRGB 기준 관측</td><td class="num">80</td><td class="num">16</td><td>dim (주변 조도 64 lx)</td><td>IEC 61966-2-1</td></tr>
+        <tr><td>HDR 마스터링 (확산 백색)</td><td class="num">203</td><td class="num">≈ 40</td><td>dim (주변 5 cd/m²)</td><td>ITU-R BT.2100, BT.2408</td></tr>
+        <tr><td>인쇄물 평가 부스 P1</td><td class="num">≈ 640 (2,000 lx)</td><td class="num">≈ 127</td><td>average</td><td>ISO 3664</td></tr>
+        <tr><td>맑은 날 야외</td><td class="num">수천 이상</td><td class="num">≥ 1,000</td><td>average</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn">
+      <strong>흔한 실수 — L<sub>A</sub>에 백색 휘도를 넣는다</strong>
+      <p>L<sub>A</sub>는 백색이 아니라 <strong>순응장 평균</strong>이다. 80 cd/m² 모니터라면 L<sub>A</sub> = 16이지 80이 아니다. 또 XYZ는 Y<sub>w</sub> = 100으로 정규화한 <strong>상대</strong> 값으로 넣는다. 절대 휘도 정보는 오직 L<sub>A</sub>를 통해 모델에 들어간다. 절대 XYZ(cd/m²)를 그대로 넣고 L<sub>A</sub>도 따로 주면 휘도 효과가 이중으로 계산된다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="contrast">
+    <h2>공간 유도: 동시 대비, 크리스프닝, 동화</h2>
+    <p>가장 친숙한 외관 현상은 <span class="term">동시 대비</span><span class="en">(simultaneous contrast)</span>다. 같은 회색 패치가 어두운 배경 위에서는 더 밝게, 밝은 배경 위에서는 더 어둡게 보인다. 색에서도 같다. 회색 패치는 빨간 배경 위에서 청록 쪽으로, 노란 배경 위에서 파랑 쪽으로 기운다. 배경의 반대색 방향으로 유도가 일어난다. 망막과 초기 시각 경로의 측면 억제(중심–주변 수용장)로 대략 설명되지만, 정량 모델은 아직 측면 억제 하나로 정리되지 않는다.</p>
+    <p><span class="term">크리스프닝</span><span class="en">(crispening)</span>은 두 자극의 차이가 배경과 비슷한 값 근처에서 더 크게 보이는 현상이다. 중간 회색 배경 위에서는 L* 48과 52의 차이가 뚜렷한데, 검은 배경 위에서는 같은 차이가 거의 안 보인다. 색차 실험에서 배경을 반드시 명시해야 하는 이유이고, ΔE 허용차가 회색 배경(L* ≈ 50)을 기준으로 정해지는 이유다.</p>
+    <p><span class="term">동화</span><span class="en">(assimilation, von Bezold spreading)</span>는 반대 방향이다. 패턴이 가늘면 회색이 사이에 낀 선의 색 쪽으로 <strong>끌려간다</strong>. 흰 선이 촘촘히 지나는 회색은 더 밝게, 검은 선이 지나는 회색은 더 어둡게 보인다. 대비와 동화 중 어느 것이 이기는지는 공간 주파수가 정한다. 큰 영역은 대비, 미세한 문양은 동화 쪽이다.</p>
+    <div class="sim" id="sim-contrast">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>동시 대비·동화·크리스프닝 — 직접 맞춰 보기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-con"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>현상</span><div class="seg" id="con-mode"><button data-value="contrast" class="on">동시 대비</button><button data-value="assim">동화</button><button data-value="crisp">크리스프닝</button></div></div>
+          <label class="ctrl"><span>패치 명도 <output id="con-L-out"></output></span><input type="range" id="con-L" min="20" max="80" step="1" value="50"></label>
+          <label class="ctrl"><span>유도 세기(배경·선 대비) <output id="con-k-out"></output></span><input type="range" id="con-k" min="0" max="1" step="0.01" value="0.9"></label>
+          <label class="ctrl"><span>오른쪽 패치 조정 ΔL* <output id="con-adj-out"></output></span><input type="range" id="con-adj" min="-20" max="20" step="0.5" value="0"></label>
+          <label class="check"><input type="checkbox" id="con-reveal"> 실제 값 공개(연결 막대·수치)</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k" id="o-con-ka">왼쪽 패치</span><span class="v" id="o-con-a">—</span></div>
+        <div class="stat"><span class="k" id="o-con-kb">오른쪽 패치</span><span class="v" id="o-con-b">—</span></div>
+        <div class="stat"><span class="k" id="o-con-kd">맞춘 유도량</span><span class="v" id="o-con-d">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 동시 대비에서 ΔL*를 움직여 두 패치가 같아 보이게 맞춘 뒤 "실제 값 공개"를 켜 보자. 맞춘 ΔL*가 이 화면·이 방에서 당신의 대비 유도량이다(밝은 배경 쪽 패치를 몇 L* 올려야 했는가). ② 유도 세기를 0으로 내리면 유도량이 사라지는지 확인한다. ③ 동화 모드에서는 효과의 부호가 반대다. 화면을 멀리서 보면(공간 주파수↑) 동화가 더 강해진다. ④ 크리스프닝 모드에서 같은 ΔL* = 4 계단이 어느 배경에서 가장 잘 구분되는지 보자.</div>
+    </div>
+    <div class="callout tip">
+      <strong>공학자 관점 — 측정 기하와 UI 배경</strong>
+      <p>디스플레이 균일도나 색 정확도를 눈으로 판정할 때 패턴 배경이 검정인지 회색인지에 따라 판정이 달라진다. 영상 평가에서 주변을 회색으로 두고(ISO 3664, ITU-R BT.500의 관측 조건), 컬러 피커 UI가 견본 둘레를 중성 회색으로 두는 것도 같은 이유다. CAM16은 배경을 Y<sub>b</sub>라는 <strong>스칼라 하나</strong>로만 받으므로 동시 대비의 색상 방향 유도, 크리스프닝, 동화는 표현하지 못한다. 공간 구조까지 다루려면 이미지 외관 모델(§10)이 필요하다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="luminance">
+    <h2>휘도 의존 현상: Hunt, Stevens, Bezold–Brücke</h2>
+    <p>같은 상대 XYZ라도 절대 휘도 수준이 달라지면 외관이 바뀐다. 세 가지 효과가 대표적이다.</p>
+    <ul>
+      <li><strong>Hunt 효과</strong>: 휘도가 높아지면 컬러풀니스가 커진다. 맑은 날 야외의 꽃이 흐린 날보다 화려해 보이는 것, 해 질 녘 색이 빠져 보이는 것이 예다. 상대 속성인 채도는 거의 그대로다.</li>
+      <li><strong>Stevens 효과</strong>: 휘도가 높아지면 밝기 대비가 커진다. 밝은 조명 아래에서 흰 것은 더 희게, 검은 것은 상대적으로 더 검게 보인다.</li>
+      <li><strong>Bezold–Brücke 색상 이동</strong>: 휘도가 높아지면 대부분의 색상이 노랑 또는 파랑 쪽으로 이동한다. 주황·연두는 노랑 쪽, 청록·보라는 파랑 쪽으로 간다. 휘도에 따라 색상이 변하지 않는 '불변 색상'이 대략 세 곳(파랑, 초록, 노랑 부근의 고유 색상 근처) 있다.</li>
+    </ul>
+    <p>CAM16은 앞의 둘을 \(F_L\)로 표현한다. 순응 휘도 L<sub>A</sub>에서 정해지는 휘도 순응 인자다.</p>
+    <div class="formula">$$k = \frac{1}{5L_A+1},\qquad F_L = 0.2\,k^4\,(5L_A) + 0.1\,(1-k^4)^2\,(5L_A)^{1/3}$$<div class="where">L<sub>A</sub>가 크면 \(F_L \approx 0.171\,L_A^{1/3}\). L<sub>A</sub> = 1, 16, 200, 1000 cd/m²에서 F<sub>L</sub> = 0.172, 0.431, 1.000, 1.710이다. 컬러풀니스 \(M = C\,F_L^{0.25}\), 밝기 \(Q \propto F_L^{0.25}\)이므로 둘 다 L<sub>A</sub>와 함께 증가한다.</div></div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="CAM16으로 계산한 순응 휘도에 따른 컬러풀니스와 밝기의 변화">
+        <!-- left: Hunt -->
+        <line x1="60" y1="250" x2="360" y2="250" class="s-axis"/>
+        <line x1="60" y1="250" x2="60" y2="40" class="s-axis"/>
+        <text x="210" y="24" text-anchor="middle" class="t">Hunt 효과 — 초록 sRGB(60,160,80)</text>
+        <polyline points="60,178 120,159.25 180,139.75 240,117.25 300,90 360,56.25" class="s-acc"/>
+        <polyline points="60,110.5 120,109 180,108.5 240,109.5 300,110 360,110.25" fill="none" stroke="var(--accent-2)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="300" y="80" class="t-acc">M</text>
+        <text x="330" y="104" class="t-dim" style="fill:var(--accent-2)">C</text>
+        <text x="60" y="268" text-anchor="middle" class="t-mono">0.1</text><text x="180" y="268" text-anchor="middle" class="t-mono">10</text><text x="300" y="268" text-anchor="middle" class="t-mono">1000</text>
+        <text x="210" y="290" text-anchor="middle" class="t-dim">L_A [cd/m², 로그]</text>
+        <text x="52" y="254" text-anchor="end" class="t-mono">0</text><text x="52" y="129" text-anchor="end" class="t-mono">50</text>
+        <!-- right: Stevens -->
+        <line x1="460" y1="250" x2="760" y2="250" class="s-axis"/>
+        <line x1="460" y1="250" x2="460" y2="40" class="s-axis"/>
+        <text x="610" y="24" text-anchor="middle" class="t">Stevens 효과 — 밝기 Q</text>
+        <polyline points="460,231.7 520,219.3 580,201.3 640,171.9 700,124.2 760,46.8" class="s-acc"/>
+        <polyline points="460,238.7 520,230.9 580,219.6 640,201.1 700,170.9 760,121.5" fill="none" stroke="var(--text-dim)" stroke-width="2"/>
+        <polyline points="460,243.1 520,238.4 580,231.5 640,220.2 700,201.7 760,171.2" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+        <text x="700" y="60" class="t-acc">백색</text>
+        <text x="712" y="150" class="t-dim">18% 회색</text>
+        <text x="712" y="196" class="t-dim" style="fill:var(--accent-2)">3% 흑색</text>
+        <text x="460" y="268" text-anchor="middle" class="t-mono">0.1</text><text x="580" y="268" text-anchor="middle" class="t-mono">10</text><text x="700" y="268" text-anchor="middle" class="t-mono">1000</text>
+        <text x="610" y="290" text-anchor="middle" class="t-dim">L_A [cd/m², 로그]</text>
+        <text x="452" y="254" text-anchor="end" class="t-mono">0</text><text x="452" y="122" text-anchor="end" class="t-mono">400</text>
+      </svg>
+      <figcaption><b>그림 9-4.</b> 이 장의 CAM16 구현으로 계산한 값(D65, Y<sub>b</sub> = 20, average). 왼쪽: L<sub>A</sub>가 0.1 → 10,000 cd/m²로 커지는 동안 채도 C는 56 근처로 거의 일정하지만 컬러풀니스 M은 28.8 → 77.5로 커진다(Hunt). 오른쪽: 백색과 흑색의 밝기 차 Q<sub>w</sub> − Q<sub>k</sub>는 L<sub>A</sub> = 1에서 58, 1,000에서 236으로 벌어진다(Stevens).</figcaption>
+    </figure>
+    <div class="callout deep">
+      <strong>심화 — 모델이 Stevens 효과를 표현하는 방식</strong>
+      <p>CAM16에서 J는 A/A<sub>w</sub>의 거듭제곱이라 L<sub>A</sub>에 거의 무관하다(빨강 sRGB에서 L<sub>A</sub> 1 → 10,000일 때 J 45.9 → 47.1). 밝기 Q는 \(\sqrt{J}\)에 \((A_w+4)F_L^{0.25}\)를 곱한 것이므로 비율 Q/Q<sub>w</sub>는 일정하고 <strong>차이</strong>가 커진다. 즉 CAM16의 Stevens 효과는 "밝기 척도 전체가 늘어나는" 형태다. Stevens의 원래 관찰(흑색의 밝기는 오히려 감소)보다는 약한 표현이며, 명도 대비 자체가 변하는 효과는 다음 절의 주변 조건 인자 c가 담당한다.</p>
+    </div>
+    <p>Bezold–Brücke 효과는 CIECAM02/CAM16에서 명시적으로 모델링되지 않는다. 색상 h는 반대색 신호 a, b의 각도이고, 비선형 압축이 세 채널에 같은 함수로 걸리므로 휘도에 따른 색상 이동은 매우 작게만 나온다. 위 계산에서 빨강의 h는 L<sub>A</sub> 1 → 10,000에서 27.36° → 27.59°로 0.2°밖에 변하지 않는다. 실제 실험에서 보고되는 이동은 이보다 크다.</p>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="hk">
+    <h2>Helmholtz–Kohlrausch 효과와 Abney 효과</h2>
+    <p>측광량 Y는 V(λ)로 가중한 휘도이고, <a href="light.html">1장</a>에서 본 대로 "같은 Y = 같은 밝기"라는 가정 위에 서 있다. 그러나 채도가 높은 색은 같은 휘도의 무채색보다 <strong>더 밝게</strong> 보인다. 이것이 <span class="term">Helmholtz–Kohlrausch(H–K) 효과</span>다. 효과는 색상에 따라 다르며, 파랑·자주·빨강에서 크고 노랑에서 작다. 같은 Y로 맞춘 파란 LED가 흰 LED보다 밝아 보이는 것, 컬러 표지판의 '밝기'가 휘도계 값과 어긋나는 것이 이 효과다.</p>
+    <p>H–K 효과의 근사 모델 가운데 Fairchild와 Pirrotta(1991)의 식은 CIELAB 위에서 바로 계산할 수 있다.</p>
+    <div class="formula">$$L^{**} = L^* + \bigl(2.5 - 0.025\,L^*\bigr)\Bigl(0.116\,\Bigl|\sin\frac{h_{ab}-90^\circ}{2}\Bigr| + 0.085\Bigr)\,C^*_{ab}$$<div class="where">\(L^{**}\)는 H–K 효과를 반영한 등가 명도(같은 밝기로 보이는 무채색의 L*). 노랑(h ≈ 90°)에서 보정이 가장 작고 보라·파랑(h ≈ 270°) 쪽에서 가장 크다. 실험 데이터에 맞춘 근사식이며 표준은 아니다.</div></div>
+    <div class="sim" id="sim-hk">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>같은 휘도, 다른 밝기 — H–K 효과</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-hk"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>모든 견본의 L* (같은 Y) <output id="hk-L-out"></output></span><input type="range" id="hk-L" min="30" max="80" step="1" value="60"></label>
+          <label class="ctrl"><span>채도 C*<sub>ab</sub> <output id="hk-C-out"></output></span><input type="range" id="hk-C" min="0" max="60" step="1" value="35"></label>
+          <label class="check"><input type="checkbox" id="hk-gray" checked> 견본 사이에 같은 L*의 회색 띠</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">견본 Y (모두 동일)</span><span class="v" id="o-hk-y">—</span></div>
+        <div class="stat"><span class="k">가장 밝아 보일 색상</span><span class="v" id="o-hk-max">—</span></div>
+        <div class="stat"><span class="k">가장 작은 H–K</span><span class="v" id="o-hk-min">—</span></div>
+        <div class="stat"><span class="k">sRGB 가멋 밖</span><span class="v" id="o-hk-gam">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: 위 줄의 견본 8개는 모두 Y가 같다(L*가 같다). 회색 띠와 비교해 어느 견본이 밝아 보이는지 판단한 뒤 아래 그래프의 L** − L*(실선)와 비교하자. 점선은 같은 견본의 CAM16 J에서 같은 L* 회색의 J를 뺀 값으로, CAM16의 J가 H–K 효과를 거의 반영하지 않음을 보여 준다. 채도를 0으로 내리면 모든 차이가 사라진다. 견본에 × 표시가 있으면 sRGB 가멋 밖이라 화면에서 클리핑된 것이다.</div>
+    </div>
+    <p>예: L* = 60, C*<sub>ab</sub> = 40일 때 노랑(h = 90°)의 L**는 60 + 1.0 × 0.085 × 40 = 63.4, 파랑–보라(h = 270°)는 60 + 1.0 × 0.201 × 40 = 68.0이다. 휘도가 같은데 등가 명도가 4.6 차이 난다. ΔE00로 치면 쉽게 보이는 수준이다.</p>
+    <p><span class="term">Abney 효과</span>는 단색광에 백색광을 섞어 채도를 낮출 때 색상이 바뀌는 현상이다. <a href="chromaticity.html">4장</a>에서 본 대로 가산 혼합은 xy 색도도에서 직선이지만, <strong>같은 색상으로 보이는 점들의 궤적은 곡선</strong>이다. 특히 파랑 영역에서 두드러져, 순수한 파랑에 흰색을 섞으면 보라 쪽으로 기운다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="Abney 효과 개념도: 색도도에서 혼합 직선과 등색상 곡선">
+        <path d="M120 250 C 150 120, 230 40, 330 30 C 400 30, 470 80, 520 150 L 120 250 Z" class="f-surface"/>
+        <circle cx="330" cy="170" r="5" fill="var(--text)"/>
+        <text x="342" y="174" class="t">W (백색)</text>
+        <circle cx="140" cy="236" r="5" class="f-acc"/>
+        <text x="96" y="268" class="t-mono">단색 파랑 ~470 nm</text>
+        <line x1="140" y1="236" x2="330" y2="170" class="s-line" stroke-dasharray="6 4"/>
+        <path d="M140 236 C 200 228, 260 214, 330 170" class="s-acc"/>
+        <text x="200" y="196" class="t-dim">가산 혼합 직선</text>
+        <text x="220" y="246" class="t-acc">등색상 곡선</text>
+        <text x="560" y="60" class="t">직선 위의 혼합색 →</text>
+        <text x="560" y="82" class="t-dim">파랑보다 보라 쪽으로 보인다</text>
+        <text x="560" y="120" class="t">결과</text>
+        <text x="560" y="142" class="t-dim">· CIELAB의 파랑 등색상선이 휜다</text>
+        <text x="560" y="164" class="t-dim">· 파랑 그라데이션이 보라로 변색</text>
+        <text x="560" y="186" class="t-dim">· ΔE00의 회전항, IPT·OKLab의</text>
+        <text x="560" y="206" class="t-dim">  색상 선형성 설계 동기</text>
+        <text x="560" y="250" class="t-mono">개념도 · 곡률은 과장됨</text>
+      </svg>
+      <figcaption><b>그림 9-5.</b> Abney 효과. 단색 파랑과 백색의 혼합은 색도도에서 직선(점선) 위에 놓이지만, 지각상 같은 색상을 유지하려면 곡선(실선)을 따라가야 한다. 가멋 매핑에서 채도를 줄일 때 "직선으로 백색점을 향해" 줄이면 파랑이 보라로 변하는 이유다.</figcaption>
+    </figure>
+    <div class="callout tip">
+      <strong>공학자 관점 — 가멋 매핑과 그라데이션</strong>
+      <p>Rec.2020 파랑을 sRGB로 매핑할 때 xy나 CIELAB에서 색상각을 고정하면 결과가 보라로 보이는 경우가 많다. 이 때문에 가멋 매핑과 그라데이션 보간은 색상 선형성이 개선된 공간(CAM16-UCS, IPT, OKLab, ICtCp)에서 하는 것이 일반적이다(<a href="rgb.html">5장</a>, <a href="hdr.html">14장</a>). H–K 효과는 반대로 "같은 Y로 맞췄는데 버튼 색마다 밝기가 다르다"는 UI 문제로 나타난다(<a href="dataviz.html">18장</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="surround">
+    <h2>주변 조건과 Bartleson–Breneman 효과</h2>
+    <p>Bartleson과 Breneman(1967)은 같은 사진을 밝은·어두운 주변에서 보게 하고 지각되는 명도 척도를 측정했다. 주변이 어두워질수록 장면의 <strong>지각 대비가 낮아진다</strong>. 어두운 영역이 덜 어둡게, 즉 들떠 보인다. 이를 보상하려면 재현 시스템 전체의 감마(장면 휘도 → 화면 휘도의 로그 기울기)를 올려야 한다. 흔히 인용되는 권장값은 average 주변에서 1.0, dim에서 약 1.25, dark에서 약 1.5다. 영화 필름이 TV보다 높은 시스템 감마로 설계된 이유가 이것이다.</p>
+    <p>CAM16은 이 효과를 주변 파라미터 c로 표현한다. 명도는 무채색 신호 비의 거듭제곱이다.</p>
+    <div class="formula">$$J = 100\left(\frac{A}{A_w}\right)^{c\,z}$$<div class="where">c는 주변에 따른 지수, \(z = 1.48 + \sqrt{n}\), \(n = Y_b/Y_w\). c가 작을수록(어두운 주변) 같은 A/A<sub>w</sub>에서 J가 커진다. 즉 어두운 부분이 더 밝게(들떠) 보인다.</div></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>주변</th><th class="num">S<sub>R</sub></th><th class="num">F</th><th class="num">c</th><th class="num">N<sub>c</sub></th><th>대표 상황</th></tr></thead>
+      <tbody>
+        <tr><td>average</td><td class="num">≥ 0.2</td><td class="num">1.0</td><td class="num">0.69</td><td class="num">1.0</td><td>표면색 관찰, 사무실 모니터, 인쇄 평가</td></tr>
+        <tr><td>dim</td><td class="num">0 – 0.2</td><td class="num">0.9</td><td class="num">0.59</td><td class="num">0.9</td><td>거실 TV, 마스터링 룸</td></tr>
+        <tr><td>dark</td><td class="num">0</td><td class="num">0.8</td><td class="num">0.525</td><td class="num">0.8</td><td>영화관, 암실 프로젝션</td></tr>
+      </tbody>
+    </table></div>
+    <p>두 조건에서 같은 J를 내려면 \(A_2/A_{w2} = (A_1/A_{w1})^{c_1/c_2}\)이어야 한다. A는 비선형 압축 후 신호라 휘도에 대해 대략 거듭제곱이므로, 필요한 톤 곡선은 기울기 \(c_1/c_2\)의 로그–로그 직선에 가깝다. average → dim이면 0.69/0.59 = 1.17, average → dark이면 0.69/0.525 = 1.31이다. Bartleson–Breneman/Hunt 권장값(1.25, 1.5)보다 조금 작지만 방향과 크기가 같다.</p>
+    <div class="sim" id="sim-bb">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>주변 조건 보정 곡선 — CAM16으로 계산한 시스템 감마</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-bb"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>기준(원본) 주변</span><div class="seg" id="bb-ref"><button data-value="average" class="on">average</button><button data-value="dim">dim</button></div></div>
+          <label class="ctrl"><span>기준 L<sub>A</sub> <output id="bb-la1-out"></output></span><input type="range" id="bb-la1" min="-1" max="3" step="0.02" value="1.2"></label>
+          <div class="ctrl"><span>대상 주변</span><div class="seg" id="bb-sur"><button data-value="average">average</button><button data-value="dim">dim</button><button data-value="dark" class="on">dark</button></div></div>
+          <label class="ctrl"><span>대상 L<sub>A</sub> <output id="bb-la2-out"></output></span><input type="range" id="bb-la2" min="-1" max="3" step="0.02" value="0.98"></label>
+        </div>
+      </div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>CAM16 대응 곡선</span><span><i style="background:var(--text-faint)"></i>항등(γ = 1)</span><span><i style="background:var(--accent-2)"></i>γ = 1.25, 1.5 참고선</span></div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">유효 시스템 감마 (Y 2–50%)</span><span class="v" id="o-bb-g">—</span></div>
+        <div class="stat"><span class="k">18% 회색 → 대상 Y</span><span class="v" id="o-bb-18">—</span></div>
+        <div class="stat"><span class="k">18% 회색의 J (원본 그대로 표시 시)</span><span class="v" id="o-bb-J">—</span></div>
+        <div class="stat"><span class="k">c₁ / c₂</span><span class="v" id="o-bb-c">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: 각 회색(가로축, 원본 조건의 상대 휘도)에 대해 원본 조건에서의 CAM16 J, C, h를 구하고, 역방향 모델로 대상 조건에서 같은 J, C, h를 내는 Y를 찾았다(세로축). 기본값은 sRGB 관측(average, L<sub>A</sub> 16) → 영화관(dark, L<sub>A</sub> 9.6)이다. 18% 회색은 약 10.5%로 내려가야 같은 명도로 보인다. 아래 띠는 위가 원본, 아래가 보정된 계조다. 대상 L<sub>A</sub>를 바꿔도 기울기는 거의 변하지 않는다는 점에 주목하자. CAM16에서 이 보정을 지배하는 것은 휘도 수준이 아니라 c다.</div>
+    </div>
+    <div class="callout">
+      <strong>실무 수치 — 시스템 감마</strong>
+      <p>SDR 방송은 카메라 OETF(BT.709, 대략 0.5 거듭제곱)와 디스플레이 EOTF(BT.1886, 2.4)를 곱한 전체 감마가 약 1.2로, dim 주변 보정을 포함한다. HLG(ITU-R BT.2100)는 디스플레이 최대 휘도 \(L_W\)에 따라 시스템 감마를 \(\gamma = 1.2 + 0.42\log_{10}(L_W/1000)\)로 바꾸도록 규정한다. 화면이 밝을수록(Stevens 효과로 대비가 높아 보이므로) 감마를 더 올리는 구조이며, ITU-R BT.2390은 주변 휘도에 따른 추가 조정도 다룬다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="cam16">
+    <h2>CIECAM02와 CAM16의 구조</h2>
+    <p>CIECAM02(CIE 159:2004)는 Hunt 모델과 RLAB, LLAB 등을 정리해 만든 CIE 권장 모델이다. 실무에서 쓰이는 동안 몇 가지 문제가 드러났다. 순응 변환(CAT02)과 원추 공간(Hunt–Pointer–Estévez)이 서로 달라 두 번 행렬을 거치고, 가멋 경계 근처의 일부 색에서 음수 신호가 생겨 계산이 깨졌다. Li 등(2017)의 <strong>CAM16</strong>은 하나의 행렬 M<sub>16</sub>으로 순응과 압축을 모두 수행해 구조를 단순화하고 이 문제를 줄였다. CIE는 이를 CIECAM16(CIE 248:2022)으로 채택했다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 330" role="img" aria-label="CAM16 계산 흐름도">
+        <defs>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <rect x="14" y="40" width="110" height="60" rx="10" class="f-acc-soft"/>
+        <text x="69" y="66" text-anchor="middle" class="t-acc">XYZ</text>
+        <text x="69" y="86" text-anchor="middle" class="t-mono">Y_w = 100 기준</text>
+        <rect x="150" y="40" width="130" height="60" rx="10" class="f-elev"/>
+        <text x="215" y="66" text-anchor="middle" class="t">M₁₆ → RGB</text>
+        <text x="215" y="86" text-anchor="middle" class="t-mono">원추 유사 신호</text>
+        <rect x="306" y="40" width="140" height="60" rx="10" class="f-elev"/>
+        <text x="376" y="66" text-anchor="middle" class="t">CAT16 순응</text>
+        <text x="376" y="86" text-anchor="middle" class="t-mono">R_c = D_R · R</text>
+        <rect x="472" y="40" width="150" height="60" rx="10" class="f-elev"/>
+        <text x="547" y="66" text-anchor="middle" class="t">비선형 압축</text>
+        <text x="547" y="86" text-anchor="middle" class="t-mono">R_a (F_L, ^0.42)</text>
+        <rect x="648" y="40" width="140" height="60" rx="10" class="f-elev"/>
+        <text x="718" y="66" text-anchor="middle" class="t">반대색 신호</text>
+        <text x="718" y="86" text-anchor="middle" class="t-mono">a, b, A</text>
+        <line x1="124" y1="70" x2="148" y2="70" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="280" y1="70" x2="304" y2="70" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="446" y1="70" x2="470" y2="70" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="622" y1="70" x2="646" y2="70" class="s-line" marker-end="url(#ar3)"/>
+        <!-- params -->
+        <rect x="150" y="150" width="296" height="70" rx="10" class="f-surface"/>
+        <text x="298" y="174" text-anchor="middle" class="t">관측 조건</text>
+        <text x="298" y="196" text-anchor="middle" class="t-mono">XYZ_w · L_A · Y_b · surround(F, c, N_c)</text>
+        <text x="298" y="212" text-anchor="middle" class="t-mono">→ D, F_L, n, z, N_bb, A_w</text>
+        <line x1="300" y1="150" x2="370" y2="102" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="400" y1="150" x2="530" y2="102" class="s-line" marker-end="url(#ar3)"/>
+        <!-- outputs -->
+        <rect x="480" y="150" width="308" height="160" rx="10" class="f-acc2-soft"/>
+        <text x="634" y="176" text-anchor="middle" class="t">외관 상관량</text>
+        <text x="500" y="204" class="t-mono">h = atan2(b, a), H (색상 사분위)</text>
+        <text x="500" y="226" class="t-mono">J = 100 (A/A_w)^(cz)</text>
+        <text x="500" y="248" class="t-mono">Q = (4/c)√(J/100)(A_w+4)F_L^¼</text>
+        <text x="500" y="270" class="t-mono">C = t^0.9 √(J/100)(1.64−0.29ⁿ)^0.73</text>
+        <text x="500" y="292" class="t-mono">M = C F_L^¼ ,  s = 100√(M/Q)</text>
+        <line x1="718" y1="100" x2="718" y2="148" class="s-line" marker-end="url(#ar3)"/>
+        <text x="14" y="160" class="t-dim">CIECAM02와의 차이</text>
+        <text x="14" y="182" class="t-mono">· CAT02 + HPE 두 행렬</text>
+        <text x="14" y="200" class="t-mono">  → M₁₆ 하나</text>
+        <text x="14" y="222" class="t-mono">· D를 [0, 1]로 제한</text>
+        <text x="14" y="244" class="t-mono">· 나머지 식은 동일</text>
+      </svg>
+      <figcaption><b>그림 9-6.</b> CAM16 순방향 계산 흐름. 관측 조건에서 상수를 먼저 구하고(백색도 같은 파이프라인을 통과시켜 A<sub>w</sub>를 얻는다), 자극을 순응 → 압축 → 반대색 신호로 바꾼 뒤 각 외관 상관량을 계산한다.</figcaption>
+    </figure>
+    <h3>1단계 — 관측 조건 상수</h3>
+    <div class="formula">$$D = F\left[1 - \frac{1}{3.6}\,e^{(-L_A-42)/92}\right]\ (\text{0–1로 제한}),\quad n = \frac{Y_b}{Y_w},\quad z = 1.48+\sqrt n,\quad N_{bb}=N_{cb}=0.725\,n^{-0.2}$$<div class="where">D는 순응 정도(1이면 완전 순응). 자체 발광 화면처럼 관측자가 완전히 순응한다고 볼 수 있으면 D = 1로 두기도 한다.</div></div>
+    <h3>2단계 — CAT16 순응</h3>
+    <div class="formula">$$\begin{bmatrix}R\\G\\B\end{bmatrix} = M_{16}\begin{bmatrix}X\\Y\\Z\end{bmatrix},\quad M_{16}=\begin{bmatrix}0.401288 & 0.650173 & -0.051461\\ -0.250268 & 1.204414 & 0.045854\\ -0.002079 & 0.048952 & 0.953127\end{bmatrix},\quad R_c = \left(D\frac{Y_w}{R_w} + 1 - D\right)R$$<div class="where">G, B도 같은 식. R<sub>w</sub>, G<sub>w</sub>, B<sub>w</sub>는 백색 XYZ<sub>w</sub>에 M<sub>16</sub>을 곱한 값. D = 1이면 von Kries 스케일링과 같다(<a href="adaptation.html">8장</a>).</div></div>
+    <h3>3단계 — 비선형 압축과 반대색 신호</h3>
+    <div class="formula">$$R_a = \frac{400\,(F_L R_c/100)^{0.42}}{(F_L R_c/100)^{0.42} + 27.13} + 0.1$$
+    $$a = R_a - \frac{12G_a}{11} + \frac{B_a}{11},\quad b = \frac{R_a + G_a - 2B_a}{9},\quad A = \left(2R_a + G_a + 0.05B_a - 0.305\right)N_{bb}$$<div class="where">음수 R<sub>c</sub>는 부호를 유지해 |R<sub>c</sub>|로 계산한다. 압축 함수는 낮은 휘도에서 거듭제곱(0.42), 높은 휘도에서 포화하는 Michaelis–Menten형이다. A<sub>w</sub>는 백색에 대한 A.</div></div>
+    <h3>4단계 — 외관 상관량</h3>
+    <div class="formula">$$h = \operatorname{atan2}(b,a),\quad e_t = \tfrac14\left[\cos\!\left(h\tfrac{\pi}{180}+2\right)+3.8\right],\quad t = \frac{\frac{50000}{13}N_c N_{cb}\,e_t\sqrt{a^2+b^2}}{R_a + G_a + \frac{21}{20}B_a}$$
+    $$J = 100\left(\frac{A}{A_w}\right)^{cz},\quad Q = \frac4c\sqrt{\frac{J}{100}}\,(A_w+4)\,F_L^{0.25},\quad C = t^{0.9}\sqrt{\frac{J}{100}}\,(1.64-0.29^n)^{0.73}$$
+    $$M = C\,F_L^{0.25},\qquad s = 100\sqrt{M/Q}$$<div class="where">색상 사분위 H는 고유 색상 각도 h<sub>i</sub> = 20.14(빨강), 90.00(노랑), 164.25(초록), 237.53(파랑)와 이심률 e<sub>i</sub> = 0.8, 0.7, 1.0, 1.2로 \(H = H_i + \frac{100\,(h-h_i)/e_i}{(h-h_i)/e_i + (h_{i+1}-h)/e_{i+1}}\). H = 0, 100, 200, 300이 각각 고유 빨강·노랑·초록·파랑이다.</div></div>
+    <div class="sim" id="sim-cam">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>CAM16 계산기 — 순응 휘도에 따른 Q·M 변화</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cam"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>프리셋</span><div class="seg" id="cam-pre"><button data-value="red" class="on">빨강</button><button data-value="skin">피부</button><button data-value="sky">하늘</button><button data-value="gray">회색</button></div></div>
+          <label class="ctrl"><span>sRGB R <output id="cam-r-out"></output></span><input type="range" id="cam-r" min="0" max="255" step="1" value="255"></label>
+          <label class="ctrl"><span>sRGB G <output id="cam-g-out"></output></span><input type="range" id="cam-g" min="0" max="255" step="1" value="0"></label>
+          <label class="ctrl"><span>sRGB B <output id="cam-b-out"></output></span><input type="range" id="cam-b" min="0" max="255" step="1" value="0"></label>
+          <label class="ctrl"><span>순응 휘도 L<sub>A</sub> <output id="cam-la-out"></output></span><input type="range" id="cam-la" min="-1" max="4" step="0.02" value="1.2"></label>
+          <label class="ctrl"><span>배경 Y<sub>b</sub> <output id="cam-yb-out"></output></span><input type="range" id="cam-yb" min="5" max="50" step="1" value="20"></label>
+          <div class="ctrl"><span>주변</span><div class="seg" id="cam-sur"><button data-value="average" class="on">average</button><button data-value="dim">dim</button><button data-value="dark">dark</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">입력 (D65, Y<sub>w</sub>=100)</span><span class="v" id="o-cam-x">—</span></div>
+        <div class="stat"><span class="k">명도 J</span><span class="v" id="o-cam-J">—</span></div>
+        <div class="stat"><span class="k">채도 C</span><span class="v" id="o-cam-C">—</span></div>
+        <div class="stat"><span class="k">색상 h / H</span><span class="v" id="o-cam-h">—</span></div>
+        <div class="stat"><span class="k">밝기 Q</span><span class="v" id="o-cam-Q">—</span></div>
+        <div class="stat"><span class="k">컬러풀니스 M</span><span class="v" id="o-cam-M">—</span></div>
+        <div class="stat"><span class="k">포화도 s</span><span class="v" id="o-cam-s">—</span></div>
+        <div class="stat"><span class="k">F<sub>L</sub> · D · z · A<sub>w</sub></span><span class="v" id="o-cam-par">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: L<sub>A</sub>를 0.1에서 10,000 cd/m²까지 움직이면 J와 C(점선)는 거의 그대로인데 Q와 M(실선)은 계속 커진다. 이것이 모델 안의 Hunt·Stevens 효과다. 주변을 dark로 바꾸면 J가 커지고(같은 색이 더 밝은 명도로 보임) Q는 c가 작아져 오히려 커진다. 회색 프리셋에서 C가 0이 아닌 이유는 D &lt; 1이라 순응이 불완전하기 때문이다. L<sub>A</sub>를 올려 D → 1이 되면 C가 0에 가까워진다.</div>
+    </div>
+    <p>구현 검증에는 CIE 159:2004의 CIECAM02 예제가 표준처럼 쓰인다. XYZ = (19.31, 23.93, 10.14), XYZ<sub>w</sub> = (98.88, 90.00, 32.03), L<sub>A</sub> = 200, Y<sub>b</sub> = 18, average에서 CIECAM02는 J = 48.03, C = 38.78, h = 191.05, Q = 183.12, s = 46.02를 준다. 이 장의 스크립트에서 행렬만 CAT02 + HPE로 바꾸면 이 값이 소수 넷째 자리까지 재현된다. 같은 입력을 CAM16으로 계산하면 J = 47.38, C = 40.64, h = 191.27, Q = 181.87, s = 47.27로, 행렬 차이 때문에 수 % 다르다. 또 D65 백색(L<sub>A</sub> = 318.31, Y<sub>b</sub> = 20)에서 XYZ = (19.01, 20.00, 21.78)에 대해 J = 41.73, C = 0.1034, h = 217.07을 주며, 이는 colour-science 라이브러리의 CAM16 예제값과 일치한다.</p>
+    <p>표준 관측 조건의 실제 수치 하나로 정리하자. sRGB 빨강 #FF0000(D65, L<sub>A</sub> = 16, Y<sub>b</sub> = 20, average)의 CAM16 값은 <strong>J = 46.14, C = 112.92, h = 27.41°, Q = 110.9, M = 91.5, s = 90.8</strong>이다. 같은 빨강을 L<sub>A</sub> = 1,000(밝은 야외 수준)에서 보면 J = 46.67, C = 114.34로 거의 같지만 Q = 262.0, M = 130.8로 커진다.</p>
+    <div class="callout warn">
+      <strong>구현 시 흔한 실수</strong>
+      <p>① XYZ를 0–1 스케일로 넣는다. 식의 상수(F<sub>L</sub>R<sub>c</sub>/100, 27.13 등)는 Y<sub>w</sub> = 100을 전제로 한다. ② 색상각을 degree로 계산한 뒤 e<sub>t</sub>의 cos 안에 그대로 넣는다(+2는 라디안이다). ③ D를 백색 순응 휘도 대신 백색 휘도로 계산한다. ④ 음수 R<sub>c</sub>에서 0.42 거듭제곱을 그대로 취해 NaN을 만든다. 부호를 분리해야 한다.</p>
+    </div>
+    <h3>역방향 모델과 대응색</h3>
+    <p>CAM16은 해석적으로 역변환된다. J, C, h(또는 Q, M, h)와 관측 조건이 주어지면 t = (C / (√(J/100)(1.64 − 0.29<sup>n</sup>)<sup>0.73</sup>))<sup>1/0.9</sup>, A = A<sub>w</sub>(J/100)<sup>1/(cz)</sup>에서 a, b를 풀고, R<sub>a</sub>, G<sub>a</sub>, B<sub>a</sub> → 압축 역함수 → D<sub>R</sub>로 나누기 → M<sub>16</sub><sup>−1</sup>로 XYZ를 얻는다. 한 조건의 색을 순방향으로 보내고 다른 조건에서 역방향으로 돌아오면 <span class="term">대응색</span><span class="en">(corresponding colour)</span>, 즉 다른 조건에서 같은 외관을 내는 XYZ가 나온다. 색 관리 시스템(<a href="management.html">16장</a>)의 외관 기반 변환이 이 구조다.</p>
+    <div class="sim" id="sim-corr">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>대응색 — 조건이 바뀌어도 같은 외관을 내는 XYZ</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-corr"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>원본 색 (ColorChecker 근사)</span><div class="seg" id="corr-col"><button data-value="0" class="on">피부</button><button data-value="1">하늘</button><button data-value="2">잎</button><button data-value="3">빨강</button><button data-value="4">노랑</button><button data-value="5">회색</button></div></div>
+          <div class="ctrl"><span>조건 1 주변</span><div class="seg" id="corr-s1"><button data-value="average" class="on">average</button><button data-value="dim">dim</button><button data-value="dark">dark</button></div></div>
+          <label class="ctrl"><span>조건 1 L<sub>A</sub> <output id="corr-la1-out"></output></span><input type="range" id="corr-la1" min="-1" max="4" step="0.02" value="2.1"></label>
+          <div class="ctrl"><span>조건 2 주변</span><div class="seg" id="corr-s2"><button data-value="average">average</button><button data-value="dim">dim</button><button data-value="dark" class="on">dark</button></div></div>
+          <label class="ctrl"><span>조건 2 L<sub>A</sub> <output id="corr-la2-out"></output></span><input type="range" id="corr-la2" min="-1" max="4" step="0.02" value="0.98"></label>
+          <div class="ctrl"><span>일치시킬 속성</span><div class="seg" id="corr-mode"><button data-value="rel" class="on">상대 (J, C, h)</button><button data-value="abs">절대 (Q, M, h)</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">조건 1: XYZ → J, C, h</span><span class="v" id="o-corr-1">—</span></div>
+        <div class="stat"><span class="k">조건 1: Q, M</span><span class="v" id="o-corr-q">—</span></div>
+        <div class="stat"><span class="k">조건 2에 필요한 XYZ</span><span class="v" id="o-corr-2">—</span></div>
+        <div class="stat"><span class="k">Y 비 / 판정</span><span class="v" id="o-corr-r">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: 기본값은 밝은 평가 부스(average, L<sub>A</sub> ≈ 126)에서 본 색을 영화관(dark, L<sub>A</sub> 9.6)에서 같은 명도·채도로 보이게 하는 경우다. 상대 일치에서는 어두운 주변 때문에 Y를 낮춰야 한다. 절대 일치로 바꾸면 조건 2의 휘도가 낮아 같은 밝기 Q를 내려면 백색보다 밝은 Y(&gt; 100)가 필요해지는 경우가 많다. 화면 백색보다 밝은 색은 만들 수 없으므로, 어두운 환경에서 밝은 환경의 "절대 외관"을 재현하는 것은 원리적으로 불가능하다. 오른쪽 견본은 상대 XYZ를 sRGB로 그린 것이며 Y &gt; 100이나 가멋 밖은 클리핑된다.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="ucs">
+    <h2>CAM16-UCS와 색차</h2>
+    <p>CAM16의 J, M, h는 외관 속성을 예측하지만, 그 공간에서의 유클리드 거리가 지각 색차와 비례하지는 않는다. Luo, Cui, Li(2006)는 CIECAM02 위에 색차 데이터에 맞춘 비선형 변환을 얹어 균등 색공간 CAM02-UCS를 만들었고, 같은 식을 CAM16에 적용한 것이 <strong>CAM16-UCS</strong>다(<a href="uniform.html">7장</a>의 CIELAB·ΔE00와 비교).</p>
+    <div class="formula">$$J' = \frac{(1+100c_1)\,J}{1+c_1 J},\qquad M' = \frac{1}{c_2}\ln(1+c_2 M),\qquad a' = M'\cos h,\quad b' = M'\sin h$$
+    $$\Delta E' = \sqrt{\left(\Delta J'/K_L\right)^2 + \Delta a'^2 + \Delta b'^2}$$<div class="where">UCS: K<sub>L</sub> = 1, c<sub>1</sub> = 0.007, c<sub>2</sub> = 0.0228. 큰 색차용 LCD: K<sub>L</sub> = 0.77, c<sub>2</sub> = 0.0053, 작은 색차용 SCD: K<sub>L</sub> = 1.24, c<sub>2</sub> = 0.0363(c<sub>1</sub>은 모두 0.007). J′ = 1.7J/(1 + 0.007J)이므로 J = 100이면 J′ = 100.</div></div>
+    <p>CIELAB과 달리 CAM16-UCS의 색차는 관측 조건에 따라 달라진다. 같은 두 색이라도 L<sub>A</sub>가 커지면 M이 커지므로 유채색 방향의 거리 Δa′, Δb′가 늘어난다. 밝은 환경에서 색 차이가 더 잘 보인다는 경험과 일치한다. 대신 M′의 로그 압축 때문에 증가는 완만하다.</p>
+    <div class="sim" id="sim-ucs">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>ΔE76 · ΔE00 · ΔE CAM16-UCS 비교</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-ucs"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>색 1 (sRGB)</span><input type="color" id="ucs-c1" value="#3c50b4"></label>
+          <label class="ctrl"><span>색 2 (sRGB)</span><input type="color" id="ucs-c2" value="#4b46b4"></label>
+          <label class="ctrl"><span>순응 휘도 L<sub>A</sub> <output id="ucs-la-out"></output></span><input type="range" id="ucs-la" min="-1" max="4" step="0.02" value="1.8"></label>
+          <div class="ctrl"><span>주변</span><div class="seg" id="ucs-sur"><button data-value="average" class="on">average</button><button data-value="dim">dim</button><button data-value="dark">dark</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">ΔE*<sub>ab</sub> (76)</span><span class="v" id="o-ucs-76">—</span></div>
+        <div class="stat"><span class="k">ΔE00</span><span class="v" id="o-ucs-00">—</span></div>
+        <div class="stat"><span class="k">ΔE CAM16-UCS</span><span class="v" id="o-ucs-16">—</span></div>
+        <div class="stat"><span class="k">J′a′b′ (색 1 / 색 2)</span><span class="v" id="o-ucs-p">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: 그래프는 a′b′ 평면이며 외곽선은 sRGB 가멋의 최대 채도 경계(R→Y→G→C→B→M)를 같은 조건으로 변환한 것이다. 기본값은 파랑과 그보다 약간 보라 쪽 파랑으로, CIELAB(ΔE76)이 파랑 영역의 차이를 과대평가하는 경향이 ΔE00와 CAM16-UCS에서 어떻게 줄어드는지 보자. L<sub>A</sub>를 올리면 가멋 외곽선과 ΔE CAM16-UCS가 함께 커진다(Hunt 효과). 회색끼리 비교하면 세 척도가 비슷해진다.</div>
+    </div>
+    <div class="callout tip">
+      <strong>공학자 관점 — 어떤 ΔE를 쓸까</strong>
+      <p>산업 허용차의 계약·규격은 여전히 ΔE00(ISO/CIE 11664-6)가 기본이다. CAM16-UCS는 관측 조건이 서로 다르거나 HDR처럼 휘도 수준이 크게 바뀌는 경우, 그리고 가멋 매핑·보간처럼 공간 자체가 필요한 경우에 장점이 있다. 둘을 섞어 보고할 때는 반드시 어느 척도인지와 관측 조건(L<sub>A</sub>, Y<sub>b</sub>, 주변)을 함께 적어야 한다. CAM16-UCS의 "ΔE = 1"과 ΔE00의 "1"은 같은 크기가 아니다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 10 -->
+  <section id="applications">
+    <h2>응용: 주변광 적응, 영화관, HDR, 이미지 외관 모델</h2>
+    <h3>디스플레이의 주변광 적응</h3>
+    <p>스마트폰과 노트북은 조도 센서(일부는 색온도 센서)로 주변광을 측정해 화면을 조정한다. 외관 모델의 관점에서 이것은 관측 조건 입력을 실시간으로 바꾸고, 같은 외관을 유지하는 대응색을 구하는 문제다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="주변광 센서 기반 디스플레이 외관 보정 파이프라인">
+        <defs>
+          <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <rect x="14" y="30" width="150" height="70" rx="10" class="f-surface"/>
+        <text x="89" y="58" text-anchor="middle" class="t">주변광 센서</text>
+        <text x="89" y="80" text-anchor="middle" class="t-mono">E [lx], CCT</text>
+        <rect x="200" y="30" width="180" height="70" rx="10" class="f-elev"/>
+        <text x="290" y="58" text-anchor="middle" class="t">관측 조건 추정</text>
+        <text x="290" y="80" text-anchor="middle" class="t-mono">L_A, 주변, 백색점</text>
+        <rect x="416" y="14" width="200" height="34" rx="8" class="f-acc-soft"/>
+        <text x="516" y="36" text-anchor="middle" class="t">① 백색 휘도 (밝기)</text>
+        <rect x="416" y="58" width="200" height="34" rx="8" class="f-acc-soft"/>
+        <text x="516" y="80" text-anchor="middle" class="t">② 톤 곡선 (감마·흑 리프트)</text>
+        <rect x="416" y="102" width="200" height="34" rx="8" class="f-acc-soft"/>
+        <text x="516" y="124" text-anchor="middle" class="t">③ 백색점 (CAT)</text>
+        <rect x="652" y="40" width="134" height="70" rx="10" class="f-elev"/>
+        <text x="719" y="68" text-anchor="middle" class="t">패널 구동</text>
+        <text x="719" y="90" text-anchor="middle" class="t-mono">EOTF · 3D LUT</text>
+        <line x1="164" y1="65" x2="198" y2="65" class="s-line" marker-end="url(#ar4)"/>
+        <line x1="380" y1="65" x2="414" y2="32" class="s-line" marker-end="url(#ar4)"/>
+        <line x1="380" y1="65" x2="414" y2="75" class="s-line" marker-end="url(#ar4)"/>
+        <line x1="380" y1="65" x2="414" y2="118" class="s-line" marker-end="url(#ar4)"/>
+        <line x1="616" y1="75" x2="650" y2="75" class="s-line" marker-end="url(#ar4)"/>
+        <text x="14" y="170" class="t-dim">밝은 환경: 반사광이 흑을 들어 올림(ambient flare) → 대비 감소 → 흑 근처를 더 내리고 백색 휘도를 올린다</text>
+        <text x="14" y="196" class="t-dim">어두운 환경: Bartleson–Breneman → 같은 콘텐츠도 대비가 약해 보임 → 감마를 올리고 백색 휘도는 낮춘다</text>
+        <text x="14" y="222" class="t-dim">따뜻한 실내 조명: 관측자의 백색이 이동 → CAT로 화면 백색을 부분 이동(완전 순응은 아님)</text>
+      </svg>
+      <figcaption><b>그림 9-7.</b> 주변광 적응 디스플레이의 구조. 밝기만 바꾸는 단순 자동 밝기와 달리 외관 기반 보정은 톤 곡선과 백색점까지 함께 바꾼다. 화면은 자체 발광이라 관측자가 주변광과 화면 백색 사이 어딘가에 순응하므로 백색점 이동은 부분적으로만 한다.</figcaption>
+    </figure>
+    <p>밝은 환경에서는 외관 효과보다 먼저 물리적 문제가 생긴다. 화면 표면이 반사하는 주변광이 모든 화소에 더해져 흑 수준이 올라간다. 반사율 1%의 화면에 10,000 lx가 비치면 반사 휘도는 약 10,000 × 0.01 / π ≈ 32 cd/m²로, 1,000 cd/m² 백색이라도 명암비는 약 32:1로 떨어진다. 이 플레어를 측정 모델로 더한 뒤(<a href="display.html">13장</a>), 남은 지각 차이를 외관 모델로 보정하는 두 단계가 정석이다.</p>
+    <h3>영화관과 마스터링</h3>
+    <p>영화는 dark 주변, 48 cd/m² 백색에서 보이도록 그레이딩된다. 같은 마스터를 dim 거실 TV용으로 바꿀 때 컬러리스트가 대비를 낮추고 중간 톤을 올리는 '트림 패스'를 하는 이유가 §7의 c<sub>1</sub>/c<sub>2</sub>다. 반대로 TV 마스터를 영화관에 걸면 대비가 부족하고 들떠 보인다.</p>
+    <h3>HDR 톤 매핑</h3>
+    <p>HDR 콘텐츠를 피크 휘도가 낮은 화면에 표시하는 톤 매핑(<a href="hdr.html">14장</a>)은 휘도 범위를 압축하는 동시에 Hunt·Stevens 효과로 인한 외관 변화를 상쇄해야 한다. 휘도를 줄이면 컬러풀니스가 줄어드므로 채도를 약간 올려 보상하는 것이 일반적이고, 반대로 색 채널마다 독립적으로 톤 곡선을 걸면 Abney·H–K 효과와 겹쳐 색상이 틀어진다. ICtCp(ITU-R BT.2100)와 같은 지각 기반 공간에서 명도와 색을 분리해 처리하는 것이 이 때문이다.</p>
+    <h3>이미지 외관 모델</h3>
+    <p>CAM16은 균일한 배경 위 패치 하나를 다룬다. 실제 영상은 화소마다 주변이 다르므로, 순응 휘도·백색·배경을 영상의 저역 통과 필터로 화소마다 추정하는 <strong>이미지 외관 모델</strong>이 제안되었다. Fairchild와 Johnson의 iCAM과, HDR 렌더링을 위한 iCAM06이 대표적이다. 이들은 공간 필터로 국소 순응을 계산해 동시 대비와 국소 톤 매핑을 함께 다루지만, 아직 CIE 표준으로 정해진 이미지 외관 모델은 없다.</p>
+    <div class="callout">
+      <strong>정리 — 언제 외관 모델이 필요한가</strong>
+      <p>원본과 재현의 <strong>관측 조건이 같다</strong>면 XYZ(또는 CIELAB) 일치로 충분하다. 백색점만 다르면 CAT(<a href="adaptation.html">8장</a>)로 충분하다. 휘도 수준이나 주변 조건이 다르면 CAM16 같은 외관 모델이 필요하다. 공간 구조(문양, 국소 대비)까지 문제면 이미지 외관 모델의 영역이다.</p>
+    </div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>XYZ는 같은 조건에서의 일치만 보장한다. 외관은 공간 문맥, 순응 휘도·백색, 주변 조건에 따라 달라진다.</li>
+      <li>절대 속성은 밝기 Q, 컬러풀니스 M. 상대 속성은 명도 J(백색 기준), 채도 C(백색 기준), 포화도 s(자기 밝기 기준). 색상 h, H.</li>
+      <li>동시 대비·크리스프닝·동화는 공간 유도 현상으로, 배경을 스칼라 Y<sub>b</sub>로만 받는 CAM16은 표현하지 못한다.</li>
+      <li>Hunt(휘도↑ → M↑), Stevens(휘도↑ → 밝기 대비↑)는 CAM16에서 F<sub>L</sub>을 통해 나타난다. L<sub>A</sub> 1 → 1,000에서 F<sub>L</sub> 0.172 → 1.710.</li>
+      <li>H–K 효과(고채도 색이 더 밝아 보임)와 Abney 효과(백색 혼합 시 색상 이동, 특히 파랑 → 보라)는 Y나 xy 직선으로 설명되지 않는다.</li>
+      <li>Bartleson–Breneman: 어두운 주변에서 지각 대비가 감소한다. CAM16에서 필요한 보정 기울기는 c<sub>1</sub>/c<sub>2</sub> = 1.17(average→dim), 1.31(average→dark).</li>
+      <li>CAM16 = M<sub>16</sub> → CAT16(D) → 비선형 압축(F<sub>L</sub>, 0.42) → a, b, A → J, C, h, Q, M, s. 해석적 역변환으로 대응색을 구한다.</li>
+      <li>sRGB #FF0000(L<sub>A</sub> 16, Y<sub>b</sub> 20, average): J = 46.14, C = 112.92, h = 27.41°, M = 91.5.</li>
+      <li>CAM16-UCS: J′ = 1.7J/(1 + 0.007J), M′ = ln(1 + 0.0228M)/0.0228. 색차가 관측 조건에 의존한다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 맑은 날과 흐린 날 같은 빨간 우체통을 본다. 같은 장면의 흰 벽과 비교해 거의 변하지 않는 속성은?</p><div class="opts">
+        <button class="opt">밝기와 컬러풀니스</button><button class="opt" data-correct>명도와 채도</button><button class="opt">밝기와 채도</button><button class="opt">컬러풀니스와 포화도</button>
+      </div><div class="quiz-exp">명도와 채도는 비슷하게 조명된 백색을 기준으로 한 상대 속성이라 조명 수준이 바뀌어도 거의 일정하다. 밝기와 컬러풀니스는 절대 속성이라 맑은 날 더 크다.</div></div>
+
+      <div class="quiz-q"><p>2. 빨간 공의 그늘진 면과 밝은 면에서 거의 같게 유지되는 양은?</p><div class="opts">
+        <button class="opt">채도 C</button><button class="opt">명도 J</button><button class="opt" data-correct>포화도 s</button><button class="opt">밝기 Q</button>
+      </div><div class="quiz-exp">포화도는 자기 자신의 밝기에 대한 컬러풀니스다. 그늘에서는 밝기와 컬러풀니스가 함께 줄어 비율이 유지된다. 채도는 장면 백색 기준이라 그늘에서 줄어든다.</div></div>
+
+      <div class="quiz-q"><p>3. 80 cd/m² 백색의 모니터를 회색 세계 가정(Y<sub>b</sub> = 20)으로 볼 때 CAM16의 L<sub>A</sub>로 알맞은 값은?</p><div class="opts">
+        <button class="opt">80 cd/m²</button><button class="opt" data-correct>16 cd/m²</button><button class="opt">400 cd/m²</button><button class="opt">80/π cd/m²</button>
+      </div><div class="quiz-exp">L<sub>A</sub> = L<sub>W</sub>·Y<sub>b</sub>/Y<sub>w</sub> = 80 × 0.2 = 16 cd/m². 백색 휘도를 그대로 넣는 것은 흔한 실수다.</div></div>
+
+      <div class="quiz-q"><p>4. CAM16에서 L<sub>A</sub>를 10배로 올렸을 때 크게 증가하는 것은?</p><div class="opts">
+        <button class="opt">J와 C</button><button class="opt">h와 H</button><button class="opt" data-correct>Q와 M</button><button class="opt">J와 h</button>
+      </div><div class="quiz-exp">Q와 M은 F<sub>L</sub><sup>0.25</sup>에 비례하는 절대 속성이라 L<sub>A</sub>와 함께 증가한다(Hunt·Stevens). J, C는 A/A<sub>w</sub>와 t의 함수라 거의 그대로다.</div></div>
+
+      <div class="quiz-q"><p>5. 같은 영상을 dim 주변의 TV에서 dark 주변의 영화관으로 옮길 때 같은 외관을 내려면?</p><div class="opts">
+        <button class="opt">시스템 감마를 낮춘다</button><button class="opt" data-correct>시스템 감마를 높인다</button><button class="opt">백색점을 D50으로 바꾼다</button><button class="opt">아무것도 할 필요 없다</button>
+      </div><div class="quiz-exp">어두운 주변에서는 지각 대비가 떨어진다(Bartleson–Breneman). CAM16에서는 c가 0.59 → 0.525로 작아지므로 기울기 0.59/0.525 ≈ 1.12배의 감마 증가가 필요하다.</div></div>
+
+      <div class="quiz-q"><p>6. Y가 같은 파랑–보라 견본과 노랑 견본 중 더 밝아 보이는 쪽과 그 효과 이름은?</p><div class="opts">
+        <button class="opt">노랑, Hunt 효과</button><button class="opt" data-correct>파랑–보라, Helmholtz–Kohlrausch 효과</button><button class="opt">노랑, Abney 효과</button><button class="opt">둘이 같다, 측광 법칙</button>
+      </div><div class="quiz-exp">H–K 효과는 노랑에서 가장 작고 파랑·보라·빨강에서 크다. Fairchild–Pirrotta 근사로 L* 60, C* 40에서 노랑 L** 63.4, 파랑–보라 68.0이다.</div></div>
+
+      <div class="quiz-q"><p>7. 순수한 파랑을 백색 쪽으로 xy에서 직선으로 섞으면 보라 쪽으로 보이는 현상은?</p><div class="opts">
+        <button class="opt">Bezold–Brücke 효과</button><button class="opt">크리스프닝</button><button class="opt" data-correct>Abney 효과</button><button class="opt">Stevens 효과</button>
+      </div><div class="quiz-exp">Abney 효과는 백색 혼합(채도 변화)에 따른 색상 이동이다. Bezold–Brücke는 휘도 변화에 따른 색상 이동이다.</div></div>
+
+      <div class="quiz-q"><p>8. CAM16이 CIECAM02와 구조적으로 다른 점은?</p><div class="opts">
+        <button class="opt">주변 조건 파라미터를 없앴다</button><button class="opt">비선형 압축을 로그 함수로 바꿨다</button><button class="opt" data-correct>순응과 압축에 하나의 행렬 M<sub>16</sub>을 쓴다</button><button class="opt">J 대신 CIELAB L*를 쓴다</button>
+      </div><div class="quiz-exp">CIECAM02는 CAT02로 순응한 뒤 Hunt–Pointer–Estévez 공간으로 바꿔 압축했다. CAM16은 M<sub>16</sub> 하나로 두 단계를 수행하고 나머지 식은 거의 그대로다.</div></div>
+
+      <div class="quiz-q"><p>9. 회색 배경 위의 L* 48과 52 패치가 검은 배경 위에서보다 더 잘 구분되는 현상과, 그것을 CAM16이 표현하는가?</p><div class="opts">
+        <button class="opt">동화 — 표현한다</button><button class="opt" data-correct>크리스프닝 — 표현하지 못한다</button><button class="opt">Hunt 효과 — 표현한다</button><button class="opt">동시 대비 — 완전히 표현한다</button>
+      </div><div class="quiz-exp">크리스프닝은 배경과 비슷한 값 근처에서 차이가 확대되어 보이는 현상이다. CAM16은 배경을 Y<sub>b</sub>로 받아 z와 N<sub>bb</sub>에만 반영하므로 이런 국소 대비 확대는 표현하지 못한다.</div></div>
+
+      <div class="quiz-q"><p>10. CAM16-UCS에서 J = 100일 때 J′는?</p><div class="opts">
+        <button class="opt">170</button><button class="opt" data-correct>100</button><button class="opt">58.8</button><button class="opt">J′는 L<sub>A</sub>에 따라 다르다</button>
+      </div><div class="quiz-exp">J′ = 1.7 × 100 / (1 + 0.7) = 100. J′는 J만의 함수이며, 관측 조건 의존성은 J와 M을 통해 들어온다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  /* ================= CAM16 (Li et al. 2017; CIE 248:2022) ================= */
+  var M16 = [[0.401288, 0.650173, -0.051461], [-0.250268, 1.204414, 0.045854], [-0.002079, 0.048952, 0.953127]];
+  var M16i = CB.mat.inv(M16);
+  var SURR = { average: { F: 1, c: 0.69, Nc: 1 }, dim: { F: 0.9, c: 0.59, Nc: 0.9 }, dark: { F: 0.8, c: 0.525, Nc: 0.8 } };
+  var HQ = { h: [20.14, 90, 164.25, 237.53, 380.14], e: [0.8, 0.7, 1.0, 1.2, 0.8], H: [0, 100, 200, 300, 400] };
+  var W65 = CB.whiteXYZ("D65", 100);
+  var RAD = Math.PI / 180;
+
+  function viewing(LA, Yb, surround, Xw) {
+    Xw = Xw || W65;
+    var S = SURR[surround];
+    var k = 1 / (5 * LA + 1), k4 = k * k * k * k;
+    var FL = 0.2 * k4 * 5 * LA + 0.1 * (1 - k4) * (1 - k4) * Math.cbrt(5 * LA);
+    var D = CB.clamp(S.F * (1 - (1 / 3.6) * Math.exp((-LA - 42) / 92)), 0, 1);
+    var Yw = Xw[1], n = Yb / Yw, z = 1.48 + Math.sqrt(n), Nbb = 0.725 * Math.pow(n, -0.2);
+    var RGBw = CB.mat.vec(M16, Xw);
+    var DR = RGBw.map(function (v) { return D * Yw / v + 1 - D; });
+    var V = { F: S.F, c: S.c, Nc: S.Nc, LA: LA, Yb: Yb, FL: FL, FL4: Math.pow(FL, 0.25), D: D, n: n, z: z, Nbb: Nbb, Ncb: Nbb, DR: DR };
+    var w = RGBw.map(function (v, i) { return compress(v * DR[i], FL); });
+    V.Aw = (2 * w[0] + w[1] + 0.05 * w[2] - 0.305) * Nbb;
+    return V;
+  }
+  function compress(v, FL) {
+    var p = Math.pow(FL * Math.abs(v) / 100, 0.42);
+    return Math.sign(v) * 400 * p / (p + 27.13) + 0.1;
+  }
+  function hueQuad(h) {
+    var hp = h < HQ.h[0] ? h + 360 : h, i = 0;
+    while (hp >= HQ.h[i + 1]) i++;
+    var t1 = (hp - HQ.h[i]) / HQ.e[i], t2 = (HQ.h[i + 1] - hp) / HQ.e[i + 1];
+    return HQ.H[i] + 100 * t1 / (t1 + t2);
+  }
+  function cam16(XYZ, V) {
+    var rgb = CB.mat.vec(M16, XYZ);
+    var Ra = compress(rgb[0] * V.DR[0], V.FL), Ga = compress(rgb[1] * V.DR[1], V.FL), Ba = compress(rgb[2] * V.DR[2], V.FL);
+    var a = Ra - 12 * Ga / 11 + Ba / 11, b = (Ra + Ga - 2 * Ba) / 9;
+    var h = Math.atan2(b, a) / RAD; if (h < 0) h += 360;
+    var et = 0.25 * (Math.cos(h * RAD + 2) + 3.8);
+    var A = (2 * Ra + Ga + 0.05 * Ba - 0.305) * V.Nbb;
+    var J = A > 0 ? 100 * Math.pow(A / V.Aw, V.c * V.z) : 0;
+    var Q = (4 / V.c) * Math.sqrt(J / 100) * (V.Aw + 4) * V.FL4;
+    var t = (50000 / 13) * V.Nc * V.Ncb * et * Math.hypot(a, b) / (Ra + Ga + 21 / 20 * Ba);
+    var C = Math.pow(Math.max(0, t), 0.9) * Math.sqrt(J / 100) * Math.pow(1.64 - Math.pow(0.29, V.n), 0.73);
+    var M = C * V.FL4, s = Q > 0 ? 100 * Math.sqrt(M / Q) : 0;
+    return { J: J, C: C, h: h, H: hueQuad(h), Q: Q, M: M, s: s, A: A };
+  }
+  function cam16inv(J, C, h, V) {
+    var hr = h * RAD;
+    var t = J > 0 ? Math.pow(C / (Math.sqrt(J / 100) * Math.pow(1.64 - Math.pow(0.29, V.n), 0.73)), 1 / 0.9) : 0;
+    var et = 0.25 * (Math.cos(hr + 2) + 3.8);
+    var A = V.Aw * Math.pow(Math.max(0, J) / 100, 1 / (V.c * V.z));
+    var p2 = A / V.Nbb + 0.305, p3 = 21 / 20, a = 0, b = 0;
+    if (t > 0) {
+      var p1 = (50000 / 13) * V.Nc * V.Ncb * et / t, sh = Math.sin(hr), ch = Math.cos(hr);
+      if (Math.abs(sh) >= Math.abs(ch)) {
+        b = p2 * (2 + p3) * (460 / 1403) / (p1 / sh + (2 + p3) * (220 / 1403) * (ch / sh) - 27 / 1403 + p3 * (6300 / 1403));
+        a = b * ch / sh;
+      } else {
+        a = p2 * (2 + p3) * (460 / 1403) / (p1 / ch + (2 + p3) * (220 / 1403) - (27 / 1403 - p3 * (6300 / 1403)) * (sh / ch));
+        b = a * sh / ch;
+      }
+    }
+    var Ra = (460 * p2 + 451 * a + 288 * b) / 1403, Ga = (460 * p2 - 891 * a - 261 * b) / 1403, Ba = (460 * p2 - 220 * a - 6300 * b) / 1403;
+    var rgb = [Ra, Ga, Ba].map(function (v, i) {
+      var x = v - 0.1, ax = Math.min(Math.abs(x), 399.999);
+      return Math.sign(x) * (100 / V.FL) * Math.pow(27.13 * ax / (400 - ax), 1 / 0.42) / V.DR[i];
+    });
+    return CB.mat.vec(M16i, rgb);
+  }
+  function JfromQ(Q, V) { var r = V.c * Q / ((V.Aw + 4) * V.FL4); return 6.25 * r * r; }
+  function ucs(r) {
+    var Jp = 1.7 * r.J / (1 + 0.007 * r.J), Mp = Math.log(1 + 0.0228 * r.M) / 0.0228;
+    return [Jp, Mp * Math.cos(r.h * RAD), Mp * Math.sin(r.h * RAD)];
+  }
+
+  /* ================= 공통 유틸 ================= */
+  var f = CB.fmt;
+  var rgb2X = function (a) { return CB.rgb82XYZ(a).map(function (v) { return v * 100; }); };
+  var X2css = function (X) { return CB.XYZ2css(X.map(function (v) { return v / 100; })); };
+  var X2rgb8 = function (X) { return CB.XYZ2rgb8(X.map(function (v) { return v / 100; })); };
+  var W1 = CB.whiteXYZ();
+  var grayL = function (L) { return CB.XYZ2css(CB.Lab2XYZ([CB.clamp(L, 0, 100), 0, 0], W1)); };
+  var laVal = function (v) { return Math.pow(10, v); };
+  var laFmt = function (v) { var x = laVal(v); return (x < 1 ? x.toFixed(2) : x < 10 ? x.toFixed(1) : Math.round(x).toLocaleString("en-US")) + " cd/m²"; };
+  var swatch = function (css) { return '<span class="sw" style="background:' + css + '"></span>'; };
+  var xyzStr = function (X) { return X.map(function (v) { return v.toFixed(2); }).join(", "); };
+  function lum(ctx, x, y, w, h, css) { ctx.fillStyle = css; ctx.fillRect(x, y, w, h); }
+  function font(ctx, px) { ctx.font = px + "px " + (getComputedStyle(document.body).getPropertyValue("--mono") || "monospace"); }
+
+  /* ================= SIM 1: 동시 대비 / 동화 / 크리스프닝 ================= */
+  (function () {
+    var mode = "contrast", cv;
+    var gL = CB.range("con-L", function (v) { return "L* " + v; }, function () { cv.redraw(); });
+    var gK = CB.range("con-k", function (v) { return Math.round(v * 100) + "%"; }, function () { cv.redraw(); });
+    var gA = CB.range("con-adj", function (v) { return (v > 0 ? "+" : "") + v.toFixed(1); }, function () { cv.redraw(); });
+    var reveal = document.getElementById("con-reveal");
+    reveal.addEventListener("change", function () { cv.redraw(); });
+    CB.seg("con-mode", function (v) { mode = v; cv.redraw(); });
+    function label(ctx, txt, x, y, bgL) {
+      font(ctx, 12); ctx.fillStyle = bgL > 55 ? "#000" : "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(txt, x, y);
+    }
+    cv = CB.canvas(document.getElementById("cv-con"), function (ctx, w, h) {
+      var L = gL(), k = gK(), adj = gA(), R = CB.clamp(L + adj, 0, 100), on = reveal.checked, half = w / 2;
+      CB.stat("o-con-ka", "왼쪽 패치"); CB.stat("o-con-kb", "오른쪽 패치"); CB.stat("o-con-kd", "맞춘 유도량");
+      if (mode === "contrast") {
+        var bD = L - k * (L - 2), bL = L + k * (98 - L);
+        lum(ctx, 0, 0, half - 2, h, grayL(bD)); lum(ctx, half + 2, 0, half - 2, h, grayL(bL));
+        var s = Math.min(half, h) * 0.34, cy = h / 2 - s / 2;
+        if (on) lum(ctx, half / 2, h / 2 - s * 0.12, half, s * 0.24, grayL(L));
+        lum(ctx, half / 2 - s / 2, cy, s, s, grayL(L)); lum(ctx, half * 1.5 - s / 2, cy, s, s, grayL(R));
+        if (on) { label(ctx, "L* " + L.toFixed(1), half / 2, cy + s + 18, bD); label(ctx, "L* " + R.toFixed(1), half * 1.5, cy + s + 18, bL); }
+        label(ctx, "배경 L* " + bD.toFixed(0), half / 2, 16, bD); label(ctx, "배경 L* " + bL.toFixed(0), half * 1.5, 16, bL);
+        CB.stat("o-con-a", L.toFixed(1) + "<small>L* · sRGB " + X2rgb8(CB.Lab2XYZ([L, 0, 0], W65))[0] + "</small>");
+        CB.stat("o-con-b", R.toFixed(1) + "<small>L* · sRGB " + X2rgb8(CB.Lab2XYZ([R, 0, 0], W65))[0] + "</small>");
+        CB.stat("o-con-d", (adj > 0 ? "+" : "") + adj.toFixed(1) + "<small>ΔL* (밝은 배경 쪽)</small>");
+      } else if (mode === "assim") {
+        var dark = L - k * (L - 2), light = L + k * (98 - L), per = 7, lw = 2;
+        lum(ctx, 0, 0, half - 2, h, grayL(L)); lum(ctx, half + 2, 0, half - 2, h, grayL(R));
+        var stripeH = on ? h * 0.78 : h;
+        for (var x = 3; x < half - 4; x += per) lum(ctx, x, 0, lw, stripeH, grayL(dark));
+        for (var x2 = half + 5; x2 < w - 1; x2 += per) lum(ctx, x2, 0, lw, stripeH, grayL(light));
+        if (on) { label(ctx, "선 없는 실제 회색 L* " + L.toFixed(1), half / 2, h * 0.89, L); label(ctx, "실제 L* " + R.toFixed(1), half * 1.5, h * 0.89, R); }
+        CB.stat("o-con-ka", "왼쪽(검은 선) 회색"); CB.stat("o-con-kb", "오른쪽(흰 선) 회색");
+        CB.stat("o-con-a", L.toFixed(1) + "<small>L*</small>");
+        CB.stat("o-con-b", R.toFixed(1) + "<small>L*</small>");
+        CB.stat("o-con-d", (adj > 0 ? "+" : "") + adj.toFixed(1) + "<small>ΔL* (음수면 동화)</small>");
+      } else {
+        var rows = [2, L, 98], rh = h / 3, n = 9, gap = 4, sw = Math.min(46, (w - 40) / n - gap);
+        rows.forEach(function (bg, r) {
+          lum(ctx, 0, r * rh, w, rh - 2, grayL(bg));
+          var x0 = (w - n * (sw + gap)) / 2;
+          for (var i = 0; i < n; i++) lum(ctx, x0 + i * (sw + gap), r * rh + rh * 0.22, sw, rh * 0.56, grayL(L - 16 + 4 * i));
+          if (on) label(ctx, "배경 L* " + bg.toFixed(0), w / 2, r * rh + rh * 0.11, bg);
+        });
+        CB.stat("o-con-ka", "계단 범위"); CB.stat("o-con-kb", "계단 간격"); CB.stat("o-con-kd", "배경");
+        CB.stat("o-con-a", (L - 16) + " – " + (L + 16) + "<small>L*</small>");
+        CB.stat("o-con-b", "4.0<small>ΔL* (모두 같음)</small>");
+        CB.stat("o-con-d", "2 / " + L + " / 98<small>L*</small>");
+      }
+    }, { aspect: 0.55, minHeight: 230, maxHeight: 380 });
+  })();
+
+  /* ================= SIM HK ================= */
+  (function () {
+    var cv;
+    var gL = CB.range("hk-L", function (v) { return v; }, function () { cv.redraw(); });
+    var gC = CB.range("hk-C", function (v) { return v; }, function () { cv.redraw(); });
+    var grayBox = document.getElementById("hk-gray");
+    grayBox.addEventListener("change", function () { cv.redraw(); });
+    var Vhk = viewing(64, 20, "average");
+    var hk = function (L, C, h) { return L + (2.5 - 0.025 * L) * (0.116 * Math.abs(Math.sin((h - 90) / 2 * RAD)) + 0.085) * C; };
+    var Jof = function (lab) { return cam16(CB.Lab2XYZ(lab, W1).map(function (v) { return v * 100; }), Vhk).J; };
+    cv = CB.canvas(document.getElementById("cv-hk"), function (ctx, w, h) {
+      var P = CB.palette(), L = gL(), C = gC(), n = 8, top = 10, sh = Math.min(70, h * 0.24), gap = 4;
+      var sw = (w - 20 - (n - 1) * gap) / n, out = 0, best = null, worst = null;
+      if (grayBox.checked) lum(ctx, 10, top + sh * 0.38, w - 20, sh * 0.24, grayL(L));
+      for (var i = 0; i < n; i++) {
+        var hh = i * 45, lab = CB.LCh2Lab([L, C, hh]), rgb = CB.XYZ2rgb8(CB.Lab2XYZ(lab, W1)), x = 10 + i * (sw + gap);
+        ctx.fillStyle = CB.rgb8css(rgb);
+        if (grayBox.checked) { ctx.fillRect(x, top, sw, sh * 0.38); ctx.fillRect(x, top + sh * 0.62, sw, sh * 0.38); }
+        else ctx.fillRect(x, top, sw, sh);
+        if (rgb.clipped) { out++; ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + 4, top + 4); ctx.lineTo(x + 14, top + 14); ctx.moveTo(x + 14, top + 4); ctx.lineTo(x + 4, top + 14); ctx.stroke(); }
+        font(ctx, 10); ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.textBaseline = "top";
+        ctx.fillText(hh + "°", x + sw / 2, top + sh + 3);
+      }
+      var dHK = [], dJ = [], Jg = Jof([L, 0, 0]), ymax = 6, ymin = -4;
+      for (var hd = 0; hd <= 360; hd += 4) {
+        var v = hk(L, C, hd) - L, j = Jof(CB.LCh2Lab([L, C, hd])) - Jg;
+        dHK.push([hd, v]); dJ.push([hd, j]);
+        ymax = Math.max(ymax, v, j); ymin = Math.min(ymin, j);
+        if (!best || v > best[1]) best = [hd, v];
+        if (!worst || v < worst[1]) worst = [hd, v];
+      }
+      var by = top + sh + 22;
+      CB.chart(ctx, { x: 54, y: by, w: w - 70, h: h - by - 44 }, {
+        x: [0, 360], y: [Math.floor(ymin), Math.ceil(ymax + 1)], xTicks: [0, 90, 180, 270, 360], xLabel: "CIELAB 색상각 h_ab [°]", yLabel: "명도 증가",
+        series: [{ data: dHK, color: P.accent, width: 2.2 }, { data: dJ, color: P.accent2, width: 1.8, dash: [6, 4] }],
+        hlines: [{ y: 0, color: P.faint }],
+        points: [0, 45, 90, 135, 180, 225, 270, 315].map(function (q) { return { x: q, y: hk(L, C, q) - L, color: CB.rgb8css(CB.XYZ2rgb8(CB.Lab2XYZ(CB.LCh2Lab([L, C, q]), W1))), r: 5 }; })
+      });
+      font(ctx, 11); ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillStyle = P.accent; ctx.fillText("L** − L* (Fairchild–Pirrotta)", 62, by + 4);
+      ctx.fillStyle = P.accent2; ctx.fillText("CAM16 ΔJ (L_A 64)", 62, by + 18);
+      var Y = CB.Lab2XYZ([L, 0, 0], W1)[1];
+      CB.stat("o-hk-y", (Y * 100).toFixed(2) + "<small>% (L* " + L + ")</small>");
+      CB.stat("o-hk-max", "h " + best[0] + "°<small>L** = " + (L + best[1]).toFixed(1) + "</small>");
+      CB.stat("o-hk-min", "h " + worst[0] + "°<small>L** = " + (L + worst[1]).toFixed(1) + "</small>");
+      CB.stat("o-hk-gam", out + "<small>/ 8 견본</small>");
+    }, { aspect: 0.6, minHeight: 300, maxHeight: 440 });
+  })();
+
+  /* ================= SIM BB: 주변 보정 곡선 ================= */
+  (function () {
+    var cv, ref = "average", sur = "dark";
+    var g1 = CB.range("bb-la1", laFmt, function () { cv.redraw(); });
+    var g2 = CB.range("bb-la2", laFmt, function () { cv.redraw(); });
+    CB.seg("bb-ref", function (v) { ref = v; cv.redraw(); });
+    CB.seg("bb-sur", function (v) { sur = v; cv.redraw(); });
+    function mapY(Y, V1, V2) { var r = cam16(W65.map(function (v) { return v * Y / 100; }), V1); return cam16inv(r.J, r.C, r.h, V2)[1]; }
+    cv = CB.canvas(document.getElementById("cv-bb"), function (ctx, w, h) {
+      var P = CB.palette(), V1 = viewing(laVal(g1()), 20, ref), V2 = viewing(laVal(g2()), 20, sur);
+      var data = [], id = [], g125 = [], g15 = [];
+      for (var i = 0; i <= 60; i++) {
+        var Y = 0.5 * Math.pow(200, i / 60);
+        data.push([Y, mapY(Y, V1, V2)]); id.push([Y, Y]);
+        g125.push([Y, 100 * Math.pow(Y / 100, 1.25)]); g15.push([Y, 100 * Math.pow(Y / 100, 1.5)]);
+      }
+      var stripH = 22, box = { x: 58, y: 14, w: w - 76, h: h - 14 - 50 - 2 * stripH - 10 };
+      CB.chart(ctx, box, {
+        x: [0.5, 100], y: [0.05, 100], logX: true, logY: true, xLabel: "원본 조건의 상대 휘도 Y [%]", yLabel: "대상 조건에 필요한 Y [%]",
+        series: [{ data: id, color: P.faint, width: 1.2, dash: [3, 3] }, { data: g125, color: P.accent2, width: 1.2, dash: [6, 4] }, { data: g15, color: P.accent2, width: 1.2, dash: [2, 3] }, { data: data, color: P.accent, width: 2.6 }],
+        points: [{ x: 18, y: mapY(18, V1, V2), color: P.accent, r: 4.5 }]
+      });
+      var sy = h - 2 * stripH - 4, n = 11, sw = (w - 76) / n;
+      for (var k = 0; k < n; k++) {
+        var Lk = 5 + 9 * k, Yk = CB.Lab2XYZ([Lk, 0, 0], W1)[1] * 100, Yt = mapY(Yk, V1, V2);
+        lum(ctx, 58 + k * sw, sy, sw + 0.5, stripH, X2css(W65.map(function (v) { return v * Yk / 100; })));
+        lum(ctx, 58 + k * sw, sy + stripH, sw + 0.5, stripH, X2css(W65.map(function (v) { return v * Yt / 100; })));
+      }
+      font(ctx, 10); ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      ctx.fillText("원본", 54, sy + stripH / 2); ctx.fillText("보정", 54, sy + 1.5 * stripH);
+      var gam = Math.log(mapY(50, V1, V2) / mapY(2, V1, V2)) / Math.log(25);
+      var r18 = cam16(W65.map(function (v) { return v * 0.18; }), V1), r18b = cam16(W65.map(function (v) { return v * 0.18; }), V2);
+      CB.stat("o-bb-g", gam.toFixed(3));
+      CB.stat("o-bb-18", mapY(18, V1, V2).toFixed(2) + "<small>%</small>");
+      CB.stat("o-bb-J", r18.J.toFixed(1) + " → " + r18b.J.toFixed(1));
+      CB.stat("o-bb-c", (SURR[ref].c / SURR[sur].c).toFixed(3));
+    }, { aspect: 0.62, minHeight: 320, maxHeight: 460 });
+  })();
+
+  /* ================= SIM CAM16 계산기 ================= */
+  (function () {
+    var cv, sur = "average";
+    var PRE = { red: [255, 0, 0], skin: [194, 150, 130], sky: [98, 122, 157], gray: [119, 119, 119] };
+    var gr = CB.range("cam-r", null, function () { cv.redraw(); });
+    var gg = CB.range("cam-g", null, function () { cv.redraw(); });
+    var gb = CB.range("cam-b", null, function () { cv.redraw(); });
+    var gla = CB.range("cam-la", laFmt, function () { cv.redraw(); });
+    var gyb = CB.range("cam-yb", null, function () { cv.redraw(); });
+    CB.seg("cam-sur", function (v) { sur = v; cv.redraw(); });
+    CB.seg("cam-pre", function (v) { var p = PRE[v]; gr.el.value = p[0]; gg.el.value = p[1]; gb.set(p[2]); gr.set(p[0]); gg.set(p[1]); });
+    cv = CB.canvas(document.getElementById("cv-cam"), function (ctx, w, h) {
+      var P = CB.palette(), rgb = [gr(), gg(), gb()], X = rgb2X(rgb), Yb = gyb(), la = laVal(gla());
+      var Qs = [], Js = [], Ms = [], Cs = [], qmax = 50, mmax = 10;
+      for (var i = 0; i <= 100; i++) {
+        var L = Math.pow(10, -1 + 5 * i / 100), r = cam16(X, viewing(L, Yb, sur));
+        Qs.push([L, r.Q]); Js.push([L, r.J]); Ms.push([L, r.M]); Cs.push([L, r.C]);
+        qmax = Math.max(qmax, r.Q, r.J); mmax = Math.max(mmax, r.M, r.C);
+      }
+      var V = viewing(la, Yb, sur), cur = cam16(X, V);
+      var gh = (h - 14 - 46 - 30) / 2, b1 = { x: 58, y: 14, w: w - 76, h: gh }, b2 = { x: 58, y: 14 + gh + 30, w: w - 76, h: gh };
+      CB.chart(ctx, b1, { x: [0.1, 1e4], logX: true, y: [0, Math.ceil(qmax * 1.08 / 50) * 50], yLabel: "Q, J",
+        series: [{ data: Qs, color: P.accent, width: 2.4 }, { data: Js, color: P.accent2, width: 2, dash: [6, 4] }],
+        vlines: [{ x: la, color: P.dim }], points: [{ x: la, y: cur.Q, color: P.accent }, { x: la, y: cur.J, color: P.accent2 }] });
+      CB.chart(ctx, b2, { x: [0.1, 1e4], logX: true, y: [0, Math.ceil(mmax * 1.12 / 10) * 10], yLabel: "M, C", xLabel: "순응 휘도 L_A [cd/m²]",
+        series: [{ data: Ms, color: P.accent, width: 2.4 }, { data: Cs, color: P.accent2, width: 2, dash: [6, 4] }],
+        vlines: [{ x: la, color: P.dim }], points: [{ x: la, y: cur.M, color: P.accent }, { x: la, y: cur.C, color: P.accent2 }] });
+      font(ctx, 11); ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillStyle = P.accent; ctx.fillText("밝기 Q", b1.x + 8, b1.y + 4); ctx.fillStyle = P.accent2; ctx.fillText("명도 J", b1.x + 64, b1.y + 4);
+      ctx.fillStyle = P.accent; ctx.fillText("컬러풀니스 M", b2.x + 8, b2.y + 4); ctx.fillStyle = P.accent2; ctx.fillText("채도 C", b2.x + 100, b2.y + 4);
+      var sz = Math.min(44, gh * 0.5);
+      ctx.fillStyle = CB.rgb8css(rgb); ctx.fillRect(b1.x + b1.w - sz - 6, b1.y + 6, sz, sz);
+      ctx.strokeStyle = P.border; ctx.strokeRect(b1.x + b1.w - sz - 6, b1.y + 6, sz, sz);
+      CB.stat("o-cam-x", swatch(CB.rgb8css(rgb)) + xyzStr(X));
+      CB.stat("o-cam-J", cur.J.toFixed(2));
+      CB.stat("o-cam-C", cur.C.toFixed(2));
+      CB.stat("o-cam-h", cur.h.toFixed(2) + "°<small>H " + cur.H.toFixed(1) + "</small>");
+      CB.stat("o-cam-Q", cur.Q.toFixed(1));
+      CB.stat("o-cam-M", cur.M.toFixed(1));
+      CB.stat("o-cam-s", cur.s.toFixed(1));
+      CB.stat("o-cam-par", V.FL.toFixed(3) + " · " + V.D.toFixed(3) + " · " + V.z.toFixed(3) + " · " + V.Aw.toFixed(2));
+    }, { aspect: 0.7, minHeight: 340, maxHeight: 480 });
+  })();
+
+  /* ================= SIM 대응색 ================= */
+  (function () {
+    var cv, col = 0, s1 = "average", s2 = "dark", mode = "rel";
+    var COLS = [[194, 150, 130], [98, 122, 157], [87, 108, 67], [175, 54, 60], [231, 199, 31], [122, 122, 121]];
+    var SURL = { average: 62, dim: 14, dark: 0 };
+    var g1 = CB.range("corr-la1", laFmt, function () { cv.redraw(); });
+    var g2 = CB.range("corr-la2", laFmt, function () { cv.redraw(); });
+    CB.seg("corr-col", function (v) { col = +v; cv.redraw(); });
+    CB.seg("corr-s1", function (v) { s1 = v; cv.redraw(); });
+    CB.seg("corr-s2", function (v) { s2 = v; cv.redraw(); });
+    CB.seg("corr-mode", function (v) { mode = v; cv.redraw(); });
+    function scene(ctx, x, y, w, h, s, patchCss, title, flag) {
+      lum(ctx, x, y, w, h, grayL(SURL[s]));
+      var bw = w * 0.7, bh = h * 0.62, bx = x + (w - bw) / 2, by = y + (h - bh) / 2 + 6;
+      lum(ctx, bx, by, bw, bh, grayL(51.8));
+      var p = Math.min(bw, bh) * 0.45;
+      lum(ctx, bx + (bw - p) / 2, by + (bh - p) / 2, p, p, patchCss);
+      font(ctx, 12); ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.fillStyle = SURL[s] > 50 ? "#000" : "#fff";
+      ctx.fillText(title, x + w / 2, y + 6);
+      if (flag) { ctx.fillStyle = "#fff"; ctx.fillText(flag, x + w / 2, by + bh - 18); }
+    }
+    cv = CB.canvas(document.getElementById("cv-corr"), function (ctx, w, h) {
+      var X1 = rgb2X(COLS[col]), V1 = viewing(laVal(g1()), 20, s1), V2 = viewing(laVal(g2()), 20, s2);
+      var r1 = cam16(X1, V1), X2, J2, C2;
+      if (mode === "rel") { J2 = r1.J; C2 = r1.C; }
+      else { J2 = JfromQ(r1.Q, V2); C2 = r1.M / V2.FL4; }
+      X2 = cam16inv(J2, C2, r1.h, V2);
+      var rgb2 = X2rgb8(X2), over = X2[1] > 100.5, bad = !isFinite(X2[1]);
+      var half = w / 2;
+      scene(ctx, 0, 0, half - 3, h, s1, CB.rgb8css(COLS[col]), "조건 1 · " + s1 + " · L_A " + laFmt(g1()), "");
+      scene(ctx, half + 3, 0, half - 3, h, s2, bad ? "#000" : CB.rgb8css(rgb2), "조건 2 · " + s2 + " · L_A " + laFmt(g2()), over ? "Y > 100: 재현 불가" : rgb2.clipped ? "sRGB 가멋 밖(클리핑)" : "");
+      CB.stat("o-corr-1", swatch(CB.rgb8css(COLS[col])) + r1.J.toFixed(1) + ", " + r1.C.toFixed(1) + ", " + r1.h.toFixed(1) + "°");
+      CB.stat("o-corr-q", r1.Q.toFixed(1) + ", " + r1.M.toFixed(1) + "<small>→ 조건 2 목표 J " + J2.toFixed(1) + "</small>");
+      CB.stat("o-corr-2", bad ? "—" : xyzStr(X2));
+      CB.stat("o-corr-r", bad ? "해 없음" : (X2[1] / X1[1]).toFixed(3) + "<small>" + (over ? "백색 초과" : rgb2.clipped ? "가멋 밖" : "재현 가능") + "</small>");
+    }, { aspect: 0.45, minHeight: 210, maxHeight: 340 });
+  })();
+
+  /* ================= SIM UCS ================= */
+  (function () {
+    var cv, sur = "average";
+    var c1 = document.getElementById("ucs-c1"), c2 = document.getElementById("ucs-c2");
+    var gla = CB.range("ucs-la", laFmt, function () { cv.redraw(); });
+    CB.seg("ucs-sur", function (v) { sur = v; cv.redraw(); });
+    c1.addEventListener("input", function () { cv.redraw(); });
+    c2.addEventListener("input", function () { cv.redraw(); });
+    var CORN = [[1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 0, 0]];
+    cv = CB.canvas(document.getElementById("cv-ucs"), function (ctx, w, h) {
+      var P = CB.palette(), V = viewing(laVal(gla()), 20, sur);
+      var ring = [];
+      for (var e = 0; e < 6; e++) for (var t = 0; t < 24; t++) {
+        var A = CORN[e], B = CORN[e + 1], u = t / 24;
+        var lin = [A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u, A[2] + (B[2] - A[2]) * u];
+        var p = ucs(cam16(CB.linRGB2XYZ(lin).map(function (v) { return v * 100; }), V));
+        ring.push({ p: p, css: CB.rgb8css(lin.map(function (v) { return Math.round(255 * CB.srgbEncode(v)); })) });
+      }
+      var R = 10; ring.forEach(function (q) { R = Math.max(R, Math.abs(q.p[1]), Math.abs(q.p[2])); });
+      R = Math.ceil(R / 10) * 10 + 5;
+      var side = Math.min(w - 20, h - 20), ox = (w - side) / 2, oy = (h - side) / 2;
+      var X = function (a) { return ox + side / 2 + a / R * side / 2; }, Y = function (b) { return oy + side / 2 - b / R * side / 2; };
+      ctx.strokeStyle = P.grid; ctx.lineWidth = 1;
+      for (var g = -R + (R % 10); g <= R; g += 10) { ctx.beginPath(); ctx.moveTo(X(g), oy); ctx.lineTo(X(g), oy + side); ctx.moveTo(ox, Y(g)); ctx.lineTo(ox + side, Y(g)); ctx.stroke(); }
+      ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(X(0), oy); ctx.lineTo(X(0), oy + side); ctx.moveTo(ox, Y(0)); ctx.lineTo(ox + side, Y(0)); ctx.stroke();
+      ctx.lineWidth = 3;
+      for (var i = 0; i < ring.length; i++) {
+        var q0 = ring[i], q1 = ring[(i + 1) % ring.length];
+        ctx.strokeStyle = q0.css; ctx.beginPath(); ctx.moveTo(X(q0.p[1]), Y(q0.p[2])); ctx.lineTo(X(q1.p[1]), Y(q1.p[2])); ctx.stroke();
+      }
+      var rgbA = CB.hex2rgb(c1.value), rgbB = CB.hex2rgb(c2.value), XA = rgb2X(rgbA), XB = rgb2X(rgbB);
+      var uA = ucs(cam16(XA, V)), uB = ucs(cam16(XB, V));
+      ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(uA[1]), Y(uA[2])); ctx.lineTo(X(uB[1]), Y(uB[2])); ctx.stroke();
+      [[uA, rgbA], [uB, rgbB]].forEach(function (q) { ctx.fillStyle = CB.rgb8css(q[1]); ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(q[0][1]), Y(q[0][2]), 7, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); });
+      font(ctx, 11); ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText("a′", ox + side - 16, Y(0) + 4); ctx.fillText("b′", X(0) + 5, oy + 2);
+      ctx.fillText("±" + R, ox + 2, oy + 2);
+      var labA = CB.XYZ2Lab(XA, W65), labB = CB.XYZ2Lab(XB, W65);
+      CB.stat("o-ucs-76", CB.dE76(labA, labB).toFixed(2));
+      CB.stat("o-ucs-00", CB.dE2000(labA, labB).toFixed(2));
+      CB.stat("o-ucs-16", Math.hypot(uA[0] - uB[0], uA[1] - uB[1], uA[2] - uB[2]).toFixed(2));
+      CB.stat("o-ucs-p", uA.map(function (v) { return v.toFixed(1); }).join(", ") + "<br>" + uB.map(function (v) { return v.toFixed(1); }).join(", "));
+    }, { aspect: 0.75, minHeight: 280, maxHeight: 440 });
+  })();
+})();
+</script>
+</body>
+</html>

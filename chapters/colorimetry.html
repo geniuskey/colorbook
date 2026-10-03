@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>등색 실험과 CIE XYZ · ColorBook</title>
+<meta name="description" content="이분 시야 등색 실험과 그라스만 법칙에서 출발해 RGB 등색 함수의 음수, 원색 변환 정리, CIE XYZ의 설계 조건, 3자극치 적분과 적분 간격 오차, 2°·10° 관측자 차이를 직접 계산하며 익힌다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/colorimetry.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="등색 실험과 CIE XYZ · ColorBook">
+<meta property="og:description" content="이분 시야 등색 실험과 그라스만 법칙에서 출발해 RGB 등색 함수의 음수, 원색 변환 정리, CIE XYZ의 설계 조건, 3자극치 적분과 적분 간격 오차, 2°·10° 관측자 차이를 직접 계산하며 익힌다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/colorimetry.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"등색 실험과 CIE XYZ","name":"등색 실험과 CIE XYZ · ColorBook","url":"https://colorbook.euiyun.com/chapters/colorimetry.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/colorimetry.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":3,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"이분 시야 등색 실험과 그라스만 법칙에서 출발해 RGB 등색 함수의 음수, 원색 변환 정리, CIE XYZ의 설계 조건, 3자극치 적분과 적분 간격 오차, 2°·10° 관측자 차이를 직접 계산하며 익힌다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"03 등색 실험과 CIE XYZ","item":"https://colorbook.euiyun.com/chapters/colorimetry.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sw-row { display:flex; gap:10px; padding:0 12px 12px; flex-wrap:wrap; }
+  .sw { flex:1 1 120px; min-height:46px; border-radius:8px; border:1px solid var(--border); display:flex; align-items:flex-end; padding:4px 8px; font:11px var(--mono); color:#fff; text-shadow:0 0 3px rgba(0,0,0,.9); }
+  .mat { font-family:var(--mono); font-size:12px; line-height:1.55; white-space:pre; display:block; }
+  .sim-view canvas { touch-action: pan-y; }
+  .sim-table { padding: 0 12px 12px; }
+  .sim-table table { font-size: 13px; }
+  .ch-legend { padding: 0 12px 10px; }
+</style>
+</head>
+<body data-chapter="colorimetry">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 03</div>
+    <h1>등색 실험과 CIE XYZ</h1>
+    <p class="lead">색을 "측정한다"는 말은 무엇을 뜻하는가. 측색학<span class="en">(colorimetry)</span>의 답은 놀랄 만큼 조작적이다. 관측자에게 시험광과 세 원색의 혼합광을 나란히 보여 주고, 둘이 구별되지 않을 때까지 세 원색의 양을 조절한다. 그 세 숫자가 곧 색이다. 이 장에서는 이 실험이 어떻게 선형대수 문제가 되는지, 왜 실제 원색으로는 음수가 피할 수 없는지, 그리고 CIE가 1931년에 왜 눈에 보이지 않는 가상 원색 XYZ를 표준으로 골랐는지를 계산으로 확인한다.</p>
+    <ul class="objectives">
+      <li>이분 시야 등색 실험의 절차를 설명하고, 음의 원색량이 물리적으로 무엇을 뜻하는지 말할 수 있다.</li>
+      <li>그라스만 법칙으로부터 색 매칭이 3차원 선형 시스템이라는 결론을 유도하고, 메타머 블랙(영공간)을 계산한다.</li>
+      <li>원색 변환 정리를 써서 한 등색 함수 집합을 다른 집합의 3×3 선형 변환으로 바꾸고, 최소자승 피팅의 잔차를 해석한다.</li>
+      <li>CIE XYZ의 설계 조건(음수 없음, Y = 휘도, 등에너지 백색에서 X = Y = Z)과 가상 원색의 의미를 설명한다.</li>
+      <li>3자극치 적분을 직접 수행하고, 적분 간격과 관측자(2°·10°) 선택이 결과에 주는 영향을 정량적으로 따진다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="intro">
+    <h2>색을 숫자로 만드는 조작적 정의</h2>
+    <p><a href="light.html">1장</a>에서 빛은 분광 분포<span class="en">(SPD)</span> \( S(\lambda) \), 즉 파장마다 값을 갖는 함수였다. 380–780 nm를 1 nm 간격으로 적으면 401개의 숫자다. 그런데 <a href="vision.html">2장</a>에서 본 것처럼 사람의 눈은 이 함수를 세 종류의 원추세포 L·M·S로 적분해 <strong>세 개의 숫자</strong>만 뇌로 보낸다. 401차원 공간에서 3차원 공간으로 가는 선형 사상이고, 그 영공간<span class="en">(null space)</span>은 398차원이다. 서로 다른 스펙트럼이 같은 색으로 보이는 메타머리즘은 이 거대한 영공간의 직접적인 결과다.</p>
+    <p>문제는 1920년대에는 원추세포의 분광 감도를 직접 잴 방법이 없었다는 것이다. 그래서 측색학은 생리학 대신 <span class="term">행동 실험</span>을 택했다. "두 빛이 같아 보인다"는 판단은 관측자가 매우 정밀하고 재현성 있게 내릴 수 있다. 같아 보이는지 여부만 묻는다면, 관측자는 눈 안의 메커니즘을 몰라도 <em>영점 검출기</em><span class="en">(null detector)</span>로 쓸 수 있다. 휘트스톤 브리지가 검류계의 영점으로 저항을 재듯, 등색 실험은 눈의 "구별 불가"를 영점 삼아 색을 잰다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="이분 시야 등색 실험 장치: 시험광과 세 원색 램프가 흰 스크린의 두 반쪽을 비추고 관측자가 2도 시야로 본다">
+        <defs><marker id="a31" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="30" y="40" width="130" height="56" rx="8" class="f-elev"/>
+        <text x="95" y="64" text-anchor="middle" class="t">시험광 C</text>
+        <text x="95" y="83" text-anchor="middle" class="t-mono">λ (단색광)</text>
+        <rect x="30" y="140" width="130" height="34" rx="8" fill="#e0443e" opacity=".85"/>
+        <text x="95" y="162" text-anchor="middle" class="t-mono" style="fill:#fff">R  645 nm</text>
+        <rect x="30" y="184" width="130" height="34" rx="8" fill="#2f9e4a" opacity=".85"/>
+        <text x="95" y="206" text-anchor="middle" class="t-mono" style="fill:#fff">G  526 nm</text>
+        <rect x="30" y="228" width="130" height="34" rx="8" fill="#2f6fe0" opacity=".85"/>
+        <text x="95" y="250" text-anchor="middle" class="t-mono" style="fill:#fff">B  444 nm</text>
+        <line x1="160" y1="68" x2="318" y2="112" class="s-line" marker-end="url(#a31)"/>
+        <line x1="160" y1="157" x2="318" y2="170" class="s-line" marker-end="url(#a31)"/>
+        <line x1="160" y1="201" x2="318" y2="178" class="s-line" marker-end="url(#a31)"/>
+        <line x1="160" y1="245" x2="318" y2="186" class="s-line" marker-end="url(#a31)"/>
+        <!-- split screen -->
+        <path d="M330 80 L370 80 L370 220 L330 220 Z" class="f-surface"/>
+        <line x1="330" y1="150" x2="370" y2="150" class="s-axis"/>
+        <text x="350" y="70" text-anchor="middle" class="t-dim">분할 스크린</text>
+        <!-- bipartite field view -->
+        <circle cx="560" cy="150" r="78" class="f-surface"/>
+        <path d="M560 72 A78 78 0 0 0 560 228 Z" fill="rgb(120,200,190)"/>
+        <path d="M560 72 A78 78 0 0 1 560 228 Z" fill="rgb(132,196,186)"/>
+        <circle cx="560" cy="150" r="78" fill="none" class="s-line"/>
+        <line x1="560" y1="72" x2="560" y2="228" class="s-line"/>
+        <text x="515" y="155" text-anchor="middle" class="t-mono" style="fill:#123">C</text>
+        <text x="605" y="155" text-anchor="middle" class="t-mono" style="fill:#123">rR+gG+bB</text>
+        <line x1="380" y1="150" x2="470" y2="150" class="s-line" marker-end="url(#a31)"/>
+        <text x="425" y="140" text-anchor="middle" class="t-dim">관측</text>
+        <!-- eye -->
+        <path d="M690 150 q30 -30 60 0 q-30 30 -60 0z" class="f-elev"/>
+        <circle cx="720" cy="150" r="10" class="f-acc"/>
+        <text x="720" y="200" text-anchor="middle" class="t-dim">관측자</text>
+        <path d="M688 150 L640 128 M688 150 L640 172" class="s-acc" fill="none"/>
+        <text x="652" y="116" text-anchor="middle" class="t-acc">2°</text>
+        <text x="400" y="285" text-anchor="middle" class="t-dim">관측자는 두 반쪽의 경계가 사라질 때까지 R·G·B 세 램프의 세기만 조절한다.</text>
+      </svg>
+      <figcaption><b>그림 3-1.</b> 이분 시야<span class="en">(bipartite field)</span> 등색 실험. 시야를 2°로 좁혀 중심와(막대세포가 거의 없는 영역)만 쓰게 하고, 한쪽은 시험광, 다른 쪽은 세 원색의 가법 혼합으로 채운다.</figcaption>
+    </figure>
+    <p>측정 결과는 시험광 \( C \)에 대한 세 원색의 양 \( (R, G, B) \)이고, 이를 <span class="term">3자극치</span><span class="en">(tristimulus values)</span>라 부른다. 이 정의는 원색의 선택과 그 단위에 의존한다. 같은 빛이라도 원색을 바꾸면 3자극치가 바뀐다. 그런데도 측색학이 성립하는 것은 원색을 바꿔도 결과가 <strong>3×3 행렬 하나로</strong> 변환되기 때문이다. 이 장의 줄거리는 이 한 문장을 증명하고 이용하는 과정이다.</p>
+    <div class="callout">
+      <strong>이 장의 큰 그림</strong>
+      <p>등색 실험(행동 데이터) → 그라스만 법칙(선형성) → 단색광별 3자극치 = 등색 함수(CMF) → 원색 변환 정리(3×3 행렬) → 공학적으로 편한 원색 XYZ 선택 → 임의 스펙트럼을 CMF로 적분해 XYZ 계산. 이후의 모든 장(색도도, RGB 색공간, Lab, 카메라, 디스플레이)은 이 XYZ에서 출발한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="bipartite">
+    <h2>이분 시야 실험과 음의 원색량</h2>
+    <p>실험의 표준 형태는 다음과 같다. 원색으로 서로 독립인 세 빛(어느 둘을 섞어도 나머지 하나를 만들 수 없는 빛) R, G, B를 정한다. 시험광으로는 단색광을 쓰고, 파장 \( \lambda \)를 가시 영역 전체에 걸쳐 바꿔 가며 매번 등색이 되는 원색량을 기록한다. 시험광의 복사속을 1단위로 고정하면, 파장마다 얻은 세 숫자는 파장의 함수가 된다.</p>
+    <div class="formula">$$C_\lambda \;\equiv\; \bar r(\lambda)\,\mathbf R + \bar g(\lambda)\,\mathbf G + \bar b(\lambda)\,\mathbf B$$
+      <div class="where">\( \equiv \)는 "같은 색으로 보인다(등색)"는 뜻이다. \( \bar r(\lambda), \bar g(\lambda), \bar b(\lambda) \)를 이 원색 집합의 <span class="term">등색 함수</span><span class="en">(color matching functions, CMF)</span>라 한다. 원색 단위가 바뀌면 함수의 크기가 바뀐다.</div>
+    </div>
+    <p>그런데 실제 실험을 해 보면 곤란한 일이 생긴다. 예컨대 500 nm 청록 단색광은 어떤 양의 R, G, B를 섞어도 맞출 수 없다. G와 B를 섞으면 색상은 비슷해지지만 혼합광은 언제나 단색광보다 <em>탁하다</em>(채도가 낮다). 해결책은 원색 하나를 반대편, 즉 <strong>시험광 쪽</strong>에 더하는 것이다. 시험광에 R을 조금 섞어 채도를 떨어뜨리면 G+B 혼합과 맞출 수 있다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="음의 원색량: 시험광에 R을 더하면 G와 B 혼합과 등색이 되므로 R의 계수는 음수">
+        <circle cx="160" cy="105" r="70" class="f-surface"/>
+        <path d="M160 35 A70 70 0 0 0 160 175 Z" fill="rgb(0,190,170)"/>
+        <path d="M160 35 A70 70 0 0 1 160 175 Z" fill="rgb(70,170,165)"/>
+        <circle cx="160" cy="105" r="70" fill="none" class="s-line"/><line x1="160" y1="35" x2="160" y2="175" class="s-line"/>
+        <text x="160" y="200" text-anchor="middle" class="t">G+B만으로는 불가</text>
+        <text x="160" y="220" text-anchor="middle" class="t-dim">혼합 쪽이 항상 더 탁하다</text>
+        <circle cx="420" cy="105" r="70" class="f-surface"/>
+        <path d="M420 35 A70 70 0 0 0 420 175 Z" fill="rgb(70,170,165)"/>
+        <path d="M420 35 A70 70 0 0 1 420 175 Z" fill="rgb(70,170,165)"/>
+        <circle cx="420" cy="105" r="70" fill="none" class="s-line"/><line x1="420" y1="35" x2="420" y2="175" class="s-line" stroke-dasharray="3 4"/>
+        <text x="385" y="100" text-anchor="middle" class="t-mono" style="fill:#062">C</text>
+        <text x="385" y="118" text-anchor="middle" class="t-mono" style="fill:#600">+0.30 R</text>
+        <text x="458" y="100" text-anchor="middle" class="t-mono" style="fill:#062">0.49 G</text>
+        <text x="458" y="118" text-anchor="middle" class="t-mono" style="fill:#006">+0.11 B</text>
+        <text x="420" y="200" text-anchor="middle" class="t">시험광 쪽에 R을 더하면 등색</text>
+        <text x="420" y="220" text-anchor="middle" class="t-dim">경계가 사라진다</text>
+        <text x="560" y="80" class="t-acc">C + 0.30 R ≡ 0.49 G + 0.11 B</text>
+        <text x="560" y="112" class="t">⇔ C ≡ −0.30 R + 0.49 G + 0.11 B</text>
+        <text x="560" y="150" class="t-dim">(Stiles–Burch 1955, λ = 500 nm,</text>
+        <text x="560" y="170" class="t-dim">  시험광 1 복사 단위 기준)</text>
+      </svg>
+      <figcaption><b>그림 3-2.</b> 음의 원색량의 의미. 시험광 쪽으로 옮긴 원색은 등식의 반대편으로 이항한 것과 같으므로 계수가 음수가 된다. 수치는 Stiles–Burch 1955 데이터의 500 nm 값(r̄ = −0.295, ḡ = 0.491, b̄ = 0.108)이다.</figcaption>
+    </figure>
+    <p>그라스만 법칙(다음 절)이 보장하는 가법성 덕분에 등식을 대수처럼 이항할 수 있고, 시험광 쪽에 더한 원색은 <strong>음의 계수</strong>로 기록된다. 음수는 실험상의 편법이 아니라 본질이다. 세 원추 감도가 서로 크게 겹쳐 있어서, 어떤 실재 원색도 L·M·S 중 하나만 자극할 수 없기 때문이다. 세 실재 원색이 만드는 원추 반응의 볼록 원뿔은 스펙트럼 단색광들이 만드는 원뿔을 다 덮지 못하고, 덮지 못한 바깥 부분이 음수로 나타난다(<a href="chromaticity.html">4장</a>에서 이것이 색도도 위 삼각형과 말굽 궤적의 관계로 보인다).</p>
+
+    <div class="sim" id="sim-match">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>가상 등색 실험 — 세 원색으로 단색광 맞추기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-match"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>시험 파장 λ <output id="m-wl-out"></output></span><input type="range" id="m-wl" min="400" max="700" step="1" value="500"></label>
+          <label class="ctrl"><span>R (645.16 nm) <output id="m-r-out"></output></span><input type="range" id="m-r" min="-0.4" max="3" step="0.001" value="0"></label>
+          <label class="ctrl"><span>G (526.32 nm) <output id="m-g-out"></output></span><input type="range" id="m-g" min="-0.05" max="1.1" step="0.001" value="0.3"></label>
+          <label class="ctrl"><span>B (444.44 nm) <output id="m-b-out"></output></span><input type="range" id="m-b" min="-0.05" max="1" step="0.001" value="0.1"></label>
+          <label class="check"><input type="checkbox" id="m-show"> 정답(등색 함수 값) 표시</label>
+          <div class="ctrl-row"><button class="btn primary" id="m-solve">정답으로 맞추기</button><button class="btn" id="m-reset">초기화</button></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">시험광 쪽에 더한 원색</span><span class="v" id="o-m-side">—</span></div>
+        <div class="stat"><span class="k">두 반쪽 색도 차 Δu′v′</span><span class="v" id="o-m-duv">—</span></div>
+        <div class="stat"><span class="k">휘도비 Y혼합/Y시험</span><span class="v" id="o-m-y">—</span></div>
+        <div class="stat"><span class="k">정답 r̄ · ḡ · b̄</span><span class="v" id="o-m-ans">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 500 nm에서 R 슬라이더를 음수로 내려 보라. 음수 R은 왼쪽(시험광) 반쪽에 더해지고, 그래야만 Δu′v′가 0으로 간다. ② 파장을 445 → 526 → 645 nm로 옮기면 정답이 각각 (0,0,1), (0,1,0), (1,0,0)에 가까워진다. 원색 자신은 자기 원색 1단위로 맞춰진다. ③ 580 nm 노란빛은 R≈2.27, G≈0.65로 맞는데 B가 −0.01이다. 음수는 청록 영역만의 문제가 아니라 거의 모든 파장에서 조금씩 나타난다. 판정 기준: Δu′v′ &lt; 0.004이고 휘도 차 3% 이내면 "등색"으로 표시한다. 견본은 sRGB로 표시되므로 단색광의 높은 채도는 화면에서 클리핑된다.</div>
+    </div>
+    <p>시뮬레이터는 Stiles–Burch 1955 2° 데이터(<code>CB.rgbCMF</code>)를 "관측자"로 쓴다. 두 반쪽의 색은 모두 같은 r̄ḡb̄ 공간에서 계산한 뒤 같은 3×3 행렬로 XYZ와 sRGB로 바꾸므로, 슬라이더가 정답과 일치하면 두 반쪽은 수치적으로 정확히 같아진다. 실제 실험에서는 관측자 간 편차가 있어서 개인의 등색값은 평균 CMF에서 수 % 벗어나며, 표준 관측자는 이런 개인들의 <strong>평균</strong>이다.</p>
+    <div class="callout warn">
+      <strong>흔한 오해: "음수 원색은 빛을 빼는 것이다"</strong>
+      <p>음의 R은 빛을 흡수하거나 빼는 장치가 아니다. 실험에서는 언제나 양의 빛만 더한다. 다만 더하는 <em>위치</em>가 반대편일 뿐이다. 디스플레이가 음의 원색량을 낼 수 없다는 사실이 곧 "가멋 밖의 색"이며, 이는 <a href="rgb.html">5장</a>의 주제다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="grassmann">
+    <h2>그라스만 법칙: 색 매칭은 선형 시스템이다</h2>
+    <p>1853년 그라스만<span class="en">(H. Grassmann)</span>이 정리한 가법 혼색의 경험 법칙은 등색 관계 \( \equiv \)가 벡터 공간의 등식처럼 행동한다는 진술이다. 현대적 형태로 쓰면 네 가지다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>법칙</th><th>진술</th><th>선형대수적 의미</th></tr></thead>
+      <tbody>
+        <tr><td>대칭성 <span class="en">(symmetry)</span></td><td>\( A \equiv B \Rightarrow B \equiv A \)</td><td>등가 관계</td></tr>
+        <tr><td>추이성 <span class="en">(transitivity)</span></td><td>\( A \equiv B,\; B \equiv C \Rightarrow A \equiv C \)</td><td>등가 관계 (등색 클래스 = 한 점)</td></tr>
+        <tr><td>비례성 <span class="en">(proportionality)</span></td><td>\( A \equiv B \Rightarrow kA \equiv kB \)</td><td>스칼라 곱 보존 (동차성)</td></tr>
+        <tr><td>가법성 <span class="en">(additivity)</span></td><td>\( A \equiv B,\; C \equiv D \Rightarrow A{+}C \equiv B{+}D \)</td><td>벡터 합 보존</td></tr>
+      </tbody>
+    </table></div>
+    <p>대칭성과 추이성은 등색이 <strong>등가 관계</strong>임을 말한다. 따라서 스펙트럼 공간을 "같아 보이는 것끼리" 묶은 등색 클래스를 하나의 점으로 볼 수 있다. 비례성과 가법성은 이 점들의 공간이 스펙트럼의 덧셈과 스칼라 곱을 그대로 물려받는다는 뜻이다. 따라서 스펙트럼에서 3자극치로 가는 사상은 <strong>선형</strong>이다. 그리고 원색이 셋이면 충분하다는 실험 사실(삼색성)이 이 공간이 <strong>3차원</strong>임을 정한다.</p>
+    <p>임의의 스펙트럼 \( S(\lambda) \)는 단색광들의 합(적분)이므로, 가법성과 비례성을 단색광 하나하나에 적용하면 곧바로 적분식이 나온다.</p>
+    <div class="formula">$$\begin{bmatrix}R\\G\\B\end{bmatrix} = \int S(\lambda)\begin{bmatrix}\bar r(\lambda)\\ \bar g(\lambda)\\ \bar b(\lambda)\end{bmatrix} d\lambda \;\approx\; \underbrace{A^{\!\top}}_{3\times N}\, \mathbf s \;\Delta\lambda$$
+      <div class="where">\( \mathbf s \)는 N개 파장에서 샘플링한 스펙트럼 벡터, \( A \)는 열이 \( \bar r, \bar g, \bar b \)인 N×3 행렬이다. 색은 \( \mathbb R^N \to \mathbb R^3 \) 선형 사상 \( A^\top \)의 상(image)이다. 단색광 실험 81번(5 nm)으로 모든 스펙트럼의 색을 예측할 수 있는 이유가 바로 이것이다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 320" role="img" aria-label="3자극치 공간: 단색광 벡터들이 만드는 원뿔과 원색 벡터 R G B">
+        <defs><marker id="a32" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        <marker id="a32b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
+        <!-- origin -->
+        <circle cx="140" cy="270" r="4" class="f-acc"/>
+        <text x="128" y="292" class="t-mono">0</text>
+        <!-- cone of spectral vectors -->
+        <path d="M140 270 L300 60 Q420 40 470 110 Q480 160 420 200 Z" class="f-acc-soft"/>
+        <path d="M300 60 Q420 40 470 110 Q480 160 420 200 Q360 150 300 60 Z" class="f-acc2-soft"/>
+        <text x="390" y="105" class="t-dim" text-anchor="middle">단색광 단면</text>
+        <text x="390" y="123" class="t-dim" text-anchor="middle">(스펙트럼 궤적)</text>
+        <line x1="140" y1="270" x2="320" y2="85" stroke="#e0443e" stroke-width="2.4" marker-end="url(#a32)"/>
+        <line x1="140" y1="270" x2="445" y2="168" stroke="#2f9e4a" stroke-width="2.4" marker-end="url(#a32)"/>
+        <line x1="140" y1="270" x2="410" y2="70" stroke="#2f6fe0" stroke-width="2.4" marker-end="url(#a32)"/>
+        <text x="300" y="80" class="t-mono" style="fill:#e0443e">R</text>
+        <text x="452" y="172" class="t-mono" style="fill:#2f9e4a">G</text>
+        <text x="414" y="64" class="t-mono" style="fill:#2f6fe0">B</text>
+        <line x1="140" y1="270" x2="468" y2="128" class="s-acc" stroke-width="2" marker-end="url(#a32b)"/>
+        <text x="474" y="132" class="t-acc">C(500 nm)</text>
+        <text x="300" y="250" class="t-dim">모든 실재 빛 = 이 원뿔(볼록)</text>
+        <!-- right text -->
+        <text x="540" y="70" class="t">3자극치 공간 ℝ³</text>
+        <text x="540" y="100" class="t-dim">· 빛의 세기 ↔ 벡터 길이</text>
+        <text x="540" y="122" class="t-dim">· 혼합 ↔ 벡터 합</text>
+        <text x="540" y="144" class="t-dim">· 색도 ↔ 방향(사영)</text>
+        <text x="540" y="176" class="t-dim">R, G, B가 만드는 원뿔은</text>
+        <text x="540" y="198" class="t-dim">스펙트럼 원뿔보다 좁다 →</text>
+        <text x="540" y="220" class="t-acc">C는 음의 계수로만 표현</text>
+      </svg>
+      <figcaption><b>그림 3-3.</b> 3자극치 공간의 기하. 단색광 벡터들의 볼록 원뿔 안에 모든 물리적 빛이 들어간다. 세 실재 원색이 양의 계수로 만드는 원뿔은 그 일부만 덮으므로, 바깥의 단색광 C는 음의 계수가 필요하다(개념도).</figcaption>
+    </figure>
+    <p>선형성의 가장 강력한 귀결은 <span class="term">메타머 블랙</span><span class="en">(metameric black)</span>이다. \( A^\top \mathbf b = 0 \)인 스펙트럼 성분 \( \mathbf b \), 즉 등색 함수 행렬의 영공간에 있는 성분은 어떤 스펙트럼에 더해도 3자극치를 바꾸지 않는다. 임의의 섭동 \( \mathbf p \)에서 CMF 성분을 사영해 빼면 블랙이 된다.</p>
+    <div class="formula">$$\mathbf b = \left(I - A\,(A^{\!\top}\!A)^{-1}A^{\!\top}\right)\mathbf p,\qquad A^{\!\top}\mathbf b = 0$$
+      <div class="where">반사율을 다룰 때는 광원을 포함해 \( A_{ij} = E(\lambda_i)\,\bar x_j(\lambda_i) \)로 둔다. 그러면 블랙은 그 <em>특정 광원과 특정 관측자</em>에 대해서만 블랙이다. 광원을 바꾸면 블랙이 0이 아닌 3자극치를 만든다. 이것이 메타머 실패<span class="en">(metameric failure)</span>의 선형대수적 정체다.</div>
+    </div>
+
+    <div class="sim" id="sim-black">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>메타머 블랙 — 등색 함수의 영공간</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-black"></canvas>
+          <div class="legend ch-legend"><span><i style="background:var(--text-dim)"></i>R₁ 원래 반사율</span><span><i style="background:var(--accent)"></i>R₂ = R₁ + 블랙</span><span><i style="background:var(--accent-2)"></i>블랙 성분 b (점선)</span></div>
+          <div class="sw-row"><div class="sw" id="mb-sw1">R₁</div><div class="sw" id="mb-sw2">R₂</div></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>기준 시료</span><div class="seg" id="mb-base"><button data-value="gray" class="on">회색 0.5</button><button data-value="t1">TCS01</button><button data-value="t5">TCS05</button></div></div>
+          <label class="ctrl"><span>섭동 주기 <output id="mb-per-out"></output></span><input type="range" id="mb-per" min="30" max="200" step="1" value="80"></label>
+          <label class="ctrl"><span>섭동 진폭 <output id="mb-amp-out"></output></span><input type="range" id="mb-amp" min="0" max="0.4" step="0.01" value="0.25"></label>
+          <label class="ctrl"><span>위상 <output id="mb-ph-out"></output></span><input type="range" id="mb-ph" min="0" max="360" step="5" value="0"></label>
+          <div class="ctrl"><span>평가 광원 (블랙 설계는 D65 · 2°)</span><div class="seg" id="mb-ill"><button data-value="D65" class="on">D65</button><button data-value="A">A</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">R₁ XYZ (D65, 2°)</span><span class="v" id="o-mb-x1">—</span></div>
+        <div class="stat"><span class="k">R₂ XYZ (D65, 2°)</span><span class="v" id="o-mb-x2">—</span></div>
+        <div class="stat"><span class="k">평가 광원에서 ΔE00</span><span class="v" id="o-mb-de">—</span></div>
+        <div class="stat"><span class="k">R₂ 범위 (물리적 0–1)</span><span class="v" id="o-mb-min">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① D65에서는 R₁과 R₂의 XYZ가 소수점 아래까지 같다(ΔE00 ≈ 0). 사인파 섭동에서 x̄ȳz̄ 성분만 사영해 뺐기 때문이다. ② 평가 광원을 A로 바꾸면 ΔE00 ≈ 1.4, 협대역 3파장 형광등 FL11로 바꾸면 ΔE00 ≈ 16까지 벌어진다(회색, 주기 80 nm, 진폭 0.25). ③ 주기를 30 nm처럼 짧게 하면 블랙은 섭동과 거의 같아진다. 빠르게 진동하는 성분은 매끈한 CMF와 거의 직교하기 때문이다. 반대로 주기가 길면 사영으로 많이 깎인다. ④ 진폭을 키워 R₂가 0 아래나 1 위로 나가면 물리적으로 만들 수 없는 반사율이다.</div>
+    </div>
+    <div class="callout tip">
+      <strong>공학자 관점: 3자극치는 정보 압축이다</strong>
+      <p>XYZ 세 숫자만 저장하면 그 광원·관측자 조건에서의 색은 완전히 기술되지만 스펙트럼은 복원할 수 없다. 조명이 바뀔 수 있는 제품(자동차 내장재, 도료, 섬유)은 그래서 <strong>분광 반사율</strong>로 사양을 관리하고, 특수 메타머리즘 지수(CIE 015)처럼 광원을 바꿨을 때의 색차를 따로 평가한다. 카메라 센서가 CMF의 선형 결합이 아니면 생기는 색 오차(<a href="camera.html">12장</a>)도 같은 구조의 문제다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="rgbcmf">
+    <h2>RGB 등색 함수: Wright–Guild와 Stiles–Burch</h2>
+    <p>CIE 1931 표준 관측자의 원천 데이터는 영국에서 독립적으로 수행된 두 실험이다. 라이트<span class="en">(W. D. Wright, 1928–29)</span>는 10명, 길드<span class="en">(J. Guild, 1931)</span>는 7명의 관측자로 2° 이분 시야 실험을 했다. 두 실험은 서로 다른 원색을 썼지만 그라스만 법칙 덕분에 공통 원색으로 변환해 평균할 수 있었다. CIE가 채택한 공통 원색은 단색광 <strong>700 nm, 546.1 nm, 435.8 nm</strong>다. 뒤의 둘은 수은 방전관의 휘선이어서 실험실에서 정확히 재현할 수 있고, 700 nm는 그 부근에서 색도가 거의 변하지 않아 파장 오차에 둔감하다.</p>
+    <p>단위는 <strong>등에너지 백색 E</strong>(모든 파장에서 같은 복사 파워)를 세 원색의 같은 양으로 맞추도록 정했다. 그 결과 세 원색 단위의 휘도비는 \( L_R : L_G : L_B = 1 : 4.5907 : 0.0601 \)이다. 이 단위계에서는 \( \int\bar r\,d\lambda = \int\bar g\,d\lambda = \int\bar b\,d\lambda \)가 된다.</p>
+    <p>이 책의 공통 데이터 <code>CB.rgbCMF</code>는 Wright–Guild 데이터가 아니라 <strong>Stiles–Burch 1955 2° 등색 함수</strong>다. 이는 국립물리연구소<span class="en">(NPL)</span>에서 10명의 관측자로 측정한 것으로, 원색은 645.16, 526.32, 444.44 nm이고, 단위는 <strong>복사 단위</strong>(각 원색의 등색 함수 값이 자기 원색 파장에서 1)다. 1931년 데이터와 달리 휘도 측정에 V(λ)를 끌어들이지 않고 직접 3자극치를 측정했기 때문에 측색학적으로 더 신뢰할 수 있는 2° 데이터로 평가받는다. 데이터는 390–730 nm 범위만 정의되어 있다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>데이터</th><th>원색 (nm)</th><th>시야 · 관측자</th><th>단위</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>CIE 1931 RGB (Wright–Guild)</td><td>700 / 546.1 / 435.8</td><td>2° · 17명</td><td>E 백색 = 같은 양</td><td>CIE 1931 XYZ의 원천</td></tr>
+        <tr><td>Stiles–Burch 1955</td><td>645.16 / 526.32 / 444.44</td><td>2° · 10명</td><td>복사 단위</td><td>이 책의 <code>CB.rgbCMF</code></td></tr>
+        <tr><td>Stiles–Burch 1959</td><td>645.16 / 526.32 / 444.44</td><td>10° · 49명</td><td>복사 단위</td><td>CIE 1964 10° 관측자의 주 데이터</td></tr>
+        <tr><td>CIE 1931 x̄ȳz̄</td><td>가상 원색</td><td>2°</td><td>ȳ = V(λ)</td><td><code>CB.cmf(nm)</code></td></tr>
+        <tr><td>CIE 1964 x̄₁₀ȳ₁₀z̄₁₀</td><td>가상 원색</td><td>10°</td><td>E 백색에서 X=Y=Z</td><td><code>CB.cmf(nm,'1964')</code></td></tr>
+        <tr><td>Stockman–Sharpe (CIE 170-1:2006)</td><td>원추 L·M·S</td><td>2°</td><td>각 최대 1</td><td><code>CB.lms(nm)</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>원색 집합이 바뀌면 곡선 모양이 어떻게 달라지는지 직접 비교해 보자. "사용자 원색"에서는 세 단색광 파장을 고르면 그 원색의 등색 함수를 CIE 1931 x̄ȳz̄에서 <em>계산</em>한다. 실험을 다시 할 필요가 없다는 것, 이것이 다음 절의 원색 변환 정리다.</p>
+
+    <div class="sim" id="sim-cmf">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>등색 함수 비교 — r̄ḡb̄ · x̄ȳz̄ · LMS · 사용자 원색</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cmf"></canvas>
+          <div class="legend ch-legend"><span><i style="background:var(--red)"></i>1채널 (r̄, x̄, L)</span><span><i style="background:var(--green)"></i>2채널 (ḡ, ȳ, M)</span><span><i style="background:var(--blue)"></i>3채널 (b̄, z̄, S)</span><span>빗금 면 = 음수 영역</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>데이터</span><div class="seg" id="cmf-mode"><button data-value="sb" class="on">SB 1955</button><button data-value="wg">CIE RGB</button><button data-value="user">사용자</button><button data-value="xyz31">x̄ȳz̄ 2°</button><button data-value="xyz64">x̄ȳz̄ 10°</button><button data-value="lms">LMS</button></div></div>
+          <label class="ctrl"><span>사용자 원색 1 <output id="cmf-u1-out"></output></span><input type="range" id="cmf-u1" min="590" max="700" step="1" value="700"></label>
+          <label class="ctrl"><span>사용자 원색 2 <output id="cmf-u2-out"></output></span><input type="range" id="cmf-u2" min="490" max="570" step="1" value="546"></label>
+          <label class="ctrl"><span>사용자 원색 3 <output id="cmf-u3-out"></output></span><input type="range" id="cmf-u3" min="400" max="480" step="1" value="436"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">음수 면적 / 전체 |면적|</span><span class="v" id="o-cv-neg">—</span></div>
+        <div class="stat"><span class="k">가장 깊은 음수</span><span class="v" id="o-cv-min">—</span></div>
+        <div class="stat"><span class="k">면적비 ∫1 : ∫2 : ∫3</span><span class="v" id="o-cv-area">—</span></div>
+        <div class="stat"><span class="k">원색 단위 휘도비</span><span class="v" id="o-cv-unit">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① SB 1955와 CIE RGB를 번갈아 보라. 원색과 단위가 달라 크기는 다르지만 r̄이 500 nm 부근에서 크게 음수인 모양은 같다. ② "사용자"에서 700/546/436 nm를 고르면 CIE RGB와 거의 같아지고, 휘도비가 1 : 4.59 : 0.061로 나온다. ③ 원색 2를 490 nm 쪽으로 옮기면 r̄의 음수 로브는 줄지만 ḡ와 b̄에 새 음수가 생긴다. 어떤 세 단색광을 골라도 음수 면적은 0이 되지 않는다. ④ x̄ȳz̄와 LMS에는 음수가 없다. 둘 다 실재하지 않는 원색에 대응하기 때문이다. x̄ȳz̄는 세 면적이 같다(E 백색 조건).</div>
+    </div>
+    <div class="callout deep">
+      <strong>1931 데이터의 알려진 약점</strong>
+      <p>Wright–Guild 실험은 휘도를 직접 재지 않고 3자극치를 상대값(색도 좌표)으로 기록했다. 이후 CIE 1924 V(λ)를 이용해 절대 크기를 복원했는데, 당시 V(λ)가 460 nm 아래 단파장에서 감도를 과소평가하고 있었다. 그 오차가 1931 ȳ와 z̄에 그대로 남아 있다. Judd(1951)와 Vos(1978)의 보정안, CIE 170-1:2006의 원추 기반 관측자가 이를 고치려는 시도다. 다음 절의 피팅에서 잔차가 단파장에 몰리는 것도 이와 관련이 있다. 그럼에도 산업 표준은 지금도 1931/1964 관측자다. 수십 년 치 측정 데이터와 호환되어야 하기 때문이다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="transform">
+    <h2>원색 변환 정리와 최소자승 피팅</h2>
+    <p>원색 집합 \( \{\mathbf P_1,\mathbf P_2,\mathbf P_3\} \)에서 다른 집합 \( \{\mathbf Q_1,\mathbf Q_2,\mathbf Q_3\} \)로 바꾸는 것은 3차원 벡터 공간의 기저 변환이다. 새 원색 각각을 옛 원색으로 등색하면 3×3 행렬 \( M \)을 얻는다. \( M \)의 j번째 열은 \( \mathbf Q_j \)의 옛 3자극치다.</p>
+    <div class="formula">$$\begin{bmatrix}\bar p_1\\ \bar p_2\\ \bar p_3\end{bmatrix}\!(\lambda) = M \begin{bmatrix}\bar q_1\\ \bar q_2\\ \bar q_3\end{bmatrix}\!(\lambda),\qquad M = \big[\,\mathbf t_P(\mathbf Q_1)\;\; \mathbf t_P(\mathbf Q_2)\;\; \mathbf t_P(\mathbf Q_3)\,\big]$$
+      <div class="where">\( \mathbf t_P(\mathbf Q_j) \)는 원색 \( \mathbf Q_j \) 한 단위의 P-기저 3자극치다. 모든 파장에서 <em>같은</em> 행렬이 성립한다는 점이 핵심이다. 등색 함수 집합들은 서로 3×3 선형 변환 관계에 있다. CIE 1931 RGB → XYZ의 고전 행렬이 그 예다.</div>
+    </div>
+    <div class="formula">$$\begin{bmatrix}X\\Y\\Z\end{bmatrix} = \frac{1}{0.17697}\begin{bmatrix}0.49000 & 0.31000 & 0.20000\\ 0.17697 & 0.81240 & 0.01063\\ 0.00000 & 0.01000 & 0.99000\end{bmatrix}\begin{bmatrix}R\\G\\B\end{bmatrix}$$
+      <div class="where">각 행의 합이 1이므로(÷0.17697 전) R=G=B인 E 백색이 X=Y=Z가 된다. 둘째 행은 원색 단위의 휘도비 0.17697 : 0.81240 : 0.01063 = 1 : 4.5907 : 0.0601이다. 이 장의 사용자 원색 계산과 CIE RGB 곡선은 이 행렬의 역행렬을 x̄ȳz̄에 곱해 얻었다.</div>
+    </div>
+    <p>단색광 원색이라면 \( M \)을 예측하기도 쉽다. 원색 \( \mathbf Q_j \)가 파장 \( \lambda_j \)의 단색광 1 복사 단위라면, 그 XYZ는 정의상 \( \bar{\mathbf x}(\lambda_j) \)다. 따라서 Stiles–Burch r̄ḡb̄(복사 단위)에서 x̄ȳz̄로 가는 행렬의 열은 \( \bar{\mathbf x}(645.16),\ \bar{\mathbf x}(526.32),\ \bar{\mathbf x}(444.44) \)이어야 한다. 하지만 두 데이터는 서로 다른 관측자 집단에서 나왔으므로 정확히 하나의 행렬로 연결되지 않는다. 실무에서는 전 파장에 걸친 <strong>최소자승</strong>으로 \( M \)을 구한다.</p>
+    <div class="formula">$$\hat M = \arg\min_M \sum_{\lambda}\big\|\bar{\mathbf x}(\lambda) - M\,\bar{\mathbf r}(\lambda)\big\|^2 = \left(\bar X^{\!\top}\bar R\right)\left(\bar R^{\!\top}\bar R\right)^{-1}$$
+      <div class="where">\( \bar R \), \( \bar X \)는 행이 파장, 열이 채널인 N×3 행렬이다. 정규방정식의 해로, 3×3 역행렬 하나면 된다. 카메라 CCM 최적화(<a href="camera.html">12장</a>)와 똑같은 구조의 문제다.</div>
+    </div>
+
+    <div class="sim" id="sim-fit">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>r̄ḡb̄ → x̄ȳz̄ 3×3 최소자승 피팅과 잔차</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-fit"></canvas>
+          <div class="legend ch-legend"><span>실선 = 목표 CMF</span><span>점선 = 피팅 M·(원본)</span><span>아래 = 잔차(피팅 − 목표)</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>원본</span><div class="seg" id="fit-src"><button data-value="sb" class="on">SB 1955 r̄ḡb̄</button><button data-value="lms">LMS (S–S)</button></div></div>
+          <div class="ctrl"><span>목표</span><div class="seg" id="fit-dst"><button data-value="1931" class="on">CIE 1931 2°</button><button data-value="1964">CIE 1964 10°</button></div></div>
+          <label class="ctrl"><span>피팅 하한 파장 <output id="fit-lo-out"></output></span><input type="range" id="fit-lo" min="390" max="480" step="5" value="390"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">피팅 행렬 M̂</span><span class="v" id="o-fit-m">—</span></div>
+        <div class="stat"><span class="k">상대 RMS 잔차 X · Y · Z</span><span class="v" id="o-fit-rel">—</span></div>
+        <div class="stat"><span class="k">최대 잔차 |Δ|</span><span class="v" id="o-fit-max">—</span></div>
+        <div class="stat"><span class="k">비교 행렬</span><span class="v" id="o-fit-pred">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 기본 설정(SB → 1931, 390–730 nm)에서 M̂의 첫 열 (0.358, 0.140, −0.011)은 x̄ȳz̄(645.16) = (0.358, 0.137, 0)과 거의 같다. 원색 변환 정리가 실제 데이터로도 성립한다. ② 잔차는 420 nm 부근에서 가장 크고(|Δ| ≈ 0.34), z̄ 상대 잔차가 약 14%다. 하한을 460 nm로 올리면 z̄ 잔차가 약 3.7%로 떨어진다. 1931 관측자의 단파장 문제가 그대로 드러난다. ③ 목표를 1964 10°로 바꾸면 z̄ 잔차가 6.8%로 줄어든다. ④ 원본을 LMS로 바꾸면 XYZ가 원추 기본함수의 3×3 변환에 <em>근사적으로만</em> 맞는다(1931 목표: X 3.8%, Y 2.4%, Z 13.3%).</div>
+    </div>
+    <p>결과를 정리하면 다음과 같다(5 nm 간격, 390–730 nm). Stiles–Burch 1955에서 CIE 1931로 가는 최소자승 행렬은</p>
+    <div class="formula">$$\hat M_{\text{SB}\to 1931} = \begin{bmatrix}0.3581 & 0.1459 & 0.3582\\ 0.1399 & 0.8287 & 0.0142\\ -0.0106 & 0.0730 & 1.8697\end{bmatrix},\qquad \big[\bar{\mathbf x}(645.16)\;\bar{\mathbf x}(526.32)\;\bar{\mathbf x}(444.44)\big] = \begin{bmatrix}0.3583 & 0.1244 & 0.3481\\ 0.1372 & 0.8114 & 0.0290\\ 0 & 0.0533 & 1.7786\end{bmatrix}$$
+      <div class="where">오른쪽은 원색 변환 정리로 예측한 행렬이다. 열 단위로 몇 % 이내에서 일치한다. 차이는 두 관측자 집단의 차이와 1931 데이터의 단파장 오차를 반영한다. 상대 RMS 잔차는 X 4.3%, Y 4.0%, Z 14.3%다.</div>
+    </div>
+    <div class="callout tip">
+      <strong>공학자 관점: 3×3 행렬이 "정확하다"는 조건</strong>
+      <p>두 CMF 집합이 같은 관측자에서 나왔다면 잔차는 측정 잡음 수준이어야 한다. 잔차가 수 % 이상이면 두 집합은 <em>다른 관측자</em>이고, 어떤 행렬로도 모든 스펙트럼에서 일치시킬 수 없다. 카메라 분광 감도가 CMF의 선형 결합이 아닐 때(루터 조건 위배) 생기는 오차와 정확히 같은 수학이다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="xyz">
+    <h2>CIE XYZ: 가상 원색을 고른 이유</h2>
+    <p>원색은 아무 셋이나 고를 수 있으므로 CIE는 1931년 계산하기 편한 원색을 <em>설계</em>했다. 당시는 탁상 계산기로 적분하던 시대였고, 음수가 섞인 곡선은 부호 실수의 원천이었다. 설계 조건은 다음과 같다.</p>
+    <ol>
+      <li><strong>음수 없음</strong>: 모든 파장에서 \( \bar x, \bar y, \bar z \ge 0 \). 원색 삼각형이 스펙트럼 궤적 전체를 감싸야 하므로 원색은 실재할 수 없는 <span class="term">가상 원색</span><span class="en">(imaginary primaries)</span>이 된다.</li>
+      <li><strong>Y = 휘도</strong>: \( \bar y(\lambda) = V(\lambda) \)(CIE 1924 명소시 비시감도). 그러려면 X와 Z 원색은 휘도가 0이어야 하고, 둘 다 휘도 0 직선인 <span class="term">알리크네</span><span class="en">(alychne)</span> 위에 놓인다. 색도(x, y)와 밝기(Y)가 깔끔하게 분리된다.</li>
+      <li><strong>E 백색에서 X = Y = Z</strong>: 세 곡선의 면적이 같다. 등에너지 백색의 색도가 \( (1/3, 1/3) \)이 된다.</li>
+      <li><strong>계산 편의</strong>: 650 nm 이상에서 \( \bar z = 0 \)이 되도록 삼각형의 한 변을 스펙트럼 궤적의 장파장 직선 부분에 맞췄다. 장파장 쪽은 두 함수만 적분하면 된다.</li>
+    </ol>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 440" role="img" aria-label="CIE 1931 rg 색도도 위의 스펙트럼 궤적과 이를 감싸는 가상 원색 X Y Z 삼각형, 알리크네">
+        <defs><marker id="a33" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <!-- axes r=0 at x=290, g=0 at y=355 -->
+        <line x1="70" y1="355" x2="480" y2="355" class="s-axis"/>
+        <line x1="290" y1="410" x2="290" y2="22" class="s-axis"/>
+        <text x="476" y="372" class="t-mono">r</text><text x="296" y="30" class="t-mono">g</text>
+        <text x="400" y="372" class="t-mono" text-anchor="middle">1</text><text x="282" y="249" class="t-mono" text-anchor="end">1</text>
+        <text x="180" y="372" class="t-mono" text-anchor="middle">−1</text><text x="282" y="139" class="t-mono" text-anchor="end">2</text>
+        <line x1="180" y1="351" x2="180" y2="359" class="s-axis"/><line x1="286" y1="135" x2="294" y2="135" class="s-axis"/>
+        <!-- XYZ triangle -->
+        <path d="M430.3 385.6 L98.7 50.6 L208.3 339.5 Z" class="f-acc-soft"/>
+        <path d="M430.3 385.6 L98.7 50.6 L208.3 339.5 Z" fill="none" class="s-acc" stroke-width="1.6"/>
+        <!-- alychne through X and Z -->
+        <line x1="70" y1="331.5" x2="480" y2="391.6" class="s-line" stroke-dasharray="6 4"/>
+        <text x="74" y="324" class="t-dim">알리크네 (휘도 0)</text>
+        <!-- RGB triangle -->
+        <path d="M400 355 L290 245 L290 355 Z" fill="none" class="s-line" stroke-width="1.6"/>
+        <!-- locus -->
+        <path d="M292.7 356.2 L292.0 356.0 L289.1 354.5 L283.2 351.2 L275.9 346.6 L261.6 334.8 L249.7 323.0 L232.8 304.7 L211.4 278.0 L185.9 242.3 L161.5 202.1 L145.0 165.9 L142.9 142.5 L157.2 138.3 L181.9 151.1 L208.8 171.7 L233.3 192.6 L253.7 210.8 L271.2 227.1 L286.8 241.9 L300.7 255.4 L313.3 267.9 L324.8 279.3 L335.2 289.7 L344.7 299.3 L353.3 307.9 L360.9 315.6 L367.8 322.5 L373.8 328.6 L379.0 333.8 L383.2 338.1 L389.7 344.6 L395.0 350.0 L398.3 353.3 L400.0 355.0 Z" class="f-acc2-soft"/>
+        <path d="M292.7 356.2 L292.0 356.0 L289.1 354.5 L283.2 351.2 L275.9 346.6 L261.6 334.8 L249.7 323.0 L232.8 304.7 L211.4 278.0 L185.9 242.3 L161.5 202.1 L145.0 165.9 L142.9 142.5 L157.2 138.3 L181.9 151.1 L208.8 171.7 L233.3 192.6 L253.7 210.8 L271.2 227.1 L286.8 241.9 L300.7 255.4 L313.3 267.9 L324.8 279.3 L335.2 289.7 L344.7 299.3 L353.3 307.9 L360.9 315.6 L367.8 322.5 L373.8 328.6 L379.0 333.8 L383.2 338.1 L389.7 344.6 L395.0 350.0 L398.3 353.3 L400.0 355.0" fill="none" class="s-line" stroke-width="1.8"/>
+        <text x="132" y="140" class="t-mono" text-anchor="end">510</text>
+        <text x="150" y="205" class="t-mono" text-anchor="end">500</text>
+        <text x="240" y="330" class="t-mono" text-anchor="end">480</text>
+        <text x="216" y="168" class="t-mono">520</text>
+        <text x="330" y="276" class="t-mono">560</text>
+        <text x="404" y="348" class="t-mono">700</text>
+        <!-- primaries labels -->
+        <circle cx="430.3" cy="385.6" r="4" class="f-acc"/><text x="438" y="400" class="t-acc">X (1.275, −0.278)</text>
+        <circle cx="98.7" cy="50.6" r="4" class="f-acc"/><text x="108" y="48" class="t-acc">Y (−1.739, 2.767)</text>
+        <circle cx="208.3" cy="339.5" r="4" class="f-acc"/><text x="150" y="398" class="t-acc">Z (−0.743, 0.141)</text>
+        <line x1="190" y1="386" x2="206" y2="345" class="s-line" marker-end="url(#a33)"/>
+        <circle cx="326.7" cy="318.3" r="3.5" fill="var(--text)"/><text x="334" y="314" class="t-mono">E</text>
+        <text x="404" y="246" class="t-dim">실재 원색 삼각형</text>
+        <text x="404" y="262" class="t-dim">R(700) G(546.1) B(435.8)</text>
+        <!-- right panel -->
+        <text x="530" y="80" class="t">rg 색도: r = R/(R+G+B)</text>
+        <text x="530" y="110" class="t-dim">· 스펙트럼 궤적이 r &lt; 0 영역으로</text>
+        <text x="530" y="130" class="t-dim">  크게 나간다 (r̄ 음수 로브)</text>
+        <text x="530" y="160" class="t-dim">· XYZ 삼각형은 궤적 전체를</text>
+        <text x="530" y="180" class="t-dim">  감싼다 → x̄ȳz̄ ≥ 0</text>
+        <text x="530" y="210" class="t-dim">· X, Z는 알리크네 위 → 휘도 0</text>
+        <text x="530" y="240" class="t-dim">· 세 꼭짓점 모두 궤적 밖</text>
+        <text x="530" y="260" class="t-acc">  = 가상 원색</text>
+      </svg>
+      <figcaption><b>그림 3-4.</b> CIE 1931 RGB의 rg 색도 평면. 말굽 모양 스펙트럼 궤적(400–700 nm, 고전 행렬의 역변환으로 계산)을 실재 원색 삼각형은 일부만 덮고, XYZ 가상 원색 삼각형은 전부 감싼다. X와 Z 꼭짓점은 휘도 0 직선(알리크네) 위에 있다.</figcaption>
+    </figure>
+    <p>x̄ȳz̄ 면적이 같은지는 내장 데이터로 바로 확인된다. 380–780 nm, 5 nm 합으로 \( \sum\bar x\,\Delta\lambda = 106.858,\ \sum\bar y\,\Delta\lambda = 106.857,\ \sum\bar z\,\Delta\lambda = 106.858 \)이다. 10° 관측자는 116.65 / 116.66 / 116.67이다. Y가 V(λ)라는 조건 덕분에 발광체의 Y에 \( K_m = 683\ \text{lm/W} \)를 곱하면 광속이나 휘도 같은 측광량이 된다(<a href="light.html">1장</a>).</p>
+    <h3>XYZ와 원추 반응 LMS</h3>
+    <p>XYZ는 생리학에서 출발하지 않았지만, 그라스만 법칙이 성립하는 한 모든 등색 함수 집합은 원추 기본함수의 선형 변환이어야 한다. 실제로 색 외관 모델과 색순응 모델은 XYZ에 3×3 행렬을 곱해 "원추 비슷한" 공간으로 간다. 대표적인 것이 Hunt–Pointer–Estevez<span class="en">(HPE)</span> 행렬이다(E 백색 정규화).</p>
+    <div class="formula">$$\begin{bmatrix}L\\M\\S\end{bmatrix}_{\text{HPE}} = \begin{bmatrix}0.38971 & 0.68898 & -0.07868\\ -0.22981 & 1.18340 & 0.04641\\ 0 & 0 & 1\end{bmatrix}\begin{bmatrix}X\\Y\\Z\end{bmatrix}$$
+      <div class="where">CIECAM02에서 쓰이는 형태다. Stockman–Sharpe 원추 기본함수(<code>CB.lms</code>)를 x̄ȳz̄로 최소자승 피팅하면 상대 RMS 잔차가 L 약 2%, M 약 2%, S 약 13%로, 1931 관측자는 원추 공간의 <em>근사적</em> 선형 변환이다. S 잔차가 큰 것은 앞서 본 단파장 오차 탓이다. 색순응 행렬(Bradford, CAT02)은 <a href="adaptation.html">8장</a>에서 다룬다.</div>
+    </div>
+    <div class="callout warn">
+      <strong>흔한 실수: XYZ 원색을 "표시"하려는 것</strong>
+      <p>X, Y, Z는 어떤 물리적 빛으로도 만들 수 없다. XYZ = (1, 0, 0)인 빛은 존재하지 않는다. XYZ 값의 쓰임은 계산과 교환이고, 화면에 보일 때는 반드시 sRGB나 P3 같은 실재 원색 공간으로 변환하고 음수·1 초과 값은 클리핑하거나 가멋 매핑해야 한다(<a href="rgb.html">5장</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="integrate">
+    <h2>3자극치 적분: 발광체와 물체색</h2>
+    <p>등색 함수가 준비되면 어떤 빛의 XYZ도 적분 하나로 구할 수 있다. 실무에서는 표로 주어진 데이터를 쓰므로 적분은 합이 된다. 두 경우를 구분한다.</p>
+    <div class="formula">$$\textbf{발광체: }\; X = k\sum_\lambda S(\lambda)\,\bar x(\lambda)\,\Delta\lambda,\qquad k = K_m = 683\ \text{lm/W}\ \text{(절대)}\ \text{또는}\ k = \frac{100}{\sum S\,\bar y\,\Delta\lambda}\ \text{(상대)}$$
+    $$\textbf{물체색: }\; X = k\sum_\lambda S(\lambda)\,R(\lambda)\,\bar x(\lambda)\,\Delta\lambda,\qquad k = \frac{100}{\sum_\lambda S(\lambda)\,\bar y(\lambda)\,\Delta\lambda}$$
+      <div class="where">\( S \)는 광원의 상대 분광 분포, \( R \)은 분광 반사율(투과체는 투과율 \( \tau \))이다. 물체색의 \( k \)는 완전 확산 반사면(\( R \equiv 1 \))의 Y가 100이 되도록 정한다. 그러면 Y는 시감 반사율(%)이 된다. Y, Z도 같은 식에서 \( \bar y, \bar z \)로 바꾸면 된다. ColorBook에서는 <code>CB.spd2XYZ(R, {illum, observer, step})</code>가 이 식을 그대로 계산한다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 230" role="img" aria-label="3자극치 적분 파이프라인: 광원 분포 곱하기 반사율 곱하기 등색 함수를 파장별로 더한다">
+        <defs><marker id="a34" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="40" width="150" height="110" rx="8" class="f-surface"/>
+        <path d="M30 130 C60 70 80 60 100 75 S140 95 160 85" fill="none" class="s-acc" stroke-width="2"/>
+        <text x="95" y="172" text-anchor="middle" class="t">광원 S(λ)</text>
+        <text x="185" y="100" text-anchor="middle" class="t">×</text>
+        <rect x="200" y="40" width="150" height="110" rx="8" class="f-surface"/>
+        <path d="M210 125 C240 125 260 120 280 95 S320 60 340 60" fill="none" class="s-acc" stroke-width="2"/>
+        <text x="275" y="172" text-anchor="middle" class="t">반사율 R(λ)</text>
+        <text x="365" y="100" text-anchor="middle" class="t">×</text>
+        <rect x="380" y="40" width="150" height="110" rx="8" class="f-surface"/>
+        <path d="M390 140 C410 140 420 70 440 110 S470 140 480 140" fill="none" stroke="var(--blue)" stroke-width="2"/>
+        <path d="M390 140 C430 140 450 50 470 80 S500 140 520 140" fill="none" stroke="var(--green)" stroke-width="2"/>
+        <path d="M390 140 C440 140 470 140 485 60 S510 140 520 140" fill="none" stroke="var(--red)" stroke-width="2"/>
+        <text x="455" y="172" text-anchor="middle" class="t">x̄ ȳ z̄(λ)</text>
+        <line x1="535" y1="95" x2="580" y2="95" class="s-line" marker-end="url(#a34)"/>
+        <rect x="590" y="50" width="190" height="90" rx="8" class="f-elev"/>
+        <text x="685" y="80" text-anchor="middle" class="t">k · Σ Δλ</text>
+        <text x="685" y="108" text-anchor="middle" class="t-acc">X, Y, Z</text>
+        <text x="685" y="128" text-anchor="middle" class="t-dim">Y = 100 (완전 백색)</text>
+        <text x="400" y="212" text-anchor="middle" class="t-dim">파장마다 세 곱을 만들고 Δλ 간격으로 더한다. 401(1 nm) · 81(5 nm) · 41(10 nm) · 21(20 nm) 점.</text>
+      </svg>
+      <figcaption><b>그림 3-5.</b> 물체색의 3자극치 계산. 반사율은 광원 없이는 색이 아니며, 광원과 관측자를 함께 지정해야 XYZ가 정해진다.</figcaption>
+    </figure>
+    <p>적분 간격 \( \Delta\lambda \)는 얼마로 해야 할까. CIE 015:2018은 1 nm 간격을 기준으로 하고, 매끈한 스펙트럼이면 5 nm 간격도 충분하다고 본다. 분광광도계는 흔히 10 nm(때로 20 nm) 간격으로 반사율을 내놓는다. 이때 CMF를 단순히 10 nm마다 뽑아 쓰면 오차가 커지므로, ASTM E308은 10·20 nm 간격 데이터에 바로 곱할 수 있는 <strong>3자극치 가중치 표</strong>를 광원·관측자 조합별로 제공한다. 이 가중치는 사이 파장의 CMF와 광원 정보를 보간 이론으로 흡수하고, 측정기 대역폭 보정 유무에 따라 두 종류로 나뉜다.</p>
+
+    <div class="sim" id="sim-int">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>3자극치 적분 계산기 — 광원 × 반사율 × CMF, 적분 간격별 오차</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-int"></canvas>
+          <div class="legend ch-legend"><span><i style="background:var(--red)"></i>S·R·x̄</span><span><i style="background:var(--green)"></i>S·R·ȳ</span><span><i style="background:var(--blue)"></i>S·R·z̄</span><span>막대 = 선택한 간격의 샘플</span></div>
+          <div class="sw-row"><div class="sw" id="in-sw">견본</div></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>대상</span><div class="seg" id="in-mode"><button data-value="obj" class="on">물체색 (반사)</button><button data-value="light">광원색</button></div></div>
+          <div class="ctrl"><span>광원</span><div class="seg" id="in-ill"><button data-value="D65" class="on">D65</button><button data-value="A">A</button><button data-value="FL2">FL2</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button></div></div>
+          <label class="ctrl"><span>시료 <output id="in-tcs-out"></output></span><input type="range" id="in-tcs" min="1" max="14" step="1" value="1"></label>
+          <div class="ctrl"><span>적분 간격 Δλ</span><div class="seg" id="in-step"><button data-value="1">1 nm</button><button data-value="5" class="on">5 nm</button><button data-value="10">10 nm</button><button data-value="20">20 nm</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">XYZ</span><span class="v" id="o-in-xyz">—</span></div>
+        <div class="stat"><span class="k">xy</span><span class="v" id="o-in-xy">—</span></div>
+        <div class="stat"><span class="k">CIELAB (L*, a*, b*)</span><span class="v" id="o-in-lab">—</span></div>
+        <div class="stat"><span class="k">1 nm 기준 오차</span><span class="v" id="o-in-de">—</span></div>
+      </div>
+      <div class="sim-table"><div class="table-wrap" id="in-table"></div></div>
+      <div class="sim-note">해볼 것: ① D65·TCS01에서 간격을 1 → 20 nm로 바꿔도 ΔE00가 0.07 이하다. 매끈한 광원과 반사율에는 10 nm도 충분하다. ② 광원을 FL11(협대역 3파장 형광등)로 바꾸고 TCS09(강한 적색)를 보라. 20 nm에서 ΔE00 ≈ 9.1이다. 날카로운 휘선이 샘플 점 사이에 숨거나 과대 반영되기 때문이다. ③ FL2에서는 10 nm 오차가 20 nm보다 큰 시료도 있다. 간격과 휘선 위치의 상대 관계(에일리어싱)가 결과를 좌우한다. ④ "광원색"으로 바꾸면 광원 자체의 xy와 Δu′v′ 오차를 본다. 1 nm 기준은 5 nm 원표를 선형 보간한 값이므로, 원표 자체의 해상도 한계까지 반영하지는 않는다. 견본은 Bradford로 D65에 적응시켜 표시한다.</div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>광원</th><th>5 nm 최대 ΔE00</th><th>10 nm 최대 ΔE00</th><th>20 nm 최대 ΔE00</th><th>해석</th></tr></thead>
+      <tbody>
+        <tr><td>D65 (주광)</td><td>0.09</td><td>0.07</td><td>0.20</td><td>매끈한 분포. 10 nm면 충분</td></tr>
+        <tr><td>A (백열)</td><td>0.09</td><td>0.07</td><td>0.11</td><td>가장 매끈함</td></tr>
+        <tr><td>LED-B3 (백색 LED)</td><td>0.14</td><td>0.08</td><td>1.61</td><td>청색 피크(FWHM 수십 nm)</td></tr>
+        <tr><td>FL2 (냉백색 형광)</td><td>0.09</td><td>3.25</td><td>1.38</td><td>수은 휘선 + 광대역 형광체</td></tr>
+        <tr><td>FL11 (3파장 형광)</td><td>0.14</td><td>3.86</td><td>9.12</td><td>협대역 형광체 → 1·5 nm 필수</td></tr>
+      </tbody>
+    </table></div>
+    <p>표는 TCS01–14 열네 시료에 대해 1 nm 합을 기준으로 단순 부분 샘플링한 오차의 최댓값이다(이 페이지의 데이터로 계산, CIE 1931 2°). 단순 샘플링은 ASTM E308 가중치보다 훨씬 나쁜 최악의 경우다. 그래도 결론은 분명하다. <strong>협대역 광원(형광등, 레이저, 일부 LED)을 다룰 때는 5 nm 이하 간격이 필요하다.</strong></p>
+    <div class="callout tip">
+      <strong>공학자 관점: 계측 사양서를 읽는 법</strong>
+      <p>분광광도계 사양의 "파장 간격 10 nm"와 "대역폭 10 nm"는 다른 말이다. 간격은 샘플링, 대역폭은 각 샘플이 얼마나 넓은 파장을 섞는지다. 표면색(반사율)은 대체로 매끈해서 10 nm 측정 + ASTM E308 가중치가 업계 표준(ISO/CIE 11664-3 계열 절차와 함께)으로 쓰인다. 광원 측정(분광복사계)에서는 1–5 nm 간격과 좁은 대역폭이 필요하다. 측정기 쪽 이야기는 <a href="measurement.html">11장</a>에서 다룬다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="observer">
+    <h2>2° 관측자와 10° 관측자</h2>
+    <p>1931 관측자는 2° 시야로 측정했다. 2°는 팔 길이에서 엄지손톱 정도이며, 원추세포가 빽빽하고 황반 색소가 짙은 중심와 영역에 해당한다. 그런데 실제로 우리가 색 견본을 비교할 때는 이보다 훨씬 넓은 시야를 쓴다. 시야가 넓어지면 황반 색소가 옅은 주변부가 포함되어 단파장 감도가 올라가고, 원추 광색소의 유효 광학 밀도도 달라진다. 그래서 CIE는 1964년 10° 시야의 <strong>보조 표준 관측자</strong> x̄₁₀ȳ₁₀z̄₁₀을 정했다. 주 데이터는 Stiles–Burch(1959, 49명)와 Speranskaya(1959, 27명)의 10° 실험이다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="망막 위 2도와 10도 시야 크기 비교, 황반 색소 분포">
+        <circle cx="200" cy="130" r="110" class="f-surface"/>
+        <circle cx="200" cy="130" r="58" class="f-acc2-soft"/>
+        <circle cx="200" cy="130" r="12" class="f-acc"/>
+        <circle cx="200" cy="130" r="58" fill="none" class="s-line" stroke-dasharray="5 4"/>
+        <text x="200" y="134" text-anchor="middle" class="t-mono" style="fill:#fff">2°</text>
+        <text x="200" y="98" text-anchor="middle" class="t-mono">10°</text>
+        <text x="200" y="255" text-anchor="middle" class="t-dim">망막 중심부 (개념도, 크기 비례)</text>
+        <text x="380" y="60" class="t">2° (CIE 1931)</text>
+        <text x="380" y="82" class="t-dim">· 중심와: 원추 밀집, 막대세포 거의 없음</text>
+        <text x="380" y="104" class="t-dim">· 황반 색소가 짙음 → 단파장 흡수 ↑</text>
+        <text x="380" y="126" class="t-dim">· 1–4° 크기 자극, 디스플레이 픽셀·작은 신호등</text>
+        <text x="380" y="166" class="t">10° (CIE 1964)</text>
+        <text x="380" y="188" class="t-dim">· 주변부 포함: 황반 색소 옅음 → 청색 감도 ↑</text>
+        <text x="380" y="210" class="t-dim">· 4° 이상 큰 자극, 도료·섬유·플라스틱 견본</text>
+        <text x="380" y="232" class="t-dim">· 막대세포 개입을 줄이려 고휘도에서 측정</text>
+      </svg>
+      <figcaption><b>그림 3-6.</b> 2°와 10° 시야. 시야 크기에 따라 황반 색소와 광색소 밀도의 영향이 달라지므로 등색 함수가 달라진다. 특히 ȳ₁₀은 V(λ)와 같지 않다.</figcaption>
+    </figure>
+    <p>CIE 015는 시야각이 약 4°보다 크면 10° 관측자를 쓰라고 권고한다. 그래서 산업별 관례가 갈린다. 도료·플라스틱·섬유·인쇄 품질 관리의 표면색 측정은 <strong>D65/10°</strong>(인쇄는 ISO 13655에 따라 D50/2°도 흔함)를 많이 쓰고, 디스플레이·조명·영상 표준(sRGB, Rec.709/2020, CCT, CRI)은 <strong>2°</strong>로 정의되어 있다. 같은 시료라도 관측자가 다르면 숫자가 달라지므로, 측정 보고서에는 언제나 "D65/10°"처럼 광원/관측자를 함께 적는다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>광원</th><th>2° 백색 (X, Y, Z)</th><th>2° xy</th><th>10° 백색 (X, Y, Z)</th><th>10° xy</th></tr></thead>
+      <tbody>
+        <tr><td>D65</td><td>95.04, 100, 108.88</td><td>0.3127, 0.3290</td><td>94.81, 100, 107.32</td><td>0.3138, 0.3310</td></tr>
+        <tr><td>D50</td><td>96.42, 100, 82.51</td><td>0.3457, 0.3585</td><td>96.72, 100, 81.43</td><td>0.3477, 0.3595</td></tr>
+        <tr><td>A</td><td>109.85, 100, 35.58</td><td>0.4476, 0.4074</td><td>111.14, 100, 35.20</td><td>0.4512, 0.4059</td></tr>
+      </tbody>
+    </table></div>
+    <p>표의 값은 내장 원표로 5 nm 합을 계산한 것이다. CIE 015 공표값과 소수 둘째 자리까지 일치한다(D65/2°의 Z는 1 nm 기준 108.85, 5 nm 기준 108.88로 간격에 따라 셋째 자리가 바뀐다).</p>
+
+    <div class="sim" id="sim-obs">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>같은 시료, 다른 관측자 — 2° vs 10°</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-obs"></canvas>
+          <div class="legend ch-legend"><span>실선 = 1931 2°</span><span>점선 = 1964 10°</span><span><i style="background:rgba(127,127,127,.5)"></i>S·R (정규화)</span><span><i style="background:var(--accent)"></i>2° xy</span><span><i style="background:var(--accent-2)"></i>10° xy</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>광원</span><div class="seg" id="ob-ill"><button data-value="D65" class="on">D65</button><button data-value="D50">D50</button><button data-value="A">A</button><button data-value="FL11">FL11</button></div></div>
+          <label class="ctrl"><span>시료 <output id="ob-tcs-out"></output></span><input type="range" id="ob-tcs" min="0" max="14" step="1" value="12"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">XYZ (2°)</span><span class="v" id="o-ob-x2">—</span></div>
+        <div class="stat"><span class="k">XYZ (10°)</span><span class="v" id="o-ob-x10">—</span></div>
+        <div class="stat"><span class="k">xy 2° → 10°</span><span class="v" id="o-ob-xy">—</span></div>
+        <div class="stat"><span class="k">Lab 2° / 10° (각자 백색)</span><span class="v" id="o-ob-lab">—</span></div>
+        <div class="stat"><span class="k">ΔE00 (2° vs 10° Lab)</span><span class="v" id="o-ob-de">—</span></div>
+        <div class="stat"><span class="k">Δu′v′</span><span class="v" id="o-ob-duv">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 시료 0(완전 백색)에서 D65 백색의 xy가 (0.3127, 0.3290) → (0.3138, 0.3310)으로 옮겨 간다. ② TCS12(강한 청색)는 D65에서 Lab이 (30.5, 1.3, −46.4) → (33.6, −12.9, −39.9)로 바뀌어 ΔE00 ≈ 8.5다. 단파장 ȳ₁₀이 ȳ보다 커서 청색 시료에서 차이가 가장 크다. ③ TCS01은 ΔE00 ≈ 0.75로 작다. ④ 이 ΔE00는 "두 관측자가 같은 시료를 다르게 기술한다"는 크기를 보여 주는 지표일 뿐이다. 서로 다른 관측자의 Lab끼리 색차를 내는 것은 실무에서는 하지 않는다.</div>
+    </div>
+    <div class="callout warn">
+      <strong>흔한 실수: 관측자 섞어 쓰기</strong>
+      <p>10°로 측정한 Lab 목표값을 2°로 측정한 생산품과 비교하면, 아무 문제 없는 청색 시료에서도 ΔE00가 수 단위 나올 수 있다. 색차 허용치가 ΔE00 1–2인 산업에서는 치명적이다. 측정기 설정(광원/관측자), 백색 기준(\( X_n, Y_n, Z_n \))을 목표값과 반드시 일치시켜야 한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="currency">
+    <h2>모든 색 계산의 공통 화폐, XYZ</h2>
+    <p>이 장에서 얻은 결론은 단순하다. 스펙트럼이 주어지면 표준 관측자와 광원을 지정해 적분 한 번으로 XYZ를 얻는다. 그리고 그 뒤의 모든 색 표현은 XYZ의 함수다. 색도 좌표는 XYZ의 사영이고, RGB 색공간은 XYZ의 3×3 변환에 전달 함수를 붙인 것이며, CIELAB은 백색 기준으로 나눈 XYZ의 비선형 함수다. ICC 색 관리의 프로파일 연결 공간<span class="en">(PCS)</span>도 D50 XYZ(또는 그로부터 계산한 Lab)다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="XYZ를 중심으로 스펙트럼, 색도, RGB, Lab, 카메라, 디스플레이, ICC가 연결되는 허브 그림">
+        <defs><marker id="a35" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <circle cx="400" cy="150" r="58" class="f-acc-soft"/>
+        <circle cx="400" cy="150" r="58" fill="none" class="s-acc" stroke-width="2"/>
+        <text x="400" y="146" text-anchor="middle" class="t-acc" style="font-size:22px;font-weight:700">XYZ</text>
+        <text x="400" y="170" text-anchor="middle" class="t-dim">광원 + 관측자</text>
+        <rect x="30" y="122" width="170" height="56" rx="8" class="f-elev"/><text x="115" y="146" text-anchor="middle" class="t">스펙트럼 S·R</text><text x="115" y="166" text-anchor="middle" class="t-mono">∑ S R x̄ Δλ</text>
+        <line x1="200" y1="150" x2="338" y2="150" class="s-line" marker-end="url(#a35)"/>
+        <rect x="560" y="20" width="200" height="46" rx="8" class="f-surface"/><text x="660" y="48" text-anchor="middle" class="t">xy · u′v′ (4장)</text>
+        <rect x="560" y="80" width="200" height="46" rx="8" class="f-surface"/><text x="660" y="108" text-anchor="middle" class="t">RGB · 가멋 (5·6장)</text>
+        <rect x="560" y="140" width="200" height="46" rx="8" class="f-surface"/><text x="660" y="168" text-anchor="middle" class="t">Lab · ΔE00 (7장)</text>
+        <rect x="560" y="200" width="200" height="46" rx="8" class="f-surface"/><text x="660" y="228" text-anchor="middle" class="t">CAT · CAM16 (8·9장)</text>
+        <line x1="455" y1="128" x2="556" y2="46" class="s-line" marker-end="url(#a35)"/>
+        <line x1="458" y1="140" x2="556" y2="104" class="s-line" marker-end="url(#a35)"/>
+        <line x1="458" y1="155" x2="556" y2="162" class="s-line" marker-end="url(#a35)"/>
+        <line x1="452" y1="172" x2="556" y2="220" class="s-line" marker-end="url(#a35)"/>
+        <rect x="250" y="236" width="140" height="44" rx="8" class="f-surface"/><text x="320" y="263" text-anchor="middle" class="t">카메라 (12장)</text>
+        <rect x="410" y="236" width="140" height="44" rx="8" class="f-surface"/><text x="480" y="263" text-anchor="middle" class="t">ICC PCS (16장)</text>
+        <line x1="340" y1="236" x2="376" y2="204" class="s-line" marker-end="url(#a35)"/>
+        <line x1="440" y1="204" x2="466" y2="236" class="s-line" marker-end="url(#a35)" marker-start="url(#a35)"/>
+        <text x="115" y="60" text-anchor="middle" class="t-dim">물리량 (401차원)</text>
+        <text x="115" y="80" text-anchor="middle" class="t-dim">→ 3차원으로 압축</text>
+      </svg>
+      <figcaption><b>그림 3-7.</b> XYZ는 측색학의 공통 화폐다. 스펙트럼에서 XYZ로 한 번 환전하면 이후의 변환은 모두 결정론적 함수다. 다만 그 환율(광원·관측자)을 반드시 함께 적어야 한다.</figcaption>
+    </figure>
+    <p>예를 들어 CRI 시험색 TCS01(연한 적회색)을 D65 · 2° · 5 nm로 적분하면 \( (X, Y, Z) = (32.99,\ 29.78,\ 24.51) \), 색도는 \( (x, y) = (0.3780,\ 0.3412) \)이다. D65 백색 \( (95.04,\ 100,\ 108.88) \)으로 정규화한 CIELAB은 \( (L^*, a^*, b^*) = (61.5,\ 17.5,\ 11.9) \)다. 같은 시료를 10° 관측자로 보면 \( (61.0,\ 17.3,\ 10.9) \)이다. 이 숫자들은 어떤 회사의 어떤 장비에서든 같은 원표와 같은 절차를 쓰면 재현된다. 이것이 1931년 CIE가 만든 체계의 가치다.</p>
+    <div class="callout">
+      <strong>다음 장으로</strong>
+      <p>XYZ에서 밝기 Y를 떼어 내고 방향만 남기면 2차원 색도도가 된다. 가법 혼합이 직선이 되는 그 평면에서, 이 장의 음수 로브와 가상 원색이 어떤 모양으로 보이는지 <a href="chromaticity.html">4장 색도도</a>에서 이어서 본다.</p>
+    </div>
+  </section>
+
+  <section class="keypoints" id="summary"><h2>핵심 정리</h2><ol>
+    <li>측색학은 관측자의 "구별 불가" 판단을 영점 검출기로 쓰는 등색 실험으로 색을 정의한다. 시험광과 세 원색 혼합을 2° 이분 시야에서 맞춘다.</li>
+    <li>어떤 실재 원색 셋으로도 맞출 수 없는 단색광이 있다. 원색을 시험광 쪽에 더해 맞추고, 그 양을 음수로 기록한다. 원추 감도가 겹쳐 있는 한 음수는 피할 수 없다.</li>
+    <li>그라스만 법칙(대칭·추이·비례·가법)은 색 매칭을 스펙트럼 공간에서 ℝ³로 가는 선형 사상으로 만든다. 그 영공간 성분이 메타머 블랙이며, 블랙은 특정 광원·관측자에서만 블랙이다.</li>
+    <li>원색 변환 정리: 서로 다른 원색의 등색 함수는 3×3 행렬로 연결된다. Stiles–Burch 1955 → CIE 1931 최소자승 행렬의 열은 원색 파장의 x̄ȳz̄와 거의 같고, 잔차는 1931 데이터의 단파장 오차를 드러낸다(Z 상대 RMS ≈ 14%).</li>
+    <li>CIE XYZ는 가상 원색이다. x̄ȳz̄ ≥ 0, ȳ = V(λ)(X·Z는 알리크네 위), 세 곡선 면적이 같아 E 백색에서 X = Y = Z가 되도록 설계했다. 원추 LMS의 근사적 선형 변환이다(HPE 행렬).</li>
+    <li>물체색: \( X = k\sum S R \bar x \Delta\lambda \), \( k = 100/\sum S\bar y\Delta\lambda \). 매끈한 스펙트럼은 10 nm로 충분하지만, 협대역 광원은 20 nm에서 ΔE00가 9를 넘을 수 있다. 10·20 nm 데이터에는 ASTM E308 가중치를 쓴다.</li>
+    <li>2°(1931)와 10°(1964) 관측자는 같은 시료에 다른 숫자를 준다(D65 백색 xy 0.3127,0.3290 vs 0.3138,0.3310; 청색 시료 ΔE00 최대 ≈ 8). 보고서에는 언제나 광원/관측자를 함께 쓴다.</li>
+    <li>XYZ는 모든 색 계산의 공통 화폐다. D65/2°에서 TCS01의 Lab = (61.5, 17.5, 11.9).</li>
+  </ol></section>
+
+  <section class="quiz-sec" id="quiz"><h2>확인 퀴즈</h2><div class="quiz">
+    <div class="quiz-q"><p>Q1. 이분 시야 실험에서 500 nm 단색광을 맞추기 위해 R 원색을 시험광 쪽에 0.3단위 더했다. 기록되는 r̄(500)은?</p><div class="opts">
+      <button class="opt">+0.3</button><button class="opt" data-correct>−0.3</button><button class="opt">0 (실험 실패로 기록)</button><button class="opt">1/0.3</button>
+    </div><div class="quiz-exp">가법성 덕분에 \( C + 0.3R \equiv gG + bB \)를 \( C \equiv -0.3R + gG + bB \)로 이항할 수 있다. 시험광 쪽에 더한 원색은 음의 계수가 된다.</div></div>
+
+    <div class="quiz-q"><p>Q2. 색 매칭이 스펙트럼에 대한 <em>선형</em> 사상이라는 결론에 직접 필요한 그라스만 법칙의 조합은?</p><div class="opts">
+      <button class="opt">대칭성과 추이성</button><button class="opt" data-correct>비례성과 가법성</button><button class="opt">추이성과 비례성</button><button class="opt">삼색성만으로 충분</button>
+    </div><div class="quiz-exp">대칭·추이는 등색이 등가 관계임을 보장할 뿐이다. 스칼라 곱(비례성)과 합(가법성)의 보존이 선형성이다. 삼색성은 차원(3)을 정한다.</div></div>
+
+    <div class="quiz-q"><p>Q3. D65·2°로 설계한 메타머 블랙을 회색 시료에 더했다. 다음 중 XYZ가 <em>변하지 않는</em> 조건은?</p><div class="opts">
+      <button class="opt">광원 A, 2° 관측자</button><button class="opt">광원 D65, 10° 관측자</button><button class="opt" data-correct>광원 D65, 2° 관측자</button><button class="opt">모든 광원과 관측자</button>
+    </div><div class="quiz-exp">블랙은 \( A^\top b = 0 \)을 만족하는데, \( A \)에는 광원과 CMF가 함께 들어 있다. 광원이나 관측자를 바꾸면 \( A \)가 바뀌어 블랙이 더 이상 0을 주지 않는다. 시뮬레이터에서 A는 ΔE00 ≈ 1.4, FL11은 ≈ 16이었다.</div></div>
+
+    <div class="quiz-q"><p>Q4. 원색이 각각 파장 λ₁, λ₂, λ₃의 단색광 1 복사 단위인 RGB 등색 함수를 x̄ȳz̄로 바꾸는 행렬 M의 j번째 열은 이론적으로 무엇인가?</p><div class="opts">
+      <button class="opt">\( [\bar r, \bar g, \bar b](\lambda_j) \)</button><button class="opt" data-correct>\( [\bar x, \bar y, \bar z](\lambda_j) \)</button><button class="opt">E 백색의 XYZ</button><button class="opt">단위 행렬의 j번째 열</button>
+    </div><div class="quiz-exp">M의 열은 새 기저에서 본 각 원색의 3자극치다. 단색광 1 복사 단위의 XYZ는 정의상 그 파장의 x̄ȳz̄ 값이다. Stiles–Burch 데이터 피팅에서 첫 열 (0.358, 0.140, −0.011)과 x̄ȳz̄(645.16) = (0.358, 0.137, 0)이 거의 일치했다.</div></div>
+
+    <div class="quiz-q"><p>Q5. CIE XYZ 원색 X와 Z가 알리크네 위에 놓이도록 한 이유는?</p><div class="opts">
+      <button class="opt">음수를 없애기 위해</button><button class="opt" data-correct>휘도 정보를 Y 하나에만 담기 위해</button><button class="opt">E 백색을 (1/3, 1/3)에 두기 위해</button><button class="opt">원추 LMS와 정확히 일치시키기 위해</button>
+    </div><div class="quiz-exp">알리크네는 휘도 0인 색들의 직선이다. X, Z 원색의 휘도가 0이면 혼합의 휘도는 Y 성분으로만 결정되고, ȳ = V(λ)가 된다.</div></div>
+
+    <div class="quiz-q"><p>Q6. x̄, ȳ, z̄의 380–780 nm 면적이 같다는 설계 조건의 결과는?</p><div class="opts">
+      <button class="opt">D65의 xy가 (1/3, 1/3)이다</button><button class="opt" data-correct>등에너지 백색 E에서 X = Y = Z이다</button><button class="opt">모든 단색광의 Y가 같다</button><button class="opt">XYZ가 실재 원색이 된다</button>
+    </div><div class="quiz-exp">E는 모든 파장에서 S = 상수이므로 X, Y, Z는 각 CMF의 면적에 비례한다. 면적이 같으면 X = Y = Z, xy = (1/3, 1/3)이다. D65는 (0.3127, 0.3290)이다.</div></div>
+
+    <div class="quiz-q"><p>Q7. 물체색 계산에서 \( k = 100 / \sum S(\lambda)\bar y(\lambda)\Delta\lambda \)로 두는 의미는?</p><div class="opts">
+      <button class="opt">Y를 cd/m² 단위로 만든다</button><button class="opt">광원의 Y를 1로 만든다</button><button class="opt" data-correct>완전 확산 반사면(R ≡ 1)의 Y를 100으로 만든다</button><button class="opt">683 lm/W를 반영한다</button>
+    </div><div class="quiz-exp">R ≡ 1을 대입하면 Y = 100이다. 따라서 물체의 Y는 시감 반사율(%)이 되고, Lab 계산의 백색 기준 \( Y_n = 100 \)과 맞물린다.</div></div>
+
+    <div class="quiz-q"><p>Q8. 3파장 형광등 FL11 아래에서 적색 시료의 XYZ를 20 nm 간격 단순 샘플링으로 계산했더니 1 nm 결과와 ΔE00 ≈ 9가 났다. 가장 적절한 대응은?</p><div class="opts">
+      <button class="opt">관측자를 10°로 바꾼다</button><button class="opt">결과에 보정 계수 k를 다시 곱한다</button><button class="opt" data-correct>1–5 nm 간격으로 계산하거나, 10·20 nm 데이터라면 해당 광원의 ASTM E308 가중치를 쓴다</button><button class="opt">반사율을 평활화한다</button>
+    </div><div class="quiz-exp">오차의 원인은 광원의 날카로운 휘선을 성긴 간격이 제대로 표본화하지 못하는 것이다. 촘촘한 간격이나, 사이 파장 정보를 흡수한 가중치 표가 해법이다.</div></div>
+
+    <div class="quiz-q"><p>Q9. 도료 공장의 품질 기준이 "D65/10°에서 ΔE00 ≤ 1.0"이다. 납품 업체가 D65/2° Lab 데이터를 보내왔다. 옳은 처리는?</p><div class="opts">
+      <button class="opt">2°와 10°는 거의 같으므로 그대로 비교한다</button><button class="opt">Lab에 고정 오프셋을 더해 보정한다</button><button class="opt" data-correct>분광 반사율을 받아 D65/10°로 다시 적분하거나, 같은 조건으로 재측정한다</button><button class="opt">ΔE00 대신 ΔE76으로 비교한다</button>
+    </div><div class="quiz-exp">관측자 차이는 시료의 스펙트럼에 따라 달라서(TCS01 ≈ 0.75, TCS12 ≈ 8.5) 고정 오프셋으로 보정할 수 없다. 스펙트럼에서 다시 계산하는 것이 유일하게 정확한 방법이다.</div></div>
+  </div></section>
+</main>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const fx = (v, d = 3) => { const s = v.toFixed(d); return /^-0\.?0*$/.test(s) ? s.slice(1) : s; };
+  const grid = (a, b, s) => { const o = []; for (let l = a; l <= b + 1e-9; l += s) o.push(l); return o; };
+  const fill0 = (a) => a.map((v) => (Array.isArray(v) ? v : [0, 0, 0]));
+  /* Stiles–Burch 1955 2° r̄ḡb̄ (390–730 nm 정의) · Stockman–Sharpe LMS (390 nm부터) — 원표의 빈 칸을 0 벡터로 */
+  const RGB55 = CB.table(fill0(CB.DATA.rgb1955));
+  const LMS = CB.table(fill0(CB.DATA.lms));
+  const W1 = CB.wls(1), W5 = CB.wls(5);
+  const chanCols = () => { const P = CB.palette(); return [P.red, P.green, P.blue]; };
+  const TCS_NAME = ["완전 백색", "연한 적회색", "진한 회황색", "강한 황록", "중간 황록", "연한 청록", "연한 청", "연한 보라", "연한 적자", "강한 적", "강한 황", "강한 녹", "강한 청", "연한 황분홍(피부)", "중간 올리브(잎)"];
+
+  /** 최소자승: dst(λ) ≈ M·src(λ) */
+  function lsq(src, dst, wls) {
+    const AtA = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], AtB = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    wls.forEach((l) => { const a = src(l), b = dst(l); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { AtA[i][j] += a[i] * a[j]; AtB[i][j] += a[i] * b[j]; } });
+    const Mt = CB.mat.mul(CB.mat.inv(AtA), AtB);
+    const M = [0, 1, 2].map((i) => [0, 1, 2].map((j) => Mt[j][i]));
+    const se = [0, 0, 0], ss = [0, 0, 0]; let mx = [0, 0];
+    wls.forEach((l) => { const p = CB.mat.vec(M, src(l)), b = dst(l); let e2 = 0; for (let i = 0; i < 3; i++) { const d = p[i] - b[i]; se[i] += d * d; ss[i] += b[i] * b[i]; e2 += d * d; } if (Math.sqrt(e2) > mx[0]) mx = [Math.sqrt(e2), l]; });
+    return { M, rel: se.map((v, i) => Math.sqrt(v / ss[i])), max: mx };
+  }
+  const M_WG = [[0.49, 0.31, 0.2], [0.17697, 0.8124, 0.01063], [0, 0.01, 0.99]].map((r) => r.map((v) => v / 0.17697));
+  const M_WG_INV = CB.mat.inv(M_WG);
+  const M_SB = lsq(RGB55, (l) => CB.cmf(l), grid(390, 730, 5)).M;
+  const duv = (A, B) => { const a = CB.XYZ2uv(A), b = CB.XYZ2uv(B); return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+  const whiteOf = (I, obs, step) => CB.spd2XYZ(() => 1, { illum: I, observer: obs, step });
+  const toDisp = (XYZ, W) => CB.adapt(XYZ.map((v) => v / 100), W.map((v) => v / 100), CB.whiteXYZ("D65"), "bradford");
+  const matHTML = (M, d = 4) => '<span class="mat">' + M.map((r) => "[" + r.map((v) => fx(v, d).padStart(d + 3)).join(" ") + " ]").join("\n") + "</span>";
+  const fontMono = () => getComputedStyle(document.body).getPropertyValue("--mono") || "monospace";
+  const fontSans = () => getComputedStyle(document.body).getPropertyValue("--font") || "sans-serif";
+
+  /* ============================================================ 1. 가상 등색 실험 */
+  (function () {
+    let cv;
+    const upd = () => { cv && cv.redraw(); stats(); };
+    const wl = CB.range("m-wl", (v) => v + " nm", upd);
+    const r = CB.range("m-r", (v) => fx(v, 3), upd);
+    const g = CB.range("m-g", (v) => fx(v, 3), upd);
+    const b = CB.range("m-b", (v) => fx(v, 3), upd);
+    const show = $("m-show");
+    show.addEventListener("change", upd);
+    $("m-solve").addEventListener("click", () => { const t = RGB55(wl()); r.set(t[0]); g.set(t[1]); b.set(t[2]); });
+    $("m-reset").addEventListener("click", () => { r.set(0); g.set(0.3); b.set(0.1); });
+
+    function state() {
+      const lam = wl(), t = RGB55(lam), c = [r(), g(), b()];
+      const L = t.slice(), R = [0, 0, 0];
+      c.forEach((v, i) => { if (v < 0) L[i] -= v; else R[i] += v; });
+      return { lam, t, c, XL: CB.mat.vec(M_SB, L), XR: CB.mat.vec(M_SB, R) };
+    }
+    const matched = (S) => S.XR[1] > 0 && duv(S.XL, S.XR) < 0.004 && Math.abs(S.XR[1] / S.XL[1] - 1) < 0.03;
+
+    function draw(ctx, w, h) {
+      const P = CB.palette(), S = state(), cols = chanCols();
+      const wide = w >= 540;
+      const rad = wide ? Math.min(h * 0.34, w * 0.17) : Math.min(72, w * 0.22);
+      const cx = wide ? w * 0.24 : w / 2, cy = wide ? h * 0.44 : rad + 16;
+      const sc = 0.42 / Math.max(S.XL[1], S.XR[1], 1e-9);
+      ctx.fillStyle = CB.XYZ2css(S.XL.map((v) => v * sc));
+      ctx.beginPath(); ctx.moveTo(cx, cy - rad); ctx.arc(cx, cy, rad, -Math.PI / 2, Math.PI / 2, true); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = CB.XYZ2css(S.XR.map((v) => v * sc));
+      ctx.beginPath(); ctx.moveTo(cx, cy - rad); ctx.arc(cx, cy, rad, -Math.PI / 2, Math.PI / 2, false); ctx.closePath(); ctx.fill();
+      const ok = matched(S);
+      ctx.strokeStyle = P.text; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+      if (!ok) { ctx.beginPath(); ctx.moveTo(cx, cy - rad); ctx.lineTo(cx, cy + rad); ctx.stroke(); }
+      ctx.font = "12px " + fontSans(); ctx.fillStyle = P.dim; ctx.textBaseline = "top";
+      ctx.textAlign = "right"; ctx.fillText("시험광 " + S.lam + " nm", cx - 6, cy + rad + 8);
+      ctx.textAlign = "left"; ctx.fillText("원색 혼합", cx + 6, cy + rad + 8);
+      if (ok) { ctx.fillStyle = P.ok; ctx.textAlign = "center"; ctx.font = "bold 13px " + fontSans(); ctx.fillText("등색 — 경계가 사라짐", cx, cy + rad + 26); }
+      // 막대
+      const box = wide ? { x: w * 0.52, y: 18, w: w * 0.44, h: h - 56 } : { x: 44, y: cy + rad + 48, w: w - 58, h: h - (cy + rad + 48) - 34 };
+      const y0 = -0.4, y1 = 3.0, Y = (v) => box.y + box.h - ((v - y0) / (y1 - y0)) * box.h;
+      ctx.font = "11px " + fontMono(); ctx.strokeStyle = P.grid; ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      [0, 1, 2, 3].forEach((v) => { ctx.beginPath(); ctx.moveTo(box.x, Y(v)); ctx.lineTo(box.x + box.w, Y(v)); ctx.stroke(); ctx.fillText(v, box.x - 6, Y(v)); });
+      ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(box.x, Y(0)); ctx.lineTo(box.x + box.w, Y(0)); ctx.stroke();
+      const names = ["R 645", "G 526", "B 444"];
+      for (let i = 0; i < 3; i++) {
+        const xc = box.x + (box.w * (i + 0.5)) / 3, bw = (box.w / 3) * 0.46, v = S.c[i];
+        ctx.globalAlpha = v < 0 ? 0.45 : 0.9; ctx.fillStyle = cols[i];
+        ctx.fillRect(xc - bw / 2, Math.min(Y(0), Y(v)), bw, Math.abs(Y(v) - Y(0)) || 1);
+        ctx.globalAlpha = 1;
+        if (v < 0) { ctx.strokeStyle = cols[i]; ctx.setLineDash([3, 3]); ctx.strokeRect(xc - bw / 2, Y(0), bw, Y(v) - Y(0)); ctx.setLineDash([]); ctx.fillStyle = P.text; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText("시험광 쪽", xc, Y(v) + 3); }
+        if (show.checked) {
+          ctx.strokeStyle = P.text; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
+          ctx.beginPath(); ctx.moveTo(xc - bw * 0.75, Y(S.t[i])); ctx.lineTo(xc + bw * 0.75, Y(S.t[i])); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+        }
+        ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText(names[i], xc, box.y + box.h + 6);
+        ctx.fillStyle = P.text; ctx.textBaseline = "bottom"; ctx.fillText(fx(v, 3), xc, Math.min(Y(Math.max(v, 0)), Y(0)) - 3);
+      }
+    }
+    function stats() {
+      const S = state(), neg = [];
+      S.c.forEach((v, i) => { if (v < 0) neg.push("RGB"[i] + " " + fx(-v, 3)); });
+      CB.stat("o-m-side", neg.length ? neg.join(", ") : "없음");
+      const d = S.XR[1] > 0 ? duv(S.XL, S.XR) : NaN;
+      CB.stat("o-m-duv", isFinite(d) ? fx(d, 4) + (matched(S) ? ' <small>등색</small>' : "") : "—");
+      CB.stat("o-m-y", S.XL[1] > 0 ? fx(S.XR[1] / S.XL[1], 3) : "—");
+      CB.stat("o-m-ans", show.checked ? S.t.map((v) => fx(v, 3)).join(" · ") : "<small>체크하면 표시</small>");
+    }
+    cv = CB.canvas($("cv-match"), draw, { aspect: 0.56, minHeight: 340, maxHeight: 420 });
+    stats();
+  })();
+
+  /* ============================================================ 2. 메타머 블랙 */
+  (function () {
+    let cv;
+    const upd = () => { cv && cv.redraw(); stats(); };
+    const per = CB.range("mb-per", (v) => v + " nm", upd);
+    const amp = CB.range("mb-amp", (v) => v.toFixed(2), upd);
+    const ph = CB.range("mb-ph", (v) => v + "°", upd);
+    const base = CB.seg("mb-base", upd);
+    const ill = CB.seg("mb-ill", upd);
+    const A = W5.map((l) => { const c = CB.cmf(l), e = CB.D65(l); return [c[0] * e, c[1] * e, c[2] * e]; });
+    const AtA = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    A.forEach((a) => { for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) AtA[i][j] += a[i] * a[j]; });
+    const AtAi = CB.mat.inv(AtA);
+    const BASE = { gray: () => 0.5, t1: CB.tcs(1), t5: CB.tcs(5) };
+    function design() {
+      const bf = BASE[base()], p = W5.map((l) => amp() * Math.sin((2 * Math.PI * (l - 380)) / per() + (ph() * Math.PI) / 180));
+      const Atp = [0, 0, 0]; A.forEach((a, k) => { for (let i = 0; i < 3; i++) Atp[i] += a[i] * p[k]; });
+      const c = CB.mat.vec(AtAi, Atp);
+      const blk = p.map((v, k) => v - (A[k][0] * c[0] + A[k][1] * c[1] + A[k][2] * c[2]));
+      const R1 = W5.map((l) => bf(l)), R2 = R1.map((v, k) => v + blk[k]);
+      return { R1, R2, blk, f1: CB.table(R1), f2: CB.table(R2) };
+    }
+    function draw(ctx) {
+      const P = CB.palette(), D = design();
+      CB.chart(ctx, null, {
+        x: [380, 780], y: [-0.4, 1.05], xLabel: "파장 (nm)", yLabel: "반사율",
+        hlines: [{ y: 0, color: P.axis, dash: [] }, { y: 1, dash: [2, 4] }],
+        series: [
+          { data: W5.map((l, k) => [l, D.R1[k]]), color: P.dim, width: 2 },
+          { data: W5.map((l, k) => [l, D.R2[k]]), color: P.accent, width: 2.2 },
+          { data: W5.map((l, k) => [l, D.blk[k]]), color: P.accent2, width: 1.6, dash: [5, 4] },
+        ],
+      });
+    }
+    function stats() {
+      const D = design(), I65 = CB.D65;
+      const X1 = CB.spd2XYZ(D.f1, { illum: I65 }), X2 = CB.spd2XYZ(D.f2, { illum: I65 });
+      const s = (X) => X.map((v) => v.toFixed(3)).join(", ");
+      CB.stat("o-mb-x1", s(X1)); CB.stat("o-mb-x2", s(X2));
+      const I = CB.illum(ill()), W = whiteOf(I);
+      const E1 = CB.spd2XYZ(D.f1, { illum: I }), E2 = CB.spd2XYZ(D.f2, { illum: I });
+      const de = CB.dE2000(CB.XYZ2Lab(E1, W), CB.XYZ2Lab(E2, W));
+      CB.stat("o-mb-de", fx(de, 2) + " <small>" + ill() + "</small>");
+      const mn = Math.min(...D.R2), mx = Math.max(...D.R2), bad = mn < 0 || mx > 1;
+      CB.stat("o-mb-min", fx(mn, 2) + " … " + fx(mx, 2) + (bad ? ' <small style="color:var(--bad)">물리적으로 불가능</small>' : ""));
+      $("mb-sw1").style.background = CB.XYZ2css(toDisp(E1, W)); $("mb-sw1").textContent = "R₁ · " + ill();
+      $("mb-sw2").style.background = CB.XYZ2css(toDisp(E2, W)); $("mb-sw2").textContent = "R₂ · " + ill();
+    }
+    cv = CB.canvas($("cv-black"), draw, { aspect: 0.55, minHeight: 260, maxHeight: 380 });
+    stats();
+  })();
+
+  /* ============================================================ 3. 등색 함수 비교 */
+  (function () {
+    let cv;
+    const upd = () => { cv && cv.redraw(); stats(); };
+    const u1 = CB.range("cmf-u1", (v) => v + " nm", upd);
+    const u2 = CB.range("cmf-u2", (v) => v + " nm", upd);
+    const u3 = CB.range("cmf-u3", (v) => v + " nm", upd);
+    const mode = CB.seg("cmf-mode", () => { syncUser(); upd(); });
+    function syncUser() { [u1, u2, u3].forEach((g) => { g.el.disabled = mode() !== "user"; g.el.closest(".ctrl").style.opacity = mode() === "user" ? 1 : 0.45; }); }
+    function set() {
+      const m = mode();
+      if (m === "sb") return { f: RGB55, n: ["r̄", "ḡ", "b̄"], prim: [645.16, 526.32, 444.44], lum: M_SB[1], note: "피팅 근사" };
+      if (m === "wg") return { f: (l) => CB.mat.vec(M_WG_INV, CB.cmf(l)), n: ["r̄", "ḡ", "b̄"], prim: [700, 546.1, 435.8], lum: M_WG[1] };
+      if (m === "user") {
+        const ls = [u1(), u2(), u3()];
+        const Pu = [0, 1, 2].map((i) => ls.map((l) => CB.cmf(l)[i]));
+        const s = CB.mat.vec(CB.mat.inv(Pu), [1, 1, 1]);
+        const M = CB.mat.mul(Pu, CB.mat.diag(s)), Mi = CB.mat.inv(M);
+        return { f: (l) => CB.mat.vec(Mi, CB.cmf(l)), n: ["r̄", "ḡ", "b̄"], prim: ls, lum: M[1], bad: s.some((v) => v <= 0) };
+      }
+      if (m === "xyz31") return { f: (l) => CB.cmf(l), n: ["x̄", "ȳ", "z̄"], prim: [] };
+      if (m === "xyz64") return { f: (l) => CB.cmf(l, "1964"), n: ["x̄₁₀", "ȳ₁₀", "z̄₁₀"], prim: [] };
+      return { f: LMS, n: ["L", "M", "S"], prim: [] };
+    }
+    function draw(ctx) {
+      const P = CB.palette(), S = set(), cols = chanCols();
+      const D = [0, 1, 2].map((i) => W1.map((l) => [l, S.f(l)[i]]));
+      let lo = 0, hi = 0; D.forEach((d) => d.forEach(([, v]) => { lo = Math.min(lo, v); hi = Math.max(hi, v); }));
+      const yr = [Math.min(lo * 1.15, -0.05 * hi), hi * 1.08];
+      const C = CB.chart(ctx, null, {
+        x: [380, 780], y: yr, xLabel: "파장 (nm)", yLabel: "등색 함수 값",
+        hlines: [{ y: 0, color: P.axis, dash: [] }],
+        vlines: S.prim.map((l) => ({ x: l, label: String(l) })),
+        series: D.map((d, i) => ({ data: d, color: cols[i], width: 2.2 })),
+      });
+      ctx.save(); ctx.beginPath(); ctx.rect(C.box.x, C.box.y, C.box.w, C.box.h); ctx.clip();
+      D.forEach((d, i) => {
+        ctx.beginPath(); ctx.moveTo(C.X(380), C.Y(0));
+        d.forEach(([l, v]) => ctx.lineTo(C.X(l), C.Y(Math.min(0, v))));
+        ctx.lineTo(C.X(780), C.Y(0)); ctx.closePath();
+        ctx.globalAlpha = 0.35; ctx.fillStyle = cols[i]; ctx.fill(); ctx.globalAlpha = 1;
+      });
+      ctx.restore();
+      ctx.font = "13px " + fontMono(); ctx.textAlign = "right"; ctx.textBaseline = "top";
+      S.n.forEach((nm, i) => { ctx.fillStyle = cols[i]; ctx.fillText(nm, C.box.x + C.box.w - 8 - (2 - i) * 46, C.box.y + 6); });
+      if (S.bad) { ctx.fillStyle = P.bad; ctx.textAlign = "left"; ctx.fillText("E 백색을 양의 원색량으로 못 만듦", C.box.x + 8, C.box.y + 24); }
+    }
+    function stats() {
+      const S = set(); let neg = 0, abs = 0, mn = [0, 0, 0]; const area = [0, 0, 0];
+      W1.forEach((l) => { S.f(l).forEach((v, i) => { abs += Math.abs(v); area[i] += v; if (v < 0) neg -= v; if (v < mn[0]) mn = [v, l, i]; }); });
+      CB.stat("o-cv-neg", ((100 * neg) / abs).toFixed(1) + " %");
+      CB.stat("o-cv-min", mn[0] < 0 ? fx(mn[0], 3) + " <small>" + S.n[mn[2]] + " @ " + mn[1] + " nm</small>" : "없음");
+      const am = Math.max(...area);
+      CB.stat("o-cv-area", area.map((v) => fx(v / am, 3)).join(" : "));
+      if (S.lum) CB.stat("o-cv-unit", "1 : " + fx(S.lum[1] / S.lum[0], 3) + " : " + fx(S.lum[2] / S.lum[0], 3) + (S.note ? " <small>" + S.note + "</small>" : ""));
+      else CB.stat("o-cv-unit", mode().startsWith("xyz") ? "X·Z 휘도 0 <small>(Y만 휘도)</small>" : "— <small>원추 기본함수</small>");
+    }
+    cv = CB.canvas($("cv-cmf"), draw, { aspect: 0.55, minHeight: 260, maxHeight: 400 });
+    syncUser(); stats();
+  })();
+
+  /* ============================================================ 4. 최소자승 피팅 */
+  (function () {
+    let cv;
+    const upd = () => { cv && cv.redraw(); stats(); };
+    const src = CB.seg("fit-src", upd), dst = CB.seg("fit-dst", upd);
+    const lo = CB.range("fit-lo", (v) => v + " nm", upd);
+    function run() {
+      const S = src() === "sb" ? RGB55 : LMS, hi = src() === "sb" ? 730 : 780, obs = dst();
+      const T = (l) => CB.cmf(l, obs);
+      const wls = grid(lo(), hi, 5);
+      const F = lsq(S, T, wls);
+      return { S, T, F, hi, wls };
+    }
+    function draw(ctx, w, h) {
+      const P = CB.palette(), R = run(), cols = chanCols();
+      const avail = h - 12 - 28 - 46, top = { x: 54, y: 12, w: w - 70, h: avail * 0.62 };
+      const bot = { x: 54, y: top.y + top.h + 28, w: w - 70, h: avail * 0.38 };
+      const W = grid(380, 780, 2);
+      const tgt = [0, 1, 2].map((i) => W.map((l) => [l, R.T(l)[i]]));
+      const fit = [0, 1, 2].map((i) => W.map((l) => [l, CB.mat.vec(R.F.M, R.S(l))[i]]));
+      let ymax = 0; tgt.forEach((d) => d.forEach(([, v]) => (ymax = Math.max(ymax, v))));
+      CB.chart(ctx, top, {
+        x: [380, 780], y: [-0.1, ymax * 1.08], yLabel: "CMF",
+        bands: [{ x0: 380, x1: R.wls[0], color: "rgba(127,127,127,0.12)" }, { x0: R.hi, x1: 780, color: "rgba(127,127,127,0.12)" }],
+        series: [...tgt.map((d, i) => ({ data: d, color: cols[i], width: 2 })), ...fit.map((d, i) => ({ data: d, color: cols[i], width: 1.6, dash: [5, 4] }))],
+      });
+      const res = [0, 1, 2].map((i) => W.map((l, k) => [l, fit[i][k][1] - tgt[i][k][1]]));
+      let rm = 0.02; res.forEach((d) => d.forEach(([l, v]) => { if (l >= R.wls[0] && l <= R.hi) rm = Math.max(rm, Math.abs(v)); }));
+      CB.chart(ctx, bot, {
+        x: [380, 780], y: [-rm * 1.1, rm * 1.1], xLabel: "파장 (nm)",
+        hlines: [{ y: 0, color: P.axis, dash: [] }],
+        bands: [{ x0: 380, x1: R.wls[0], color: "rgba(127,127,127,0.12)" }, { x0: R.hi, x1: 780, color: "rgba(127,127,127,0.12)" }],
+        series: res.map((d, i) => ({ data: d, color: cols[i], width: 1.6 })),
+      });
+      ctx.fillStyle = P.dim; ctx.font = "11px " + fontMono(); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+      ctx.fillText("잔차 Δ", bot.x + 6, bot.y + 12);
+    }
+    function stats() {
+      const R = run(), F = R.F, n = dst() === "1931" ? ["X", "Y", "Z"] : ["X₁₀", "Y₁₀", "Z₁₀"];
+      CB.stat("o-fit-m", matHTML(F.M));
+      CB.stat("o-fit-rel", F.rel.map((v, i) => n[i] + " " + (100 * v).toFixed(1) + "%").join(" · "));
+      CB.stat("o-fit-max", fx(F.max[0], 3) + " <small>@ " + F.max[1] + " nm</small>");
+      if (src() === "sb") {
+        const Mp = [0, 1, 2].map((i) => [645.16, 526.32, 444.44].map((l) => CB.cmf(l, dst())[i]));
+        CB.stat("o-fit-pred", "<small>x̄ȳz̄(원색 λ) 열</small>" + matHTML(Mp));
+      } else {
+        CB.stat("o-fit-pred", "<small>역행렬 XYZ→LMS</small>" + matHTML(CB.mat.inv(F.M)));
+      }
+    }
+    cv = CB.canvas($("cv-fit"), draw, { aspect: 0.66, minHeight: 340, maxHeight: 480 });
+    stats();
+  })();
+
+  /* ============================================================ 5. 3자극치 적분 */
+  (function () {
+    let cv;
+    const upd = () => { cv && cv.redraw(); stats(); };
+    const mode = CB.seg("in-mode", upd), ill = CB.seg("in-ill", upd), step = CB.seg("in-step", upd);
+    const tcs = CB.range("in-tcs", (v) => "TCS" + String(v).padStart(2, "0") + " " + TCS_NAME[v], upd);
+    const STEPS = [1, 5, 10, 20];
+    function calc(st) {
+      const I = CB.illum(ill());
+      if (mode() === "obj") {
+        const R = CB.tcs(tcs()), X = CB.spd2XYZ(R, { illum: I, step: st }), W = whiteOf(I, "1931", st);
+        return { X, W, lab: CB.XYZ2Lab(X, W) };
+      }
+      return { X: CB.spd2XYZ(I, { step: st, Y: 100 }) };
+    }
+    function draw(ctx) {
+      const P = CB.palette(), cols = chanCols(), I = CB.illum(ill()), R = mode() === "obj" ? CB.tcs(tcs()) : () => 1, st = Number(step());
+      const prod = (l) => { const c = CB.cmf(l), e = I(l) * R(l); return [c[0] * e, c[1] * e, c[2] * e]; };
+      let mx = 0; W1.forEach((l) => prod(l).forEach((v) => (mx = Math.max(mx, v))));
+      const C = CB.chart(ctx, null, {
+        x: [380, 780], y: [0, 1.08], xLabel: "파장 (nm)", yLabel: "S·R·CMF (정규화)",
+        series: [0, 1, 2].map((i) => ({ data: W1.map((l) => [l, prod(l)[i] / mx]), color: cols[i], width: 1.6 })),
+      });
+      if (st >= 5) {
+        ctx.save();
+        grid(380, 780, st).forEach((l) => {
+          const p = prod(l);
+          [0, 1, 2].forEach((i) => {
+            const x = C.X(l) + (i - 1) * Math.min(3, (C.X(st + 380) - C.X(380)) / 4), y = C.Y(p[i] / mx);
+            ctx.strokeStyle = cols[i]; ctx.globalAlpha = 0.75; ctx.lineWidth = 1.4;
+            ctx.beginPath(); ctx.moveTo(x, C.Y(0)); ctx.lineTo(x, y); ctx.stroke();
+            ctx.globalAlpha = 1; ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+          });
+        });
+        ctx.restore();
+      }
+      ctx.fillStyle = P.dim; ctx.font = "11px " + fontMono(); ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillText(ill() + " · Δλ = " + st + " nm · " + (st === 1 ? "401" : grid(380, 780, st).length) + "점", C.box.x + C.box.w - 6, C.box.y + 4);
+    }
+    function stats() {
+      const st = Number(step()), cur = calc(st), ref = calc(1), obj = mode() === "obj";
+      CB.stat("o-in-xyz", cur.X.map((v) => v.toFixed(2)).join(", "));
+      CB.stat("o-in-xy", CB.XYZ2xy(cur.X).map((v) => v.toFixed(4)).join(", "));
+      CB.stat("o-in-lab", obj ? cur.lab.map((v) => v.toFixed(1)).join(", ") : "— <small>광원색</small>");
+      const err = (c) => (obj ? CB.dE2000(c.lab, ref.lab) : duv(c.X, ref.X));
+      CB.stat("o-in-de", obj ? "ΔE00 " + fx(err(cur), 3) : "Δu′v′ " + fx(err(cur), 5));
+      const sw = $("in-sw");
+      if (obj) { sw.style.background = CB.XYZ2css(toDisp(cur.X, cur.W)); sw.textContent = "TCS" + String(tcs()).padStart(2, "0") + " · " + ill() + " (D65 적응 표시)"; }
+      else { sw.style.background = CB.rgb8css(CB.xy2display(CB.XYZ2xy(cur.X))); sw.textContent = ill() + " 색도 (최대 밝기 표시)"; }
+      const rows = STEPS.map((s) => { const c = calc(s); return "<tr" + (s === st ? ' style="font-weight:700"' : "") + "><td>" + s + " nm</td><td>" + c.X.map((v) => v.toFixed(3)).join(", ") + "</td><td>" + CB.XYZ2xy(c.X).map((v) => v.toFixed(4)).join(", ") + "</td><td>" + (s === 1 ? "기준" : obj ? fx(err(c), 3) : fx(err(c), 5)) + "</td></tr>"; }).join("");
+      $("in-table").innerHTML = "<table><thead><tr><th>Δλ</th><th>X, Y, Z</th><th>x, y</th><th>" + (obj ? "ΔE00 vs 1 nm" : "Δu′v′ vs 1 nm") + "</th></tr></thead><tbody>" + rows + "</tbody></table>";
+    }
+    cv = CB.canvas($("cv-int"), draw, { aspect: 0.5, minHeight: 250, maxHeight: 360 });
+    stats();
+  })();
+
+  /* ============================================================ 6. 2° vs 10° */
+  (function () {
+    let cv;
+    const upd = () => { cv && cv.redraw(); stats(); };
+    const ill = CB.seg("ob-ill", upd);
+    const tcs = CB.range("ob-tcs", (v) => (v ? "TCS" + String(v).padStart(2, "0") + " " : "") + TCS_NAME[v], upd);
+    function calc() {
+      const I = CB.illum(ill()), R = tcs() ? CB.tcs(tcs()) : () => 1;
+      const X2 = CB.spd2XYZ(R, { illum: I }), X10 = CB.spd2XYZ(R, { illum: I, observer: "1964" });
+      const W2 = whiteOf(I, "1931"), W10 = whiteOf(I, "1964");
+      return { I, R, X2, X10, L2: CB.XYZ2Lab(X2, W2), L10: CB.XYZ2Lab(X10, W10) };
+    }
+    function draw(ctx, w, h) {
+      const P = CB.palette(), cols = chanCols(), D = calc();
+      const wide = w >= 560;
+      const b1 = wide ? { x: 54, y: 14, w: w * 0.6 - 70, h: h - 60 } : { x: 54, y: 14, w: w - 70, h: h * 0.52 - 50 };
+      const b2 = wide ? { x: w * 0.6 + 40, y: 14, w: w * 0.4 - 56, h: h - 60 } : { x: 54, y: h * 0.52 + 14, w: w - 70, h: h * 0.48 - 60 };
+      let sm = 0; W1.forEach((l) => (sm = Math.max(sm, D.I(l) * D.R(l))));
+      const cmfMax = 2.2;
+      CB.chart(ctx, b1, {
+        x: [380, 780], y: [0, cmfMax], xLabel: "파장 (nm)",
+        series: [
+          { data: W1.map((l) => [l, (D.I(l) * D.R(l) / sm) * cmfMax * 0.9]), color: "rgba(127,127,127,0.5)", width: 1, fill: "rgba(127,127,127,0.18)" },
+          ...[0, 1, 2].map((i) => ({ data: W1.map((l) => [l, CB.cmf(l)[i]]), color: cols[i], width: 2 })),
+          ...[0, 1, 2].map((i) => ({ data: W1.map((l) => [l, CB.cmf(l, "1964")[i]]), color: cols[i], width: 1.6, dash: [5, 4] })),
+        ],
+      });
+      const p2 = CB.XYZ2xy(D.X2), p10 = CB.XYZ2xy(D.X10);
+      const cx = (p2[0] + p10[0]) / 2, cy = (p2[1] + p10[1]) / 2;
+      const hs = Math.max(0.006, 1.7 * Math.max(Math.abs(p2[0] - p10[0]), Math.abs(p2[1] - p10[1])));
+      const C = CB.chart(ctx, b2, {
+        x: [cx - hs, cx + hs], y: [cy - hs, cy + hs], xLabel: "x (확대)", xFmt: (v) => v.toFixed(3), yFmt: (v) => v.toFixed(3),
+        points: [{ x: p2[0], y: p2[1], color: P.accent, r: 5, label: "2°" }, { x: p10[0], y: p10[1], color: P.accent2, r: 5, label: "10°" }],
+      });
+      ctx.strokeStyle = P.dim; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(C.X(p2[0]), C.Y(p2[1])); ctx.lineTo(C.X(p10[0]), C.Y(p10[1])); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = P.dim; ctx.font = "11px " + fontMono(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("y", C.box.x + 4, C.box.y + 2);
+    }
+    function stats() {
+      const D = calc(), s = (X) => X.map((v) => v.toFixed(2)).join(", ");
+      CB.stat("o-ob-x2", s(D.X2)); CB.stat("o-ob-x10", s(D.X10));
+      CB.stat("o-ob-xy", CB.XYZ2xy(D.X2).map((v) => v.toFixed(4)).join(", ") + " → " + CB.XYZ2xy(D.X10).map((v) => v.toFixed(4)).join(", "));
+      CB.stat("o-ob-lab", D.L2.map((v) => v.toFixed(1)).join(", ") + " / " + D.L10.map((v) => v.toFixed(1)).join(", "));
+      CB.stat("o-ob-de", fx(CB.dE2000(D.L2, D.L10), 2));
+      CB.stat("o-ob-duv", fx(duv(D.X2, D.X10), 4));
+    }
+    cv = CB.canvas($("cv-obs"), draw, { aspect: 0.5, minHeight: 420, maxHeight: 440 });
+    stats();
+  })();
+})();
+</script>
+</body>
+</html>

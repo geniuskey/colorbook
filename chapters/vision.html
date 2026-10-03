@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>눈과 색각 · ColorBook</title>
+<meta name="description" content="센서로서의 눈: 원추세포 L·M·S 분광 감도, 단일 변수 원리와 스펙트럼의 3차원 투영, 메타머 블랙과 메타머리즘, 관측자 차이, 반대색 채널, 색각 이상의 혼동선을 시뮬레이터로 계산한다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/vision.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="눈과 색각 · ColorBook">
+<meta property="og:description" content="센서로서의 눈: 원추세포 L·M·S 분광 감도, 단일 변수 원리와 스펙트럼의 3차원 투영, 메타머 블랙과 메타머리즘, 관측자 차이, 반대색 채널, 색각 이상의 혼동선을 시뮬레이터로 계산한다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/vision.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"눈과 색각","name":"눈과 색각 · ColorBook","url":"https://colorbook.euiyun.com/chapters/vision.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/vision.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":2,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"센서로서의 눈: 원추세포 L·M·S 분광 감도, 단일 변수 원리와 스펙트럼의 3차원 투영, 메타머 블랙과 메타머리즘, 관측자 차이, 반대색 채널, 색각 이상의 혼동선을 시뮬레이터로 계산한다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"02 눈과 색각","item":"https://colorbook.euiyun.com/chapters/vision.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sim-view canvas { touch-action: pan-y; }
+  .cone-tag { display:inline-block; min-width:1.35em; padding:0 .25em; height:1.35em; line-height:1.35em; text-align:center; border-radius:4px; font-family:var(--mono); font-size:.8em; font-weight:700; color:#fff; vertical-align:.05em; }
+  .cone-tag.l { background:#d6403a; } .cone-tag.m { background:#2c9a48; } .cone-tag.s { background:#2f6fe0; }
+</style>
+</head>
+<body data-chapter="vision">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 02</div>
+    <h1>눈과 색각</h1>
+    <p class="lead">색채공학이 다루는 "색"은 빛 자체의 성질이 아니라, 빛이 사람 눈이라는 <strong>3채널 센서</strong>를 거친 뒤의 출력이다. 망막의 원추세포 세 종류는 각자 받은 광자 수만 세며, 수백 개의 숫자로 이루어진 스펙트럼을 단 세 개의 숫자로 줄인다. 이 장은 그 투영을 선형대수로 다루고, 그 결과로 생기는 메타머리즘·관측자 차이·색각 이상을 계산해 본다. 디스플레이·카메라·조명이 RGB 세 채널로 색을 재현할 수 있는 근거가 여기에 있다.</p>
+    <ul class="objectives">
+      <li>눈의 광학 구조(각막·수정체·황반 색소·중심와)와 광수용체 모자이크를 센서 사양처럼 수치로 기술한다.</li>
+      <li>Stockman–Sharpe 원추 기본함수 \( \bar l, \bar m, \bar s \)와 단일 변수 원리를 이해하고 원추 응답을 적분으로 계산한다.</li>
+      <li>원추 응답 행렬의 영공간(메타머 블랙)으로 메타머를 직접 만들고, 광원·관측자가 바뀌면 메타머가 깨지는 것을 \( \Delta E_{00} \)로 확인한다.</li>
+      <li>반대색 채널 L+M, L−M, S−(L+M)과 그 공간 해상도 차이가 크로마 서브샘플링의 근거가 되는 이유를 설명한다.</li>
+      <li>색각 이상의 유형과 유병률, 혼동선과 공점(copunctal point)을 원추 공간에서 유도한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="optics">
+    <h2>센서로서의 눈: 광학 구조</h2>
+    <p>눈을 카메라 모듈로 보면 구성은 단순하다. 앞쪽의 <span class="term">각막</span><span class="en">(cornea)</span>과 <span class="term">수정체</span><span class="en">(crystalline lens)</span>가 렌즈 역할을, <span class="term">동공</span><span class="en">(pupil)</span>이 조리개 역할을, 안구 뒤쪽 안쪽 면의 <span class="term">망막</span><span class="en">(retina)</span>이 이미지 센서 역할을 한다. 굴절력의 약 2/3는 공기–각막 경계에서 생기고, 수정체는 나머지를 담당하면서 두께를 바꿔 초점을 맞춘다(조절, accommodation).</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 320" role="img" aria-label="눈의 단면도: 각막, 동공, 수정체, 망막, 황반, 중심와, 시신경 유두">
+        <defs>
+          <marker id="ar-op" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <circle cx="300" cy="160" r="125" class="f-surface s-line" stroke-width="2"/>
+        <path d="M300 35 A125 125 0 0 1 300 285" fill="none" stroke="var(--accent)" stroke-width="5" opacity=".55"/>
+        <path d="M196 92 Q148 160 196 228" class="f-elev s-line" stroke-width="2"/>
+        <line x1="205" y1="95" x2="205" y2="138" class="s-line" stroke-width="4"/>
+        <line x1="205" y1="182" x2="205" y2="225" class="s-line" stroke-width="4"/>
+        <ellipse cx="222" cy="160" rx="17" ry="42" class="f-acc2-soft s-line" stroke-width="1.5"/>
+        <path d="M40 130 L196 130 L222 140 L423 160" fill="none" stroke="#e0a020" stroke-width="1.6"/>
+        <path d="M40 190 L196 190 L222 180 L423 160" fill="none" stroke="#e0a020" stroke-width="1.6"/>
+        <path d="M40 160 L423 160" fill="none" stroke="#e0a020" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <circle cx="423" cy="160" r="6" fill="var(--accent)"/>
+        <ellipse cx="420" cy="160" rx="7" ry="22" fill="#e8c020" opacity=".35"/>
+        <rect x="404" y="203" width="14" height="22" rx="4" class="f-elev s-line" transform="rotate(-25 411 214)"/>
+        <path d="M412 222 Q470 250 520 262" fill="none" class="s-line" stroke-width="7" opacity=".5"/>
+        <text x="40" y="118" class="t t-dim" font-size="13">입사광</text>
+        <text x="150" y="70" class="t" font-size="14">각막</text><line x1="168" y1="76" x2="178" y2="110" class="s-line" marker-end="url(#ar-op)"/>
+        <text x="185" y="270" class="t" font-size="14">홍채·동공</text><line x1="205" y1="256" x2="205" y2="228" class="s-line" marker-end="url(#ar-op)"/>
+        <text x="236" y="62" class="t" font-size="14">수정체</text><line x1="250" y1="68" x2="229" y2="118" class="s-line" marker-end="url(#ar-op)"/>
+        <text x="330" y="28" class="t t-acc" font-size="14">망막(센서)</text>
+        <text x="460" y="128" class="t" font-size="14">황반·중심와</text><line x1="458" y1="132" x2="432" y2="152" class="s-line" marker-end="url(#ar-op)"/>
+        <text x="470" y="210" class="t" font-size="14">시신경 유두(맹점)</text><line x1="468" y1="206" x2="425" y2="210" class="s-line" marker-end="url(#ar-op)"/>
+        <g transform="translate(560 40)">
+          <rect x="0" y="0" width="225" height="240" rx="10" class="f-elev s-line"/>
+          <text x="14" y="26" class="t" font-size="14" font-weight="700">센서 사양으로 보면</text>
+          <text x="14" y="56" class="t t-mono" font-size="12.5">굴절력   ≈ 60 D</text>
+          <text x="14" y="80" class="t t-mono" font-size="12.5">  각막 ≈ 43 D · 수정체 ≈ 20 D</text>
+          <text x="14" y="104" class="t t-mono" font-size="12.5">유효 초점거리 ≈ 17 mm</text>
+          <text x="14" y="128" class="t t-mono" font-size="12.5">동공 2–8 mm → f/8–f/2</text>
+          <text x="14" y="152" class="t t-mono" font-size="12.5">1° ≈ 0.29 mm (망막)</text>
+          <text x="14" y="176" class="t t-mono" font-size="12.5">원추 ≈ 5×10⁶ 개</text>
+          <text x="14" y="200" class="t t-mono" font-size="12.5">막대 ≈ 9×10⁷ 개</text>
+          <text x="14" y="224" class="t t-mono" font-size="12.5">축상 색수차 ≈ 2 D</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 2-1.</b> 눈의 단면(개략). 광축 근처로 들어온 빛은 황반(노란 영역)의 중심와에 맺힌다. 오른쪽은 대표값(개인차 있음). 시신경 유두에는 광수용체가 없어 맹점이 된다.</figcaption>
+    </figure>
+    <p>센서 관점에서 중요한 점은 네 가지다.</p>
+    <ol>
+      <li><strong>분광 필터가 센서 앞에 있다.</strong> 수정체는 단파장(대략 450 nm 아래)을 흡수하는 노란 필터이고, 나이가 들수록 짙어진다. 중심와 주변의 <span class="term">황반 색소</span><span class="en">(macular pigment, 루테인·제아잔틴)</span>는 약 460 nm에 흡수 피크가 있는 두 번째 노란 필터다. 이 필터들은 원추 감도 곡선 안에 이미 포함되어 있으며, 사람마다 농도가 달라 관측자 차이의 주원인이 된다(7절).</li>
+      <li><strong>해상도는 중심와에서만 높다.</strong> <span class="term">중심와</span><span class="en">(fovea)</span>는 지름 약 1.5 mm(시각 약 5°)의 함몰부로, 원추가 가장 빽빽하다. 그 중심의 지름 약 0.3 mm 영역에는 막대세포가 없다.</li>
+      <li><strong>렌즈는 색수차가 크다.</strong> 400 nm와 700 nm 사이의 축상 색수차가 약 2 D에 이르러, 청색과 적색이 동시에 초점을 맺지 못한다. 단파장 영상이 흐린 것은 S 원추가 성기게 배치되어도 손해가 적은 이유이기도 하다.</li>
+      <li><strong>회절 한계.</strong> 동공 지름 \( d \), 파장 \( \lambda \)일 때 광학 차단 주파수는 \( f_c = d/\lambda \) [cycles/rad]이다. \( d = 3 \) mm, \( \lambda = 555 \) nm이면 \( f_c \approx 5400 \) c/rad \( \approx 94 \) cycles/deg(cpd)로, 2절의 원추 샘플링 한계(약 60–70 cpd)와 비슷한 크기다. 렌즈와 센서가 대체로 짝이 맞게 설계된 셈이다.</li>
+    </ol>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>사람 눈(대표값)</th><th>스마트폰 카메라(예시)</th></tr></thead>
+      <tbody>
+        <tr><td>초점거리</td><td class="num">≈ 17 mm</td><td class="num">4–7 mm</td></tr>
+        <tr><td>조리개</td><td class="num">f/2 – f/8 (동공 8–2 mm)</td><td class="num">f/1.5 – f/2.4 (고정)</td></tr>
+        <tr><td>화소(광수용체) 수</td><td class="num">원추 ≈ 5백만, 막대 ≈ 9천만</td><td class="num">1,200만 – 2억</td></tr>
+        <tr><td>최소 피치</td><td class="num">≈ 2.4 µm (중심와 원추)</td><td class="num">0.6 – 1.4 µm</td></tr>
+        <tr><td>색 채널</td><td>L, M, S 원추 (무작위 배치)</td><td>R, G, B 필터 (베이어 규칙 배치)</td></tr>
+        <tr><td>동적 범위 적응</td><td>≈ 10⁻⁶ – 10⁶ cd/m² (막대·원추 전환, 수 분)</td><td>노출·ISO 조절</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout tip"><strong>공학자 관점.</strong> "눈이 보는 색"을 계산할 때 쓰는 표준 등색 함수와 원추 감도에는 각막·수정체·황반 색소의 투과율이 이미 곱해져 있다. 따라서 표준 관측자 계산에 수정체 투과율을 다시 곱하면 이중 적용이 된다. 개인차를 모델링할 때는 <em>표준값 대비 차이</em>만 곱한다(7절의 시뮬레이터가 이렇게 한다).</div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="receptors">
+    <h2>막대세포와 원추세포: 광수용체 모자이크</h2>
+    <p>망막에는 두 종류의 광수용체가 있다. <span class="term">막대세포</span><span class="en">(rod)</span>는 감도가 높아 어두운 환경(암소시)에서 일하지만 한 종류뿐이라 색을 구분하지 못한다. <span class="term">원추세포</span><span class="en">(cone)</span>는 감도가 낮은 대신 밝은 환경(명소시)에서 일하며, 흡수 스펙트럼이 다른 세 종류—장파장 <span class="cone-tag l">L</span>, 중파장 <span class="cone-tag m">M</span>, 단파장 <span class="cone-tag s">S</span>—로 나뉜다. 사람 망막 하나에는 원추가 약 460만 개, 막대가 약 9,200만 개 있다(Curcio 등, 1990).</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="편심도에 따른 원추와 막대 밀도 개략 그래프">
+        <line x1="70" y1="250" x2="770" y2="250" class="s-axis"/>
+        <line x1="420" y1="30" x2="420" y2="250" class="s-axis" stroke-dasharray="3 3"/>
+        <line x1="70" y1="30" x2="70" y2="250" class="s-axis"/>
+        <text x="420" y="272" text-anchor="middle" class="t t-dim" font-size="12">0° (중심와)</text>
+        <text x="120" y="272" text-anchor="middle" class="t t-dim" font-size="12">−60° (코쪽)</text>
+        <text x="720" y="272" text-anchor="middle" class="t t-dim" font-size="12">+60° (귀쪽)</text>
+        <text x="420" y="292" text-anchor="middle" class="t t-dim" font-size="12">편심도</text>
+        <text x="22" y="140" class="t t-dim" font-size="12" transform="rotate(-90 22 140)" text-anchor="middle">밀도 (개략)</text>
+        <rect x="333" y="30" width="22" height="220" class="f-surface"/>
+        <text x="344" y="46" text-anchor="middle" class="t t-dim" font-size="11">맹점</text>
+        <path d="M70 246 L300 240 L380 230 L405 200 L414 120 L420 40 L426 120 L435 200 L460 230 L540 240 L770 246" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <path d="M70 200 Q150 130 250 105 L333 95 M355 95 L380 105 Q405 150 414 250 L426 250 Q435 150 460 105 Q520 82 560 85 Q680 110 770 190" fill="none" stroke="var(--accent-2)" stroke-width="2.5"/>
+        <text x="428" y="52" class="t t-acc" font-size="13">원추: 중심와 최대 ≈ 2×10⁵ /mm²</text>
+        <text x="520" y="76" class="t" font-size="13" fill="var(--accent-2)">막대: 약 15–20°에서 최대</text>
+        <text x="455" y="238" class="t t-dim" font-size="12">주변부 원추 ≈ 5×10³ /mm²</text>
+      </svg>
+      <figcaption><b>그림 2-2.</b> 광수용체 밀도의 편심도 분포(개략, 수평 경선). 원추는 중심와에 몰려 있고, 중심와 한가운데에는 막대가 없다. 시신경 유두(코쪽 약 15°)에는 둘 다 없다.</figcaption>
+    </figure>
+    <p>원추 세 종류의 비율은 고르지 않다. <span class="cone-tag s">S</span> 원추는 전체 원추의 약 5–10%에 불과하고, 중심와 한가운데 지름 약 0.3–0.4° 영역에는 거의 없다. 그래서 아주 작은 청색 점은 색이 사라져 보인다(작은 시야 삼색형 이상, small-field tritanopia). <span class="cone-tag l">L</span>과 <span class="cone-tag m">M</span>의 비는 평균적으로 2:1 정도지만, 적응광학 망막 영상 연구에서 개인 간 차이가 매우 크게(대략 1:1에서 10:1 이상) 보고되었다. 그럼에도 정상 색각자들의 색 이름과 고유 황색 판단은 크게 다르지 않다. 뇌가 장기간의 통계로 채널 이득을 보정하기 때문으로 해석된다.</p>
+    <p>원추 배열은 카메라의 베이어 패턴과 달리 규칙이 없다. 무작위 배치는 특정 주파수에서 생기는 규칙적인 모아레 대신 잡음 같은 에일리어싱을 만든다. 샘플링 한계는 격자 간격으로 정해진다. 간격 \( s \)인 육방(삼각) 격자의 나이퀴스트 주파수는</p>
+    <div class="formula">$$f_N = \frac{1}{\sqrt{3}\,s},\qquad s = \sqrt{\frac{2}{\sqrt{3}\,\rho}}$$
+      <div class="where">\( \rho \): 원추 밀도 [개/mm²]. \( \rho = 2\times10^5 \)이면 \( s \approx 2.40\ \mu\mathrm{m} \approx 0.49' \)(1° ≈ 0.29 mm), \( f_N \approx 70 \) cpd. 한 종류만 보면 간격이 \( 1/\sqrt{p} \)배(\( p \): 비율)로 넓어져 \( f_N \)도 \( \sqrt{p} \)배가 된다.</div>
+    </div>
+
+    <div class="sim" id="sim-mos">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>원추 모자이크: 비율, S 결핍 영역, 단색광 응답</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-mos"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>L / (L+M) <output id="ms-lm-out"></output></span><input type="range" id="ms-lm" min="20" max="92" value="65" step="1"></label>
+          <label class="ctrl"><span>S 원추 비율 <output id="ms-s-out"></output></span><input type="range" id="ms-s" min="0" max="15" value="7" step="0.5"></label>
+          <label class="check"><input type="checkbox" id="ms-free"> 중심 S 결핍 영역 (지름 ≈ 0.35°)</label>
+          <label class="check"><input type="checkbox" id="ms-resp"> 단색광 응답으로 밝기 표시</label>
+          <label class="ctrl"><span>단색광 파장 <output id="ms-wl-out"></output></span><input type="range" id="ms-wl" min="400" max="700" value="560" step="1"></label>
+          <button class="btn" id="ms-seed">다시 배치</button>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">원추 수 L : M : S</span><span class="v" id="o-ms-cnt">—</span></div>
+        <div class="stat"><span class="k">나이퀴스트 (전체)</span><span class="v" id="o-ms-ny">—</span></div>
+        <div class="stat"><span class="k">나이퀴스트 L / M / S</span><span class="v" id="o-ms-nys">—</span></div>
+        <div class="stat"><span class="k">평균 응답 L / M / S</span><span class="v" id="o-ms-resp">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 표시 폭은 중심와 최대 밀도(간격 0.49′)를 가정한 약 0.5°다. "S 결핍 영역"을 켜면 화면 대부분에서 S가 사라진다 — 중심와 한가운데는 사실상 2색형이다. ② "단색광 응답"을 켜고 파장을 450 nm로 두면 성긴 S 원추만 반짝이고, 560 nm에서는 L·M이 비슷하게 밝다. 이것이 휘도 신호를 L+M이 담당하는 이유다. ③ L 비율을 극단으로 옮겨도 L+M 합 신호의 공간 샘플링은 그대로다. (원추 응답은 Stockman–Sharpe 2° 기본함수, 배치는 균일 난수)</div>
+    </div>
+    <div class="callout"><strong>센서 비교.</strong> 베이어 CFA에서 G가 절반인 이유와 망막에서 L+M이 대부분인 이유는 같다: 휘도 해상도가 색 해상도보다 중요하다. 다만 눈은 S 채널을 극단적으로 희생했다(5–10%). 단파장 영상은 어차피 색수차로 흐리므로 샘플을 많이 둘 이유가 없다.</div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="field">
+    <h2>2° 시야와 10° 시야: 표준 관측자가 둘인 이유</h2>
+    <p>같은 색 견본도 보는 크기에 따라 망막의 다른 영역에 맺힌다. 시각 \( \theta \)의 자극이 망막에서 차지하는 지름은 \( 2f\tan(\theta/2) \)이고, \( f \approx 16.7 \) mm로 계산하면 2°는 약 0.58 mm, 10°는 약 2.9 mm다. 2° 자극은 거의 중심와 안에 맺혀 황반 색소가 짙은 곳만 쓰지만, 10° 자극은 황반 색소가 옅고 막대가 섞인 주변까지 덮는다. 따라서 두 시야에서의 등색 결과가 체계적으로 다르다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="50 cm 거리에서 2도와 10도 시야의 크기와 망막 위 영역 비교">
+        <circle cx="70" cy="130" r="12" class="f-elev s-line"/>
+        <line x1="82" y1="130" x2="430" y2="115" class="s-acc"/><line x1="82" y1="130" x2="430" y2="145" class="s-acc"/>
+        <line x1="82" y1="130" x2="430" y2="55" class="s-line" stroke-dasharray="5 4"/><line x1="82" y1="130" x2="430" y2="205" class="s-line" stroke-dasharray="5 4"/>
+        <line x1="430" y1="40" x2="430" y2="220" class="s-axis"/>
+        <rect x="425" y="115" width="10" height="30" class="f-acc"/>
+        <text x="440" y="134" class="t t-acc" font-size="13">2° → 50 cm에서 지름 1.7 cm</text>
+        <text x="440" y="60" class="t" font-size="13">10° → 50 cm에서 지름 8.7 cm</text>
+        <text x="250" y="240" text-anchor="middle" class="t t-dim" font-size="12">관찰 거리 50 cm</text>
+        <g transform="translate(640 130)">
+          <circle r="100" fill="#e8c020" opacity=".12"/>
+          <circle r="50" fill="#e8c020" opacity=".22"/>
+          <circle r="20" class="f-acc-soft" stroke="var(--accent)" stroke-width="2"/>
+          <circle r="100" fill="none" class="s-line" stroke-dasharray="5 4"/>
+          <text y="4" text-anchor="middle" class="t t-acc" font-size="11">2°</text>
+          <text y="-82" text-anchor="middle" class="t" font-size="12">10° ≈ 2.9 mm</text>
+          <text y="-34" text-anchor="middle" class="t t-dim" font-size="11">황반 색소 짙음</text>
+          <text y="118" text-anchor="middle" class="t t-dim" font-size="12">망막 위 (개략)</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 2-3.</b> 2°와 10° 시야. 2° 자극(≈0.58 mm)은 중심와 안에 들어가 황반 색소를 통과한 빛만 본다. 10° 자극(≈2.9 mm)은 황반 색소가 옅은 주변까지 포함한다.</figcaption>
+    </figure>
+    <p>CIE는 이 차이를 두 표준 관측자로 반영한다. 시야가 약 4°보다 크면 10° 관측자를 쓰는 것이 권고된다(CIE 015:2018). 페인트·섬유 같은 큰 견본의 산업 측색에서 10°를, 디스플레이·작은 표시 요소에서 2°를 주로 쓴다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>관측자</th><th>시야</th><th>바탕 데이터</th><th>D65 xy (이 책 데이터로 계산)</th><th>용도</th></tr></thead>
+      <tbody>
+        <tr><td>CIE 1931</td><td class="num">2°</td><td>Wright(10명)·Guild(7명) 등색 실험</td><td class="num">(0.3127, 0.3290)</td><td>디스플레이, 영상 표준(sRGB, BT.709/2020)</td></tr>
+        <tr><td>CIE 1964</td><td class="num">10°</td><td>Stiles–Burch, Speranskaya 10° 실험</td><td class="num">(0.3138, 0.3310)</td><td>큰 견본 측색(도료, 섬유, 인쇄 일부)</td></tr>
+        <tr><td>CIE 2006 (CIE 170-1)</td><td class="num">2°–10° (연령·시야 매개변수)</td><td>Stockman–Sharpe 원추 기본함수</td><td class="num">—</td><td>생리학 기반 관측자, 관측자 메타머리즘 연구</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><strong>흔한 실수.</strong> 같은 광원이라도 관측자가 다르면 xy가 다르다(D65: 1931 (0.3127, 0.3290), 1964 (0.3138, 0.3310)). 1964 관측자로 측정한 값을 sRGB 행렬(1931 기반)에 넣거나, 계측기 설정이 2°/10° 중 무엇인지 기록하지 않으면 백색점부터 어긋난다. 측정 보고서에는 항상 "D65/10°"처럼 광원/관측자를 쌍으로 적는다.</div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="lms">
+    <h2>원추 분광 감도 L, M, S</h2>
+    <p>원추의 분광 감도는 각막 기준으로 측정한 <span class="term">원추 기본함수</span><span class="en">(cone fundamentals)</span> \( \bar l(\lambda), \bar m(\lambda), \bar s(\lambda) \)로 표현한다. 이 책은 Stockman–Sharpe(2000) 2° 기본함수(CIE 170-1:2006의 바탕)를 각 최대 1로 정규화하여 쓴다(<code>CB.lms</code>, 에너지 단위, 390 nm부터 정의). 이 곡선들은 원추 시각 색소의 흡수 스펙트럼에 수정체·황반 색소 투과율과 색소 광학 밀도 효과를 곱한 결과다.</p>
+    <div class="formula">$$L = \int S(\lambda)\,\bar l(\lambda)\,d\lambda,\quad M = \int S(\lambda)\,\bar m(\lambda)\,d\lambda,\quad S_{\text{cone}} = \int S(\lambda)\,\bar s(\lambda)\,d\lambda$$
+      <div class="where">\( S(\lambda) \): 눈에 들어오는 분광 복사휘도(또는 반사율 × 광원). 실무에서는 380–780 nm를 5 nm 간격으로 합한다: \( L \approx \sum_i S(\lambda_i)\,\bar l(\lambda_i)\,\Delta\lambda \).</div>
+    </div>
+    <p>5 nm 원표 기준 피크는 L ≈ 570 nm, M ≈ 545 nm, S ≈ 440–445 nm다(광자 수 단위로 표기한 문헌에서는 약 566, 541, 441 nm로 조금 짧다). L과 M은 피크가 25 nm밖에 떨어져 있지 않고 대부분 겹친다. 이 큰 겹침 때문에 L−M 차 신호는 작은 값이며, 색 판별에는 그 작은 차이를 정밀하게 비교하는 신경 회로가 필요하다.</p>
+
+    <div class="sim" id="sim-cone">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>파장 → L, M, S 응답</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cone"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:#d6403a"></i>L</span><span><i style="background:#2c9a48"></i>M</span><span><i style="background:#2f6fe0"></i>S</span><span><i style="background:var(--text-dim)"></i>V(λ) (점선)</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>파장 <output id="cn-wl-out"></output></span><input type="range" id="cn-wl" min="390" max="720" value="555" step="1"></label>
+          <div class="ctrl"><span>세로축</span><div class="seg" id="cn-scale"><button data-value="lin" class="on">선형</button><button data-value="log">로그</button></div></div>
+          <label class="check"><input type="checkbox" id="cn-v" checked> V(λ) 겹쳐 보기</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">L / M / S</span><span class="v" id="o-cn-lms">—</span></div>
+        <div class="stat"><span class="k">L / (L+M)</span><span class="v" id="o-cn-l">—</span></div>
+        <div class="stat"><span class="k">S / (L+M)</span><span class="v" id="o-cn-s">—</span></div>
+        <div class="stat"><span class="k">0.690 L + 0.348 M vs V(λ)</span><span class="v" id="o-cn-v">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 파장을 400 → 700 nm로 움직이면 L/(L+M)이 단조롭게 증가한다. 파장 하나가 L:M:S "비율"로 부호화된다. ② 로그 축에서 보면 S 감도는 600 nm 근처에서 10⁻⁵ 수준으로 사실상 0이다. 장파장 쪽 색 구분은 L과 M 두 원추만으로 이루어진다. ③ CIE 2006 휘도 함수 \( V_F = 0.68990\,\bar l + 0.34832\,\bar m \)과 1931 \( V(\lambda) \)의 차이를 확인하라(단파장에서 1931 곡선이 낮다).</div>
+    </div>
+    <p>등에너지 스펙트럼(백색 E)에 대한 세 응답의 적분은 각 곡선의 면적이다. 이 책의 데이터로 계산하면 S 면적은 L 면적의 약 0.50배다. 원추 응답의 절대 크기는 정규화 방식에 따라 달라지므로, 다른 계산과 비교할 때는 "E 또는 D65에 대해 L=M=S"처럼 정규화 규칙을 명시해야 한다. 이 장의 반대색·혼동선 계산은 E에서 L=M=S=1이 되도록 정규화한다.</p>
+    <div class="callout deep"><strong>에너지 단위와 광자 단위.</strong> 원추는 광자를 센다. 광자 수 기준 감도 \( \bar l_q(\lambda) \)와 에너지 기준 감도의 관계는 \( \bar l_E(\lambda) \propto \lambda\,\bar l_q(\lambda) \)이다(광자 하나의 에너지 \( hc/\lambda \)). 같은 원표라도 단위가 다르면 피크가 수 nm 이동하므로 문헌 값을 옮겨 쓸 때 단위를 확인한다. CIE 등색 함수는 에너지 단위로 정의된다.</div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="univariance">
+    <h2>단일 변수 원리: 스펙트럼의 3차원 투영</h2>
+    <p>원추 하나가 광자를 흡수하면 시각 색소 분자 하나가 이성질화되고, 그 뒤의 신호는 광자의 파장과 무관하다. 파장은 "흡수될 확률"만 바꾼다. 따라서 원추 출력은 흡수된 광자 수라는 <strong>단 하나의 변수</strong>로 결정된다. 이것이 <span class="term">단일 변수 원리</span><span class="en">(principle of univariance, Rushton)</span>다. 원추 하나는 "파장이 다르다"와 "세기가 다르다"를 구분할 수 없다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="스펙트럼 벡터가 세 감도 함수와의 내적으로 L, M, S 세 숫자로 투영되는 그림">
+        <defs><marker id="ar-un" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="40" width="200" height="170" rx="10" class="f-elev s-line"/>
+        <path d="M35 180 L55 150 L75 160 L95 110 L115 95 L135 120 L155 80 L175 105 L195 130 L205 170" fill="none" class="s-acc" stroke-width="2"/>
+        <g fill="var(--accent)"><circle cx="35" cy="180" r="2.5"/><circle cx="55" cy="150" r="2.5"/><circle cx="75" cy="160" r="2.5"/><circle cx="95" cy="110" r="2.5"/><circle cx="115" cy="95" r="2.5"/><circle cx="135" cy="120" r="2.5"/><circle cx="155" cy="80" r="2.5"/><circle cx="175" cy="105" r="2.5"/><circle cx="195" cy="130" r="2.5"/></g>
+        <text x="120" y="30" text-anchor="middle" class="t" font-size="14">스펙트럼 s ∈ ℝ⁸¹</text>
+        <text x="120" y="230" text-anchor="middle" class="t t-dim" font-size="12">380–780 nm, 5 nm 간격</text>
+        <line x1="225" y1="125" x2="300" y2="125" class="s-line" marker-end="url(#ar-un)"/>
+        <rect x="305" y="55" width="190" height="140" rx="10" class="f-surface s-line"/>
+        <text x="400" y="85" text-anchor="middle" class="t t-mono" font-size="13">⎡ l̄(λ₁) … l̄(λ₈₁) ⎤</text>
+        <text x="400" y="125" text-anchor="middle" class="t t-mono" font-size="13">⎢ m̄(λ₁) … m̄(λ₈₁) ⎥</text>
+        <text x="400" y="165" text-anchor="middle" class="t t-mono" font-size="13">⎣ s̄(λ₁) … s̄(λ₈₁) ⎦</text>
+        <text x="400" y="45" text-anchor="middle" class="t" font-size="14">A (3 × 81)</text>
+        <line x1="500" y1="125" x2="575" y2="125" class="s-line" marker-end="url(#ar-un)"/>
+        <rect x="580" y="70" width="60" height="110" rx="8" class="f-elev s-line"/>
+        <text x="610" y="105" text-anchor="middle" class="t" font-size="16" fill="#d6403a">L</text>
+        <text x="610" y="135" text-anchor="middle" class="t" font-size="16" fill="#2c9a48">M</text>
+        <text x="610" y="165" text-anchor="middle" class="t" font-size="16" fill="#2f6fe0">S</text>
+        <text x="610" y="60" text-anchor="middle" class="t" font-size="14">c ∈ ℝ³</text>
+        <text x="660" y="110" class="t t-dim" font-size="12">81 → 3:</text>
+        <text x="660" y="130" class="t t-dim" font-size="12">78차원이</text>
+        <text x="660" y="150" class="t t-dim" font-size="12">사라진다</text>
+      </svg>
+      <figcaption><b>그림 2-4.</b> 원추 응답은 선형 사상 \( \mathbf c = A\mathbf s \)이다. 81차원 스펙트럼 중 \( A \)의 행공간(3차원) 성분만 남고, 나머지 78차원(영공간)은 눈에 보이지 않는다.</figcaption>
+    </figure>
+    <p>이산화하면 원추 응답은 행렬–벡터 곱이다.</p>
+    <div class="formula">$$\mathbf c = \begin{bmatrix} L\\ M\\ S\end{bmatrix} = A\,\mathbf s,\qquad A_{ki} = \bar c_k(\lambda_i)\,\Delta\lambda$$
+      <div class="where">\( \mathbf s \in \mathbb R^{N} \) (\( N = 81 \)): 스펙트럼 표본, \( \bar c_k \in \{\bar l, \bar m, \bar s\} \). 선형이므로 \( A(\alpha\mathbf s_1 + \beta\mathbf s_2) = \alpha A\mathbf s_1 + \beta A\mathbf s_2 \) — 가산 혼합과 그라스만 법칙의 근거다(<a href="colorimetry.html">3장</a>).</div>
+    </div>
+    <p>단색광 \( \lambda_A \)의 세기 \( I_A \)에 대한 L 원추 응답은 \( I_A\,\bar l(\lambda_A) \)이다. 다른 파장 \( \lambda_B \)에서 같은 응답을 얻으려면 \( I_B = I_A\,\bar l(\lambda_A)/\bar l(\lambda_B) \)로 세기만 맞추면 된다. 예를 들어 \( \bar l(600)/\bar l(500) = 0.834/0.289 \approx 2.89 \)이므로, 500 nm 빛을 600 nm 빛보다 2.89배 세게 하면 L 원추는 둘을 구별하지 못한다.</p>
+
+    <div class="sim" id="sim-univ">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>단일 변수 데모: 두 단색광으로 한 원추 속이기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-univ"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>관찰할 원추</span><div class="seg" id="un-cone"><button data-value="0" class="on">L</button><button data-value="1">M</button><button data-value="2">S</button></div></div>
+          <label class="ctrl"><span>빛 A 파장 <output id="un-wa-out"></output></span><input type="range" id="un-wa" min="400" max="700" value="600" step="1"></label>
+          <label class="ctrl"><span>빛 A 세기 <output id="un-ia-out"></output></span><input type="range" id="un-ia" min="0" max="100" value="40" step="1"></label>
+          <label class="ctrl"><span>빛 B 파장 <output id="un-wb-out"></output></span><input type="range" id="un-wb" min="400" max="700" value="500" step="1"></label>
+          <label class="ctrl"><span>빛 B 세기 <output id="un-ib-out"></output></span><input type="range" id="un-ib" min="0" max="400" value="60" step="0.5"></label>
+          <button class="btn primary" id="un-match">B 세기 자동 맞춤</button>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">선택 원추 응답 A / B</span><span class="v" id="o-un-sel">—</span></div>
+        <div class="stat"><span class="k">선택 원추의 판단</span><span class="v" id="o-un-verdict">—</span></div>
+        <div class="stat"><span class="k">나머지 두 원추 B/A 비</span><span class="v" id="o-un-other">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① "자동 맞춤"을 누르면 선택한 원추의 두 막대 높이가 같아진다. 그 원추 하나만 있는 관측자(단색형)에게 두 빛은 완전히 같다. ② 그래도 나머지 원추의 비는 1이 아니다 — 3원추 관측자는 두 빛을 구별한다. ③ S 원추를 고르고 A를 600 nm로 두면 필요한 B 세기가 0에 가깝다(S가 600 nm에 거의 반응하지 않으므로). 반대로 B를 650 nm로 두면 맞출 수 없을 만큼 큰 세기가 필요하다.</div>
+    </div>
+    <div class="callout"><strong>결론.</strong> 색 정보는 개별 원추가 아니라 <em>원추들 사이의 비교</em>에 있다. 한 종류의 광수용체만 쓰는 막대 시각(암소시)이 색맹인 이유도 이것이다. 단색 센서(모노크롬 카메라)도 같은 원리로 파장 정보를 잃는다.</div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="metamerism">
+    <h2>메타머리즘과 메타머 블랙</h2>
+    <p>\( A \)가 3×81 행렬이므로 영공간 \( \mathcal N(A) = \{\mathbf b : A\mathbf b = \mathbf 0\} \)은 78차원이다. 영공간의 벡터 \( \mathbf b \)를 <span class="term">메타머 블랙</span><span class="en">(metameric black)</span>이라 한다. 양수·음수 값이 섞인 "스펙트럼 모양"이지만 세 원추 모두에 대해 응답이 정확히 0이다. 임의의 스펙트럼에 메타머 블랙을 더하면 원추 응답은 그대로이고 모양만 바뀐다.</p>
+    <div class="formula">$$\mathbf s_2 = \mathbf s_1 + \alpha\,\mathbf b,\quad A\mathbf b = \mathbf 0 \;\Rightarrow\; A\mathbf s_2 = A\mathbf s_1$$
+    $$\mathbf b = \bigl(I - A^{\mathsf T}(AA^{\mathsf T})^{-1}A\bigr)\,\boldsymbol\varphi$$
+      <div class="where">\( \boldsymbol\varphi \): 임의의 모양 벡터. 괄호 안은 영공간으로의 직교 투영 행렬 \( P_{\mathcal N} \). 반사체라면 \( A_{ki} = E(\lambda_i)\,\bar c_k(\lambda_i) \)로 광원 \( E \)를 포함시키고, \( 0 \le R_2(\lambda) \le 1 \) 제약을 지키도록 \( \alpha \)를 제한한다. 이것은 Cohen–Kappauf의 행렬 R 이론(분광 분해)과 같은 구성이다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="스펙트럼 공간에서 원추 응답 공간으로의 투영, 영공간 방향으로 움직여도 같은 점에 투영되는 그림">
+        <defs><marker id="ar-mt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <path d="M60 220 L340 220 L420 140 L140 140 Z" class="f-acc2-soft s-line"/>
+        <text x="70" y="245" class="t t-dim" font-size="12">원추 응답 공간(행공간, 3차원을 평면으로 표시)</text>
+        <line x1="240" y1="180" x2="240" y2="40" class="s-line" stroke-dasharray="6 4"/>
+        <text x="250" y="40" class="t t-dim" font-size="12">영공간 방향 (78차원)</text>
+        <circle cx="240" cy="180" r="6" fill="var(--accent)"/>
+        <text x="252" y="196" class="t t-acc" font-size="13">c = A s₁ = A s₂</text>
+        <circle cx="240" cy="120" r="5" class="f-elev" stroke="var(--text)" stroke-width="1.5"/>
+        <text x="252" y="124" class="t" font-size="13">s₁</text>
+        <circle cx="240" cy="70" r="5" class="f-elev" stroke="var(--text)" stroke-width="1.5"/>
+        <text x="252" y="74" class="t" font-size="13">s₂ = s₁ + α b</text>
+        <line x1="236" y1="116" x2="236" y2="78" class="s-acc" marker-end="url(#ar-mt)"/>
+        <text x="180" y="100" class="t t-acc" font-size="13">α b</text>
+        <g transform="translate(470 40)">
+          <rect x="0" y="0" width="310" height="200" rx="10" class="f-elev s-line"/>
+          <line x1="20" y1="170" x2="295" y2="170" class="s-axis"/>
+          <path d="M20 120 C80 118 120 110 160 105 C200 100 240 98 295 96" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+          <path d="M20 120 C50 150 80 70 120 85 C150 98 170 150 210 120 C240 95 260 70 295 92" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M20 170 C50 200 80 130 120 150 C150 165 170 210 210 170 C240 140 260 140 295 166" fill="none" class="s-line" stroke-dasharray="4 3"/>
+          <text x="20" y="22" class="t" font-size="12">s₁ (청록), s₂ (자홍), b (점선, 0 기준)</text>
+          <text x="20" y="40" class="t t-dim" font-size="12">모양은 달라도 L, M, S는 같다</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 2-5.</b> 메타머의 기하. 스펙트럼 공간에서 영공간 방향으로 움직이면 원추 응답(투영)은 변하지 않는다. 오른쪽은 반사율 공간에서 본 같은 상황(개략).</figcaption>
+    </figure>
+    <p>메타머의 등색은 "그 광원, 그 관측자"에서만 성립한다. 광원 \( E \)를 바꾸면 행렬 \( A \)가 바뀌어 \( \mathbf b \)가 더 이상 영공간에 있지 않다(<span class="term">광원 메타머리즘</span>). 관측자의 감도가 바뀌어도 마찬가지다(<span class="term">관측자 메타머리즘</span>, 7절). 아래 시뮬레이터는 CRI 시험색 TCS01(회적색) 반사율에 D65 기준 메타머 블랙을 더해 메타머 쌍을 만들고, 다른 조건에서의 색차를 계산한다.</p>
+
+    <div class="sim" id="sim-meta">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>메타머 생성기: 영공간 성분 더하기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-meta"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>기준 반사율</span><div class="seg" id="mt-base"><button data-value="1" class="on">TCS01</button><button data-value="5">TCS05</button><button data-value="0">회색 0.4</button></div></div>
+          <div class="ctrl"><span>영공간 계산 기준</span><div class="seg" id="mt-obs"><button data-value="1931" class="on">CIE 1931 XYZ</button><button data-value="lms">원추 LMS</button></div></div>
+          <label class="ctrl"><span>모양: 진동수 k <output id="mt-k-out"></output></span><input type="range" id="mt-k" min="1" max="6" value="2" step="0.5"></label>
+          <label class="ctrl"><span>모양: 위상 <output id="mt-ph-out"></output></span><input type="range" id="mt-ph" min="0" max="360" value="0" step="5"></label>
+          <label class="ctrl"><span>크기 (허용 최대 대비) <output id="mt-amp-out"></output></span><input type="range" id="mt-amp" min="0" max="100" value="100" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">D65 · LMS 원 / 메타머</span><span class="v" id="o-mt-lms">—</span></div>
+        <div class="stat"><span class="k">ΔE00 D65 · 2°</span><span class="v" id="o-mt-d65">—</span></div>
+        <div class="stat"><span class="k">ΔE00 광원 A · 2°</span><span class="v" id="o-mt-a">—</span></div>
+        <div class="stat"><span class="k">ΔE00 FL11 · 2°</span><span class="v" id="o-mt-fl">—</span></div>
+        <div class="stat"><span class="k">ΔE00 D65 · 10°</span><span class="v" id="o-mt-10">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 기준을 "CIE 1931 XYZ"로 두면 D65·2° ΔE00가 0이다(정의상). 광원 A로 바꾸면 수 단위, 3파장 형광등 FL11에서는 더 크게 깨진다. ② 기준을 "원추 LMS"로 바꾸면 LMS는 정확히 같은데 1931 XYZ로는 ΔE00가 0이 아니다 — CIE 1931 등색 함수와 Stockman–Sharpe 원추 기본함수가 정확한 선형 변환 관계가 아니라는 증거다. ③ 진동수 k를 키우면(빠르게 출렁이는 모양) 넓은 대역 광원에서는 차이가 작지만, 좁은 선 스펙트럼의 FL11에서는 크게 남는다. 견본 색은 화면에서 Bradford 순응 후 sRGB로 표시한 것이다.</div>
+    </div>
+    <p>실제 수치 예: TCS01(D65 아래 Lab = (61.5, 17.5, 11.9))에 \( k = 2 \), 위상 0°인 메타머 블랙을 허용 최대 크기로 더하면(1931 XYZ 기준) D65·2°에서는 ΔE00 = 0이지만 광원 A에서는 약 <strong id="o-mt-ex">—</strong>가 된다. 인쇄·도장에서 "매장 조명에서는 맞는데 집에서는 다르다"는 불만이 이 현상이다.</p>
+    <div class="callout tip"><strong>공학적 함의.</strong> 메타머리즘은 결함이 아니라 색 재현 산업 전체의 기반이다. 디스플레이는 D65 백색이나 피부색의 원래 스펙트럼을 재현하지 않는다. 세 원색의 혼합으로 <em>같은 3자극치</em>를 만드는 메타머를 보여줄 뿐이다. 카메라가 이 일을 정확히 하려면 분광 감도가 원추(또는 \( \bar x\bar y\bar z \))의 선형 결합이어야 한다는 루터–아이브스 조건이 나오고(<a href="camera.html">12장</a>), 인쇄·도장에서는 조명 변화에 대한 안정성을 CIE 015:2018의 특수 메타머리즘 지수(광원 변경)로 평가한다. 색을 맞출 때는 기준 광원 하나만이 아니라 A·F 계열 광원에서도 ΔE를 확인하는 것이 실무 관례다.</div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="observer">
+    <h2>관측자 메타머리즘과 연령</h2>
+    <p>표준 관측자는 평균일 뿐이다. 실제 사람의 원추 감도는 다음 요인으로 달라진다.</p>
+    <ul>
+      <li><strong>수정체 광학 밀도</strong>: 나이가 들수록 단파장 흡수가 늘어 수정체가 노래진다(황변). 같은 백색이 고령자에게는 덜 푸르게 들어온다. CIE 170-1:2006은 관측자 연령(20–80세)을 매개변수로 넣는다.</li>
+      <li><strong>황반 색소 밀도</strong>: 460 nm 근처 흡수, 개인 간 수 배 차이. CIE 2006 모델의 피크 광학 밀도는 2°에서 0.35, 10°에서 0.095다.</li>
+      <li><strong>원추 색소 피크 이동</strong>: L 옵신 유전자의 흔한 다형성(예: Ser180Ala)이 L 피크를 수 nm 이동시킨다.</li>
+      <li><strong>원추 색소 광학 밀도</strong>: 외절 길이에 따라 흡수 스펙트럼의 폭이 달라진다.</li>
+    </ul>
+    <p>넓은 대역 스펙트럼끼리 비교할 때는 이 차이가 대부분 상쇄되지만, 한쪽이 <strong>좁은 대역 스펙트럼</strong>이면 감도 곡선의 작은 차이가 그대로 드러난다. 레이저 프로젝터나 QD/OLED 광색역 디스플레이의 백색을 D65 기준 장비와 맞춰도 사람마다 다르게 보이는 문제가 이것이다. 아래 시뮬레이터는 가우시안 3원색으로 D65와 등색인 백색을 만든 뒤, 관측자를 바꿔 백색의 어긋남을 계산한다.</p>
+    <div class="formula">$$\bar c_k'(\lambda) = \bar c_k(\lambda)\cdot 10^{-\left[\Delta D_{\text{lens}}(\lambda) + \Delta D_{\text{mac}}(\lambda)\right]}$$
+      <div class="where">\( \Delta D \): 표준 관측자 대비 추가 광학 밀도. 이 시뮬레이터는 교육용 근사 템플릿 \( \Delta D_{\text{lens}} = d_{400}\,e^{-(\lambda-400)/35} \), \( \Delta D_{\text{mac}} = d_{460}\,G(\lambda; 460, 70\ \mathrm{nm}) \)을 쓴다(실제 색소 스펙트럼의 모양과는 다르다). 변형 LMS는 최소자승 행렬로 XYZ에 환산해 ΔE00를 구한다.</div>
+    </div>
+
+    <div class="sim" id="sim-obs">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>관측자 메타머리즘: 좁은 대역 3원색 백색 vs D65</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-obs"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>R 피크 <output id="ob-r-out"></output></span><input type="range" id="ob-r" min="600" max="660" value="638" step="1"></label>
+          <label class="ctrl"><span>G 피크 <output id="ob-g-out"></output></span><input type="range" id="ob-g" min="505" max="560" value="532" step="1"></label>
+          <label class="ctrl"><span>B 피크 <output id="ob-b-out"></output></span><input type="range" id="ob-b" min="440" max="475" value="465" step="1"></label>
+          <label class="ctrl"><span>반치폭 FWHM <output id="ob-fw-out"></output></span><input type="range" id="ob-fw" min="2" max="80" value="2" step="1"></label>
+          <div class="ctrl"><span>등색 기준 관측자</span><div class="seg" id="ob-base"><button data-value="lms" class="on">원추 LMS 2°</button><button data-value="1931">CIE 1931</button></div></div>
+          <label class="ctrl"><span>수정체 추가 밀도 d₄₀₀ <output id="ob-lens-out"></output></span><input type="range" id="ob-lens" min="-0.3" max="1" value="0.5" step="0.05"></label>
+          <label class="ctrl"><span>황반 색소 추가 밀도 d₄₆₀ <output id="ob-mac-out"></output></span><input type="range" id="ob-mac" min="-0.3" max="0.5" value="0" step="0.05"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">혼합 가중치 R : G : B</span><span class="v" id="o-ob-w">—</span></div>
+        <div class="stat"><span class="k">백색 ΔE00 · CIE 1931</span><span class="v" id="o-ob-31">—</span></div>
+        <div class="stat"><span class="k">백색 ΔE00 · CIE 1964</span><span class="v" id="o-ob-64">—</span></div>
+        <div class="stat"><span class="k">백색 ΔE00 · 원추 LMS 표준</span><span class="v" id="o-ob-ss">—</span></div>
+        <div class="stat"><span class="k">백색 ΔE00 · 변형 관측자</span><span class="v" id="o-ob-ind">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 기준 관측자에서는 ΔE00 = 0이다(정의상 등색). 수정체 밀도를 0 → 0.5 → 1로 올리며 변형 관측자의 ΔE를 보라. 같은 디스플레이 백색이 고령 관측자에게는 D65와 다른 색이다. ② FWHM을 2 nm(레이저) → 30 nm(QD) → 80 nm(넓은 대역)로 넓히면 대체로 ΔE가 줄어든다. ③ 기준을 CIE 1931로 바꾸면 1931로 맞춘 백색이 원추 기반 관측자에게 크게 어긋나 보인다 — 1931 \( \bar y \)의 단파장 오차가 좁은 대역 청색에서 드러나는 것이다. (흰 견본 ΔE00는 D65 자체를 그 관측자의 기준 백색으로 놓고 계산)</div>
+    </div>
+    <div class="callout tip"><strong>공학자 관점.</strong> 2 nm 레이저 3원색(638/532/465 nm)으로 원추 LMS 표준 관측자에게 D65와 등색인 백색을 만들면, 이 장의 근사 모델로 계산한 수정체 밀도 +0.5 관측자에게는 ΔE00 ≈ <strong id="o-ob-ex">—</strong>만큼 어긋난다. 원색이 좁을수록 색역은 넓어지지만(<a href="rgb.html">5장</a>) 관측자 간 백색 일치는 나빠진다. 그래서 광색역 마스터링 모니터와 기준 모니터를 나란히 맞출 때 1931 관측자로는 시각적으로 맞지 않는 경우가 있으며, 업계에서는 CIE 2006/2015 계열 관측자나 보정 오프셋을 쓰기도 한다. 관측자 변경에 대한 메타머리즘 지수는 CIE 80(Special metamerism index: change in observer)이 다룬다.</div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="opponent">
+    <h2>반대색 처리와 공간 해상도</h2>
+    <p>원추 신호는 망막의 신경절 세포 단계에서 바로 재조합된다. L과 M은 크게 겹치므로 그대로 전송하면 상관이 높아 비효율적이다. 시각계는 합과 차로 바꿔 보낸다. 이것이 <span class="term">반대색 처리</span><span class="en">(opponent processing)</span>이며, 신호 처리 관점에서는 상관된 채널을 대략 직교화하는 변환(주성분 분석과 비슷)이다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="L, M, S 원추 신호가 휘도, 적녹, 청황 세 반대색 채널로 결합되는 배선도">
+        <defs><marker id="ar-opp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <circle cx="100" cy="60" r="26" fill="#d6403a"/><text x="100" y="66" text-anchor="middle" font-size="18" fill="#fff" font-weight="700">L</text>
+        <circle cx="100" cy="130" r="26" fill="#2c9a48"/><text x="100" y="136" text-anchor="middle" font-size="18" fill="#fff" font-weight="700">M</text>
+        <circle cx="100" cy="200" r="26" fill="#2f6fe0"/><text x="100" y="206" text-anchor="middle" font-size="18" fill="#fff" font-weight="700">S</text>
+        <rect x="380" y="35" width="150" height="46" rx="8" class="f-elev s-line"/><text x="455" y="64" text-anchor="middle" class="t" font-size="15">L + M</text>
+        <rect x="380" y="107" width="150" height="46" rx="8" class="f-elev s-line"/><text x="455" y="136" text-anchor="middle" class="t" font-size="15">L − M</text>
+        <rect x="380" y="179" width="150" height="46" rx="8" class="f-elev s-line"/><text x="455" y="208" text-anchor="middle" class="t" font-size="15">S − (L + M)</text>
+        <line x1="128" y1="60" x2="376" y2="56" class="s-line" marker-end="url(#ar-opp)"/><text x="250" y="50" class="t t-acc" font-size="13">+</text>
+        <line x1="126" y1="124" x2="376" y2="64" class="s-line" marker-end="url(#ar-opp)"/><text x="230" y="92" class="t t-acc" font-size="13">+</text>
+        <line x1="127" y1="66" x2="376" y2="126" class="s-line" marker-end="url(#ar-opp)"/><text x="270" y="102" class="t t-acc" font-size="13">+</text>
+        <line x1="128" y1="132" x2="376" y2="134" class="s-line" marker-end="url(#ar-opp)"/><text x="250" y="128" class="t t-dim" font-size="13">−</text>
+        <line x1="128" y1="200" x2="376" y2="202" class="s-line" marker-end="url(#ar-opp)"/><text x="250" y="196" class="t t-acc" font-size="13">+</text>
+        <line x1="124" y1="142" x2="376" y2="194" class="s-line" stroke-dasharray="4 3" marker-end="url(#ar-opp)"/><text x="200" y="176" class="t t-dim" font-size="13">−</text>
+        <text x="548" y="56" class="t" font-size="13">휘도: 고해상도 (≈ 50–60 cpd 한계)</text>
+        <text x="548" y="74" class="t t-dim" font-size="12">대세포·소세포 경로</text>
+        <text x="548" y="128" class="t" font-size="13">적–녹: 저해상도 (≈ 10 cpd 남짓)</text>
+        <text x="548" y="146" class="t t-dim" font-size="12">소세포(midget) 경로</text>
+        <text x="548" y="200" class="t" font-size="13">청–황: 가장 낮은 해상도</text>
+        <text x="548" y="218" class="t t-dim" font-size="12">과립세포(konio) 경로</text>
+      </svg>
+      <figcaption><b>그림 2-6.</b> 반대색 채널(개략). 휘도 채널은 L과 M의 합, 색 채널은 차이다. S−(L+M)의 (L+M) 연결은 점선으로 표시했다.</figcaption>
+    </figure>
+    <div class="formula">$$\begin{bmatrix} A\\ C_{rg}\\ C_{by}\end{bmatrix} = \begin{bmatrix} \tfrac12 & \tfrac12 & 0\\ 1 & -1 & 0\\ -\tfrac12 & -\tfrac12 & 1\end{bmatrix}\begin{bmatrix} L\\ M\\ S\end{bmatrix}$$
+      <div class="where">L, M, S는 등에너지 백색 E에서 1이 되도록 정규화(이 장의 표시용 규칙). 가중치는 정규화에 따라 달라지며, 생리학적 휘도는 CIE 2006 기준 \( V_F \propto 0.68990\,\bar l + 0.34832\,\bar m \)로 L 가중이 더 크다. 시뮬레이터의 평면 좌표는 크기에 무관한 대비 형태 \( x = (L-M)/(L+M) \), \( y = (S-A)/(S+A) \)를 쓴다(MacLeod–Boynton 색도와 같은 발상).</div>
+    </div>
+
+    <div class="sim" id="sim-opp">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>반대색 채널 계산기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-opp"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>자극</span>
+            <select id="op-src">
+              <option value="mono">단색광</option>
+              <option value="E">등에너지 E</option>
+              <option value="D65" selected>D65</option>
+              <option value="A">광원 A (2856 K)</option>
+              <option value="FL11">FL11 (3파장 형광)</option>
+              <option value="LED-B3">LED-B3 (백색 LED)</option>
+              <option value="LED-RGB1">LED-RGB1</option>
+              <option value="t9">TCS09 강한 적색 (D65)</option>
+              <option value="t10">TCS10 강한 황색 (D65)</option>
+              <option value="t11">TCS11 강한 녹색 (D65)</option>
+              <option value="t12">TCS12 강한 청색 (D65)</option>
+              <option value="t13">TCS13 피부색 (D65)</option>
+            </select></label>
+          <label class="ctrl"><span>단색광 파장 <output id="op-wl-out"></output></span><input type="range" id="op-wl" min="400" max="700" value="580" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">L, M, S (E=1)</span><span class="v" id="o-op-lms">—</span></div>
+        <div class="stat"><span class="k">A = (L+M)/2</span><span class="v" id="o-op-a">—</span></div>
+        <div class="stat"><span class="k">C<sub>rg</sub> = L − M</span><span class="v" id="o-op-rg">—</span></div>
+        <div class="stat"><span class="k">C<sub>by</sub> = S − A</span><span class="v" id="o-op-by">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① D65는 원점(E) 근처, 광원 A는 C<sub>by</sub>가 크게 음수(노랑 쪽)다. ② 단색광을 움직이면 L−M은 약 570 nm에서, S−A는 약 495 nm에서 부호가 바뀐다. 사람이 "순수한 노랑"이라 부르는 고유 황색(약 575–580 nm)과 가깝지만 정확히 같지는 않다 — 원추 반대 채널과 지각적 고유 색상은 같은 축이 아니다. ③ TCS09(적)와 TCS11(녹)은 C<sub>rg</sub> 축의 양 끝, TCS10(황)과 TCS12(청)는 C<sub>by</sub> 축의 양 끝 쪽에 놓인다.</div>
+    </div>
+
+    <p>세 채널의 공간 해상도는 크게 다르다. 그림 2-7은 정현파 격자의 대비 감도 함수(CSF)를 비교한 것이다. 휘도 CSF는 수 cpd에서 최대인 대역 통과형이고 50–60 cpd에서 끊긴다. 색 채널(등휘도 적–녹, 청–황 격자)은 저역 통과형이며 10 cpd 남짓에서 이미 거의 보이지 않는다(Mullen, 1985).</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="휘도 대비 감도 함수와 색 대비 감도 함수 개략 비교, 로그 축">
+        <line x1="70" y1="260" x2="760" y2="260" class="s-axis"/><line x1="70" y1="20" x2="70" y2="260" class="s-axis"/>
+        <g class="t t-dim" font-size="11" text-anchor="middle">
+          <text x="70" y="276">0.1</text><text x="318" y="276">1</text><text x="436.9" y="276">3</text><text x="567" y="276">10</text><text x="685" y="276">30</text><text x="760" y="276">60</text>
+        </g>
+        <g class="s-line" stroke-dasharray="2 4" opacity=".5"><line x1="318" y1="20" x2="318" y2="260"/><line x1="567" y1="20" x2="567" y2="260"/><line x1="70" y1="100" x2="760" y2="100"/><line x1="70" y1="180" x2="760" y2="180"/></g>
+        <g class="t t-dim" font-size="11" text-anchor="end"><text x="64" y="24">1</text><text x="64" y="104">0.1</text><text x="64" y="184">0.01</text><text x="64" y="262">0.001</text></g>
+        <text x="415" y="296" text-anchor="middle" class="t t-dim" font-size="12">공간 주파수 [cycles/deg]</text>
+        <text x="16" y="140" class="t t-dim" font-size="12" transform="rotate(-90 16 140)" text-anchor="middle">상대 감도</text>
+        <path d="M70 108L82 106L93 105L105 103L116 101L127 100L139 98L151 96L162 94L173 92L185 89L197 87L208 85L220 82L231 80L243 77L254 75L266 72L277 69L289 67L300 64L312 61L323 58L335 55L346 53L358 50L369 47L381 44L392 42L404 39L415 37L427 34L438 32L450 30L461 28L473 26L484 24L496 23L507 22L519 21L530 20L542 20L553 20L565 21L576 22L588 24L599 27L611 30L622 34L634 39L645 45L657 53L668 61L680 72L691 84L702 98L714 114L726 133L737 154L749 179L760 207" fill="none" stroke="var(--text)" stroke-width="2.5"/>
+        <path d="M70 21L82 21L93 21L105 22L116 22L127 22L139 22L151 22L162 23L173 23L185 23L197 24L208 24L220 25L231 25L243 26L254 26L266 27L277 28L289 29L300 30L312 31L323 32L335 33L346 35L358 37L369 39L381 41L392 43L404 45L415 48L427 52L438 55L450 59L461 63L473 68L484 74L496 80L507 87L519 94L530 102L542 112L553 122L565 133L576 146L588 160L599 176L611 194L622 213L634 235L645 259" fill="none" stroke="#d6403a" stroke-width="2.2"/>
+        <path d="M70 29L82 30L93 30L105 30L116 30L127 30L139 31L151 31L162 31L173 32L185 32L197 33L208 33L220 34L231 35L243 36L254 36L266 37L277 39L289 40L300 41L312 43L323 44L335 46L346 48L358 50L369 53L381 56L392 59L404 63L415 66L427 71L438 76L450 81L461 87L473 94L484 101L496 109L507 119L519 129L530 140L542 153L553 167L565 182L576 200L588 219L599 241" fill="none" stroke="#2f6fe0" stroke-width="2.2" stroke-dasharray="7 4"/>
+        <text x="600" y="16" class="t" font-size="12">휘도 (Mannos–Sakrison)</text>
+        <text x="250" y="16" class="t" font-size="12" fill="#d6403a">적–녹</text>
+        <text x="240" y="56" class="t" font-size="12" fill="#2f6fe0">청–황</text>
+      </svg>
+      <figcaption><b>그림 2-7.</b> 대비 감도 함수 비교. 휘도 곡선은 Mannos–Sakrison(1974) 모델 \( 2.6(0.0192+0.114f)\,e^{-(0.114f)^{1.1}} \)을 최대 1로 정규화한 것, 색 곡선은 측정 결과의 모양을 흉내 낸 개략 저역 통과 곡선이다(교육용, 절대 감도 비교 아님).</figcaption>
+    </figure>
+    <div class="callout tip"><strong>공학적 함의: 크로마 서브샘플링.</strong> 영상 코덱은 Y′(휘도 근사)는 그대로 두고 Cb, Cr(색차)만 가로·세로로 절반씩 줄이는 4:2:0을 표준처럼 쓴다. 색차 정보를 3/4 버려도 대부분의 장면에서 보이지 않는 것은 그림 2-7의 색 CSF 차단이 휘도보다 훨씬 낮기 때문이다. 단, 감마 인코딩된 R′G′B′로 만든 Y′CbCr은 휘도와 색이 완전히 분리되지 않아 채도 높은 경계에서 휘도 손실이 생긴다(비항등 휘도 문제). 자세한 행렬과 BT.601/709/2020 차이는 <a href="encoding.html">15장</a>에서 다룬다.</div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="cvd">
+    <h2>색각 이상: 원추 하나가 빠지거나 이동할 때</h2>
+    <p>L과 M 옵신 유전자는 X 염색체(Xq28)에 나란히 있고 서열이 매우 비슷해, 재조합 오류로 하나가 사라지거나 두 유전자가 섞인 잡종 유전자가 생기기 쉽다. 그래서 적–녹 계열 색각 이상은 흔하고 남성에게 훨씬 많다. S 옵신은 7번 염색체에 있어 청–황 계열 이상(tritan)은 드물고 성별 차이가 없다.</p>
+    <ul>
+      <li><strong>2색형</strong><span class="en">(dichromacy)</span>: 원추 하나가 없다. 색 공간이 3차원에서 2차원으로 줄어든다. L이 없으면 제1색맹(protanopia), M이 없으면 제2색맹(deuteranopia), S가 없으면 제3색맹(tritanopia).</li>
+      <li><strong>이상 3색형</strong><span class="en">(anomalous trichromacy)</span>: 세 원추가 있지만 하나의 피크가 이동해 L과 M 피크 간격(정상 약 25 nm)이 좁아진다. 색 판별이 약해지지만 공간은 여전히 3차원이다(제1·제2·제3색약).</li>
+      <li><strong>단색형</strong>: 막대 단색형(전색맹) 등, 매우 드물다.</li>
+    </ul>
+    <div class="table-wrap"><table>
+      <thead><tr><th>유형</th><th>원인</th><th class="num">남성</th><th class="num">여성</th></tr></thead>
+      <tbody>
+        <tr><td>제1색맹 (protanopia)</td><td>L 없음</td><td class="num">≈ 1%</td><td class="num">≈ 0.02%</td></tr>
+        <tr><td>제1색약 (protanomaly)</td><td>L 피크가 M 쪽으로 이동</td><td class="num">≈ 1%</td><td class="num">≈ 0.03%</td></tr>
+        <tr><td>제2색맹 (deuteranopia)</td><td>M 없음</td><td class="num">≈ 1%</td><td class="num">≈ 0.01%</td></tr>
+        <tr><td>제2색약 (deuteranomaly)</td><td>M 피크가 L 쪽으로 이동</td><td class="num">≈ 5%</td><td class="num">≈ 0.4%</td></tr>
+        <tr><td>제3색맹·색약 (tritan)</td><td>S 없음/이상</td><td class="num" colspan="2">드묾 (남녀 비슷, 수천~수만 명 중 1명 수준)</td></tr>
+        <tr><td><b>적–녹 계열 합계</b></td><td></td><td class="num"><b>≈ 8%</b></td><td class="num"><b>≈ 0.5%</b></td></tr>
+      </tbody>
+    </table></div>
+    <p>위 수치는 북유럽계 집단 기준의 대략값이다. 유병률은 집단마다 다르며, 동아시아 남성은 대략 4–6% 수준으로 보고된다. 어떤 기준이든 사용자 100명 중 수 명은 적–녹 구분에 의존하는 UI를 제대로 읽지 못한다.</p>
+    <h3>혼동선과 공점</h3>
+    <p>제1색맹은 M과 S만 가진다. 두 자극의 M, S가 같고 L만 다르면 그에게는 같은 색이다. XYZ 공간에서 이런 자극들은 "L만 자극하는 방향" \( \mathbf v_L = T^{-1}\mathbf e_L \) 위의 직선 \( \mathbf X(t) = \mathbf X_0 + t\,\mathbf v_L \)을 이룬다. 이 직선을 색도도에 투영하면 모든 직선이 \( \mathbf v_L \)의 색도 한 점을 지난다. 이 점이 <span class="term">공점</span><span class="en">(copunctal point)</span>이고, 공점을 지나는 직선이 <span class="term">혼동선</span><span class="en">(confusion line)</span>이다.</p>
+    <div class="formula">$$\mathbf c_{\text{LMS}} = T\,\mathbf X_{\text{XYZ}},\qquad (x_p, y_p) = \operatorname{xy}\!\left(T^{-1}\mathbf e_k\right),\quad k \in \{L, M, S\}$$
+      <div class="where">\( T \): XYZ → LMS 3×3 행렬. 이 장은 CIE 1931 \( \bar x\bar y\bar z \)와 Stockman–Sharpe 기본함수 사이의 최소자승 근사(상대 잔차 약 6.5%)로 \( T \)를 구한다. 그 결과 공점은 protan ≈ (0.764, 0.255), deutan ≈ (1.60, −0.51), tritan ≈ (0.170, −0.019)로, 문헌에서 흔히 인용하는 값 protan ≈ (0.747, 0.253), deutan ≈ (1.40, −0.40), tritan ≈ (0.17, 0.00)과 같은 위치 경향을 보인다. 정확한 값은 기준 원추 기본함수에 따라 다르다.</div>
+    </div>
+
+    <div class="sim" id="sim-cvd">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>혼동선과 공점: 2색형에게 같은 색들</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cvd"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>유형</span><div class="seg" id="cd-type"><button data-value="0" class="on">Protan</button><button data-value="1">Deutan</button><button data-value="2">Tritan</button></div></div>
+          <label class="ctrl"><span>기준 휘도 Y <output id="cd-y-out"></output></span><input type="range" id="cd-y" min="0.1" max="0.6" value="0.3" step="0.01"></label>
+          <label class="ctrl"><span>기준점 x <output id="cd-x-out"></output></span><input type="range" id="cd-x" min="0.2" max="0.5" value="0.33" step="0.005"></label>
+          <label class="ctrl"><span>기준점 y <output id="cd-yy-out"></output></span><input type="range" id="cd-yy" min="0.2" max="0.5" value="0.36" step="0.005"></label>
+          <label class="check"><input type="checkbox" id="cd-fan" checked> 혼동선 다발 표시</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">공점 xy</span><span class="v" id="o-cd-cp">—</span></div>
+        <div class="stat"><span class="k">양 끝 ΔE00 (정상 3색형)</span><span class="v" id="o-cd-de">—</span></div>
+        <div class="stat"><span class="k">양 끝 Y (휘도) 범위</span><span class="v" id="o-cd-y">—</span></div>
+        <div class="stat"><span class="k">남은 두 원추 응답 변화</span><span class="v" id="o-cd-keep">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 아래 견본 띠는 기준색에서 결손 원추 방향으로만 움직인 sRGB 가멋 안의 색들이다. 정상 관측자에게 ΔE00가 수십이지만 해당 2색형에게는 남은 두 원추 응답이 같다. 화면 위 색도도를 클릭해도 기준점을 옮길 수 있다. ② Protan에서는 양 끝의 Y가 크게 다르다 — L은 휘도에 크게 기여하므로 제1색맹에게 빨강이 어둡게 보인다. Tritan에서는 Y가 거의 일정하다. ③ Deutan 공점은 색도도 바깥(가상 원색)이라 혼동선 다발이 오른쪽 아래에서 모인다. 실제 2색형 시뮬레이션(Brettel, Viénot, Machado 모델)은 <a href="dataviz.html">18장</a>에서 다룬다.</div>
+    </div>
+    <div class="callout warn"><strong>공학자 관점.</strong> 상태 표시(정상/오류)를 빨강–초록 색상만으로 구분하는 UI, 적–녹 발산 컬러맵, 그래프 범례의 빨강·초록 선은 남성 사용자 약 8%(북유럽계 기준)에게 같은 선으로 보일 수 있다. 혼동선 방향이 아닌 축(밝기 차, 청–황 축)을 쓰거나 모양·텍스트를 함께 쓴다. 인쇄·디스플레이의 색 판정 작업자 선발에는 Ishihara 검사나 아노말로스코프(Rayleigh 등색: 적+녹 혼합 = 황)를 쓰는데, 이상 3색형은 Rayleigh 등색에서 적/녹 비율이 정상과 다른 점으로 판정된다.</div>
+  </section>
+
+  <!-- ============================================================ 10 -->
+  <section id="photopic">
+    <h2>명소시·박명시·암소시</h2>
+    <p>눈의 동작 범위는 약 12자릿수에 걸친다. 밝기에 따라 일하는 광수용체가 바뀌므로 "같은 스펙트럼, 같은 색"이라는 측색의 전제도 밝기에 따라 달라진다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>영역</th><th>휘도 범위 (대략)</th><th>광수용체</th><th>분광 효율</th><th>색각</th></tr></thead>
+      <tbody>
+        <tr><td>명소시 (photopic)</td><td class="num">≳ 5 cd/m²</td><td>원추</td><td>V(λ), 피크 555 nm, K<sub>m</sub> = 683 lm/W</td><td>3색형, 높은 해상도</td></tr>
+        <tr><td>박명시 (mesopic)</td><td class="num">≈ 0.005 – 5 cd/m²</td><td>원추 + 막대</td><td>V와 V′의 혼합 (CIE 191:2010)</td><td>색이 약해짐, 푸른색이 상대적으로 밝아 보임</td></tr>
+        <tr><td>암소시 (scotopic)</td><td class="num">≲ 0.005 cd/m²</td><td>막대</td><td>V′(λ), 피크 507 nm, K′<sub>m</sub> ≈ 1700 lm/W</td><td>무채색, 중심와 맹(막대 없음)</td></tr>
+      </tbody>
+    </table></div>
+    <p>박명시로 내려가면 막대의 감도가 단파장 쪽(507 nm)에 있으므로 붉은 물체가 상대적으로 어두워지고 푸른 물체가 밝아진다(<span class="term">푸르키네 이동</span><span class="en">(Purkinje shift)</span>). 막대는 장파장(대략 650 nm 이상)에 거의 반응하지 않으므로, 암순응을 유지해야 하는 조종석·천문대·잠수함 조명이 붉은색인 이유다.</p>
+    <div class="callout"><strong>측색의 적용 범위.</strong> CIE XYZ와 이 장의 원추 계산은 명소시를 가정한다. 야간 도로 조명, 어두운 영상의 암부, HDR의 0.01 cd/m² 이하 계조처럼 박명시 영역이 개입하면 V(λ) 기반 휘도는 실제 밝기 지각을 과소·과대 평가할 수 있다. 측광량의 기초(683 lm/W의 의미)는 <a href="light.html">1장</a>, 밝기와 주변 조건에 따른 외관 변화는 <a href="appearance.html">9장</a>에서 다룬다.</div>
+  </section>
+
+  <!-- ============================================================ summary -->
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>눈은 초점거리 약 17 mm, f/2–f/8의 카메라다. 각막·수정체·황반 색소가 센서 앞의 분광 필터 역할을 하며, 표준 감도 곡선에 이미 포함되어 있다.</li>
+      <li>원추는 L(≈570), M(≈545), S(≈440–445 nm, 에너지 단위 5 nm 표) 세 종류다. S는 5–10%로 희소하고 중심와 한가운데에는 거의 없다. 중심와 원추 간격 ≈ 0.5′는 나이퀴스트 약 60–70 cpd에 해당한다.</li>
+      <li>2° 자극은 중심와 안(≈0.58 mm), 10° 자극은 황반 밖까지(≈2.9 mm) 맺히므로 CIE 1931(2°)과 1964(10°) 관측자가 따로 있다. 약 4°보다 큰 시야에는 10°를 쓴다.</li>
+      <li>단일 변수 원리: 원추는 흡수 광자 수만 센다. 원추 응답은 선형 사상 \( \mathbf c = A\mathbf s \)이며 81차원 스펙트럼이 3차원으로 투영된다.</li>
+      <li>\( A \)의 영공간(메타머 블랙, 78차원)을 더해도 LMS는 그대로다. 이 메타머리즘이 3원색 재현의 근거이며, 광원이나 관측자가 바뀌면 깨진다(광원·관측자 메타머리즘).</li>
+      <li>원색이 좁은 대역일수록 관측자 간 차이(수정체 황변, 황반 색소)가 백색 일치에 크게 드러난다. 레이저·QD 디스플레이의 실무 문제다.</li>
+      <li>반대색 채널 L+M, L−M, S−(L+M) 중 휘도 채널만 고해상도다. 색 채널의 CSF는 10 cpd 남짓에서 끊기며, 이것이 4:2:0 크로마 서브샘플링의 근거다.</li>
+      <li>적–녹 색각 이상은 남성 약 8%, 여성 약 0.5%(북유럽계 기준, 집단차 있음)다. 2색형에게 같은 색은 공점을 지나는 혼동선 위에 놓인다.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ quiz -->
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>단일 변수 원리에 따르면 L 원추 하나만으로는 구별할 수 없는 것은?</p><div class="opts">
+        <button class="opt">같은 파장, 다른 세기의 두 빛</button>
+        <button class="opt" data-correct>적절히 세기가 조정된, 파장이 다른 두 빛</button>
+        <button class="opt">L 원추가 전혀 반응하지 않는 두 빛과 반응하는 빛</button>
+        <button class="opt">항상 모든 빛을 구별할 수 있다</button>
+      </div><div class="quiz-exp">원추 출력은 흡수 광자 수 하나뿐이다. \( I_B = I_A\,\bar l(\lambda_A)/\bar l(\lambda_B) \)로 세기를 맞추면 파장이 달라도 같은 출력이 나온다. 같은 파장에서 세기가 다르면 출력이 달라 구별된다.</div></div>
+
+      <div class="quiz-q"><p>스펙트럼을 380–780 nm, 5 nm 간격(81점)으로 표현할 때 원추 응답 행렬 \( A \)의 영공간 차원은?</p><div class="opts">
+        <button class="opt">3</button>
+        <button class="opt">0</button>
+        <button class="opt" data-correct>78</button>
+        <button class="opt">81</button>
+      </div><div class="quiz-exp">\( A \)는 3×81이고 계수가 3이므로 영공간은 81 − 3 = 78차원이다. 이 공간의 벡터가 메타머 블랙이다.</div></div>
+
+      <div class="quiz-q"><p>D65 아래에서 정확히 등색인 두 반사체 견본이 광원 A 아래에서 다르게 보였다. 이 현상은?</p><div class="opts">
+        <button class="opt">관측자 메타머리즘</button>
+        <button class="opt" data-correct>광원 메타머리즘</button>
+        <button class="opt">색순응 실패</button>
+        <button class="opt">단일 변수 원리 위반</button>
+      </div><div class="quiz-exp">메타머 블랙은 광원 \( E \)를 포함한 행렬 \( A_{ki} = E(\lambda_i)\bar c_k(\lambda_i) \)의 영공간에 있다. 광원이 바뀌면 행렬이 바뀌어 더 이상 영공간 벡터가 아니게 된다.</div></div>
+
+      <div class="quiz-q"><p>지름 5 cm 견본을 50 cm 거리에서 보며 측색 조건을 정한다. 더 적절한 표준 관측자는?</p><div class="opts">
+        <button class="opt">CIE 1931 2°</button>
+        <button class="opt" data-correct>CIE 1964 10°</button>
+        <button class="opt">관측자는 결과에 영향이 없다</button>
+        <button class="opt">암소시 V′(λ)</button>
+      </div><div class="quiz-exp">시각은 \( 2\arctan(2.5/50) \approx 5.7° \)로 약 4°를 넘는다. 넓은 시야에는 황반 밖 영역이 포함되므로 10° 관측자가 권고된다.</div></div>
+
+      <div class="quiz-q"><p>S 원추가 L·M보다 훨씬 희소해도 시각 품질 손해가 작은 이유로 가장 적절한 것은?</p><div class="opts">
+        <button class="opt">S 원추는 휘도 신호에 가장 크게 기여하므로</button>
+        <button class="opt" data-correct>눈의 축상 색수차로 단파장 영상이 어차피 흐리고, 청–황 채널의 공간 해상도 요구가 낮으므로</button>
+        <button class="opt">S 원추는 막대세포로 대체되므로</button>
+        <button class="opt">S 원추의 감도가 가장 높으므로</button>
+      </div><div class="quiz-exp">약 2 D의 색수차로 청색 영상은 초점이 맞지 않는다. 또 S−(L+M) 채널의 CSF는 낮은 주파수에서 끊기므로 성긴 샘플링으로 충분하다.</div></div>
+
+      <div class="quiz-q"><p>4:2:0 크로마 서브샘플링이 대부분 눈에 띄지 않는 생리적 근거는?</p><div class="opts">
+        <button class="opt">원추 수가 막대 수보다 적어서</button>
+        <button class="opt">L 원추가 M 원추보다 많아서</button>
+        <button class="opt" data-correct>색차(반대색) 채널의 대비 감도가 휘도 채널보다 훨씬 낮은 공간 주파수에서 끊겨서</button>
+        <button class="opt">디스플레이 화소가 원추보다 커서</button>
+      </div><div class="quiz-exp">휘도 CSF는 50–60 cpd까지, 등휘도 색 CSF는 10 cpd 남짓에서 끊긴다. 색차 해상도를 절반으로 줄여도 그 손실은 보이지 않는 대역에 몰린다.</div></div>
+
+      <div class="quiz-q"><p>제1색맹(protanope)의 혼동선 위에 있는 두 색에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">L, M, S 응답이 모두 같다</button>
+        <button class="opt" data-correct>M, S 응답은 같고 L 응답만 다르다</button>
+        <button class="opt">휘도 Y가 항상 같다</button>
+        <button class="opt">xy 색도가 같다</button>
+      </div><div class="quiz-exp">혼동선은 \( \mathbf X_0 + t\,\mathbf v_L \) 형태로 L만 변하는 자극의 집합이다. L은 휘도에 기여하므로 Y는 일반적으로 변한다 — 그래서 제1색맹에게 빨강이 어둡게 보인다.</div></div>
+
+      <div class="quiz-q"><p>레이저 3원색 디스플레이의 백색을 표준 관측자 기준으로 D65와 맞췄는데 관측자마다 다르게 보고된다. 가장 직접적인 원인은?</p><div class="opts">
+        <button class="opt">레이저의 스페클</button>
+        <button class="opt" data-correct>좁은 대역 원색에서는 개인별 원추 감도(수정체·황반 색소 등)의 작은 차이가 등색을 크게 깨뜨리는 관측자 메타머리즘</button>
+        <button class="opt">감마 곡선 차이</button>
+        <button class="opt">D65의 색온도가 정의되지 않아서</button>
+      </div><div class="quiz-exp">넓은 대역 스펙트럼끼리는 감도 차이가 평균되어 상쇄되지만, 선 스펙트럼은 감도 곡선의 특정 파장 값만 표본화하므로 개인차가 그대로 드러난다.</div></div>
+
+      <div class="quiz-q"><p>적–녹 색각 이상이 남성에게 훨씬 흔한 이유는?</p><div class="opts">
+        <button class="opt">S 옵신 유전자가 Y 염색체에 있어서</button>
+        <button class="opt" data-correct>L·M 옵신 유전자가 X 염색체에 있어, X가 하나인 남성은 결함이 바로 드러나서</button>
+        <button class="opt">남성의 수정체가 더 빨리 황변해서</button>
+        <button class="opt">남성의 황반 색소가 더 짙어서</button>
+      </div><div class="quiz-exp">L·M 옵신은 Xq28에 있다(X 연관 열성). 여성은 X가 둘이라 둘 다 결함이어야 발현된다. S 옵신은 7번 염색체에 있어 tritan은 성별 차이가 없다.</div></div>
+
+      <div class="quiz-q"><p>어두운 야간 환경(박명시)에서 빨간 표지판이 상대적으로 어둡게 보이는 이유는?</p><div class="opts">
+        <button class="opt">원추의 L 감도가 밤에 줄어서</button>
+        <button class="opt" data-correct>감도 피크가 507 nm인 막대세포의 기여가 커지는 푸르키네 이동 때문에</button>
+        <button class="opt">수정체가 밤에 노래져서</button>
+        <button class="opt">V(λ)의 피크가 600 nm로 이동해서</button>
+      </div><div class="quiz-exp">막대의 V′(λ)는 507 nm에서 최대이고 장파장에 거의 반응하지 않는다. 막대 기여가 커질수록 붉은색은 어둡게, 푸른색은 밝게 보인다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  /* CORE-BEGIN ---------------------------------------------------------------- */
+  // Stockman–Sharpe 원표는 390 nm부터 정의: 그 아래는 0
+  const LMS = (nm) => (nm < 390 ? [0, 0, 0] : CB.lms(nm));
+  const W5 = CB.wls(5);
+  const CONE_COL = ["#d6403a", "#2c9a48", "#2f6fe0"];
+  const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+  function integ(S, sens, step) {
+    step = step || 5;
+    const a = [0, 0, 0];
+    for (let l = 380; l <= 780 + 1e-9; l += step) {
+      const e = S(l); if (!e) continue;
+      const c = sens(l); a[0] += e * c[0]; a[1] += e * c[1]; a[2] += e * c[2];
+    }
+    return a;
+  }
+  // XYZ(1931) → LMS 최소자승 3×3 행렬
+  const T_XL = (function () {
+    const XtX = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], XtL = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    W5.forEach((l) => {
+      const x = CB.cmf(l), c = LMS(l);
+      for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { XtX[a][b] += x[a] * x[b]; XtL[a][b] += x[a] * c[b]; }
+    });
+    const B = CB.mat.mul(CB.mat.inv(XtX), XtL);
+    return [0, 1, 2].map((k) => [B[0][k], B[1][k], B[2][k]]);
+  })();
+  const T_LX = CB.mat.inv(T_XL);
+  const E_LMS = integ(() => 1, LMS);
+  const lmsNorm = (v) => [v[0] / E_LMS[0], v[1] / E_LMS[1], v[2] / E_LMS[2]];
+
+  // --- 메타머
+  function projector(rows) {
+    const G = CB.mat.inv(rows.map((a) => rows.map((b) => dot(a, b))));
+    return (v) => {
+      const c = CB.mat.vec(G, rows.map((r) => dot(r, v)));
+      return v.map((x, n) => x - c[0] * rows[0][n] - c[1] * rows[1][n] - c[2] * rows[2][n]);
+    };
+  }
+  const sensRows = (ill, obs) => [0, 1, 2].map((k) => W5.map((l) => ill(l) * (obs === "lms" ? LMS(l)[k] : CB.cmf(l, "1931")[k])));
+  const PROJ = {};
+  const getProj = (obs) => PROJ[obs] || (PROJ[obs] = projector(sensRows(CB.D65, obs)));
+  const metaShape = (k, ph) => W5.map((l) => (l < 400 || l > 700 ? 0 : Math.cos(2 * Math.PI * k * (l - 400) / 300 + ph * Math.PI / 180) * Math.sin(Math.PI * (l - 400) / 300)));
+  function metaPair(R0, k, ph, frac, obs) {
+    const b = getProj(obs)(metaShape(k, ph));
+    let amax = Infinity;
+    b.forEach((v, n) => { if (v > 1e-9) amax = Math.min(amax, (1 - R0[n]) / v); else if (v < -1e-9) amax = Math.min(amax, R0[n] / -v); });
+    if (!isFinite(amax)) amax = 0;
+    const a = amax * frac;
+    return { R1: R0.map((v, n) => v + a * b[n]), b, a, amax };
+  }
+  const reflXYZ = (R, ill, obs) => CB.spd2XYZ(CB.table(R), { illum: ill, observer: obs });
+  const reflWhite = (ill, obs) => CB.spd2XYZ(() => 1, { illum: ill, observer: obs });
+  function reflDE(R0, R1, ill, obs) {
+    const w = reflWhite(ill, obs);
+    return CB.dE2000(CB.XYZ2Lab(reflXYZ(R0, ill, obs), w), CB.XYZ2Lab(reflXYZ(R1, ill, obs), w));
+  }
+  function reflLMS(R, ill) { const f = CB.table(R); return integ((l) => ill(l) * f(l), LMS); }
+  const baseRefl = (id) => (id === 0 ? W5.map(() => 0.4) : W5.map((l) => CB.tcs(id)(l)));
+
+  // --- 관측자 메타머리즘
+  const lensD = (l, d) => d * Math.exp(-(l - 400) / 35);
+  const macD = (l, d) => d * CB.gauss(l, 460, 70);
+  const indivSens = (lens, mac) => (l) => { const t = Math.pow(10, -(lensD(l, lens) + macD(l, mac))); const c = LMS(l); return [c[0] * t, c[1] * t, c[2] * t]; };
+  function obsXYZ(S, o) {
+    if (o.cie) return integ(S, (l) => CB.cmf(l, o.cie), 1);
+    return CB.mat.vec(T_LX, integ(S, indivSens(o.lens || 0, o.mac || 0), 1));
+  }
+  function matchMix(centers, fw, base) {
+    const P = centers.map((c) => (l) => CB.gauss(l, c, fw));
+    const tgt = obsXYZ(CB.D65, base);
+    const cols = P.map((p) => obsXYZ(p, base));
+    const M = [0, 1, 2].map((i) => cols.map((c) => c[i]));
+    const w = CB.mat.vec(CB.mat.inv(M), tgt);
+    return { w, P, mix: (l) => w[0] * P[0](l) + w[1] * P[1](l) + w[2] * P[2](l) };
+  }
+  function whiteDE(mix, o) { const wh = obsXYZ(CB.D65, o); return CB.dE2000([100, 0, 0], CB.XYZ2Lab(obsXYZ(mix, o), wh)); }
+
+  // --- 반대색
+  function opp(v) {
+    const [L, M, S] = lmsNorm(v), A = (L + M) / 2;
+    return { L, M, S, A, rg: L - M, by: S - A, x: (L - M) / (L + M || 1), y: (S - A) / (S + A || 1) };
+  }
+
+  // --- 혼동선
+  const coneDir = (k) => [T_LX[0][k], T_LX[1][k], T_LX[2][k]];
+  const copunctal = (k) => CB.XYZ2xy(coneDir(k));
+  function gamutInterval(X0, v) {
+    const r0 = CB.XYZ2linRGB(X0), d = CB.XYZ2linRGB(v);
+    let lo = -Infinity, hi = Infinity;
+    for (let i = 0; i < 3; i++) {
+      if (Math.abs(d[i]) < 1e-12) { if (r0[i] < 0 || r0[i] > 1) return null; continue; }
+      const a = (0 - r0[i]) / d[i], b = (1 - r0[i]) / d[i];
+      lo = Math.max(lo, Math.min(a, b)); hi = Math.min(hi, Math.max(a, b));
+    }
+    return lo <= hi ? [lo, hi] : null;
+  }
+  /* CORE-END ------------------------------------------------------------------ */
+
+  const fmt = (v, d) => (d == null ? CB.fmt(v) : Number(v).toFixed(d));
+  const font = (px) => px + "px " + getComputedStyle(document.body).getPropertyValue("--font");
+  const mono = (px) => px + "px " + getComputedStyle(document.body).getPropertyValue("--mono");
+
+  /* ======================================================= 1. 원추 모자이크 */
+  (function () {
+    const cv = document.getElementById("cv-mos");
+    let seed = 7, cones = [];
+    function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+    let lastKey = "";
+    function layout(w, h) {
+      const key = w + "x" + h + ":" + seed;
+      if (key === lastKey) return;
+      lastKey = key; cones = [];
+      const rnd = mulberry32(seed);
+      const s = Math.max(7, w / 60), dy = s * Math.sqrt(3) / 2;
+      for (let j = 0, y = s / 2; y < h; j++, y += dy) for (let x = (j % 2 ? s : s / 2); x < w; x += s) {
+        cones.push({ x: x + (rnd() - 0.5) * s * 0.12, y: y + (rnd() - 0.5) * s * 0.12, u1: rnd(), u2: rnd() });
+      }
+      layout.s = s;
+    }
+    const fL = CB.range("ms-lm", (v) => v + "%", () => st.redraw());
+    const fS = CB.range("ms-s", (v) => v.toFixed(1) + "%", () => st.redraw());
+    const wl = CB.range("ms-wl", (v) => v + " nm", () => st.redraw());
+    const free = document.getElementById("ms-free"), resp = document.getElementById("ms-resp");
+    free.addEventListener("change", () => st.redraw());
+    resp.addEventListener("change", () => st.redraw());
+    document.getElementById("ms-seed").addEventListener("click", () => { seed = (seed * 9301 + 49297) % 233280; st.redraw(); });
+    const st = CB.canvas(cv, (ctx, w, h) => {
+      layout(w, h);
+      const s = layout.s, pS = fS() / 100, pL = fL() / 100, cx = w / 2, cy = h / 2;
+      const degPerPx = 0.00824 / s; // 원추 간격 = 0.49′
+      const rFree = 0.175 / degPerPx;
+      const r = LMS(wl());
+      const cnt = [0, 0, 0], sum = [0, 0, 0];
+      ctx.save();
+      cones.forEach((c) => {
+        let t;
+        const inFree = free.checked && Math.hypot(c.x - cx, c.y - cy) < rFree;
+        if (!inFree && c.u1 < pS) t = 2; else t = c.u2 < pL ? 0 : 1;
+        cnt[t]++; sum[t] += r[t];
+        ctx.globalAlpha = resp.checked ? 0.08 + 0.92 * r[t] : 0.9;
+        ctx.fillStyle = CONE_COL[t];
+        ctx.beginPath(); ctx.arc(c.x, c.y, s * 0.42, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
+      if (free.checked) {
+        ctx.strokeStyle = CB.palette().text; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(cx, cy, rFree, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      }
+      const P = CB.palette();
+      ctx.fillStyle = P.bg; ctx.globalAlpha = 0.85; ctx.fillRect(6, h - 24, 190, 18); ctx.globalAlpha = 1;
+      ctx.fillStyle = P.text; ctx.font = mono(11); ctx.textBaseline = "middle";
+      ctx.fillText("표시 폭 ≈ " + (w * degPerPx).toFixed(2) + "° (간격 0.49′)", 10, h - 15);
+      const tot = cnt[0] + cnt[1] + cnt[2];
+      CB.stat("o-ms-cnt", cnt.join(" : ") + " <small>(" + cnt.map((n) => (100 * n / tot).toFixed(1) + "%").join(" / ") + ")</small>");
+      const fN = 1 / (Math.sqrt(3) * 0.00824);
+      CB.stat("o-ms-ny", fN.toFixed(0) + " cpd");
+      CB.stat("o-ms-nys", cnt.map((n) => (fN * Math.sqrt(n / tot)).toFixed(0)).join(" / ") + " cpd");
+      CB.stat("o-ms-resp", resp.checked ? sum.map((v, i) => (cnt[i] ? v / cnt[i] : 0).toFixed(3)).join(" / ") : "켜면 계산");
+    }, { aspect: 0.62, maxHeight: 420, minHeight: 240 });
+  })();
+
+  /* ======================================================= 2. 원추 감도 */
+  (function () {
+    const wl = CB.range("cn-wl", (v) => v + " nm", () => st.redraw());
+    const scale = CB.seg("cn-scale", () => st.redraw());
+    const vchk = document.getElementById("cn-v");
+    vchk.addEventListener("change", () => st.redraw());
+    const st = CB.canvas(document.getElementById("cv-cone"), (ctx, w, h) => {
+      const P = CB.palette(), log = scale() === "log";
+      const ser = [0, 1, 2].map((k) => ({ data: [], color: CONE_COL[k], width: 2.2 }));
+      const vs = { data: [], color: P.dim, width: 1.5, dash: [5, 4] };
+      for (let l = 390; l <= 780; l += 2) {
+        const c = LMS(l);
+        ser.forEach((s, k) => s.data.push([l, log ? Math.max(c[k], 1e-6) : c[k]]));
+        vs.data.push([l, log ? Math.max(CB.V(l), 1e-6) : CB.V(l)]);
+      }
+      const lam = wl(), c = LMS(lam);
+      const box = { x: 58, y: 34, w: w - 76, h: h - 34 - 50 };
+      CB.spectrumBar(ctx, { x: box.x, y: 10, w: box.w, h: 10 }, 380, 780);
+      CB.chart(ctx, box, {
+        x: [380, 780], y: log ? [1e-5, 1.2] : [0, 1.05], logY: log, xLabel: "파장 λ [nm]", yLabel: "상대 감도",
+        series: vchk.checked ? ser.concat([vs]) : ser,
+        vlines: [{ x: lam, color: P.text, dash: [] }],
+        points: [0, 1, 2].filter((k) => !log || c[k] > 1e-5).map((k) => ({ x: lam, y: c[k], color: CONE_COL[k], r: 4.5 })),
+      });
+      const sum = c[0] + c[1];
+      CB.stat("o-cn-lms", c.map((v) => fmt(v, 4)).join(" / "));
+      CB.stat("o-cn-l", sum > 0 ? fmt(c[0] / sum, 3) : "—");
+      CB.stat("o-cn-s", sum > 0 ? CB.fmt(c[2] / sum, 3) : "—");
+      CB.stat("o-cn-v", fmt(0.6899 * c[0] + 0.34832 * c[1], 4) + " vs " + fmt(CB.V(lam), 4));
+    }, { aspect: 0.6, maxHeight: 400, minHeight: 260 });
+  })();
+
+  /* ======================================================= 3. 단일 변수 */
+  (function () {
+    const cone = CB.seg("un-cone", () => st.redraw());
+    const wa = CB.range("un-wa", (v) => v + " nm", () => st.redraw());
+    const ia = CB.range("un-ia", (v) => String(v), () => st.redraw());
+    const wb = CB.range("un-wb", (v) => v + " nm", () => st.redraw());
+    const ib = CB.range("un-ib", (v) => v.toFixed(1), () => st.redraw());
+    document.getElementById("un-match").addEventListener("click", () => {
+      const k = +cone(), sb = LMS(wb())[k];
+      const need = sb > 1e-9 ? ia() * LMS(wa())[k] / sb : Infinity;
+      ib.set(isFinite(need) ? Math.min(400, Math.round(need * 2) / 2) : 400);
+    });
+    const st = CB.canvas(document.getElementById("cv-univ"), (ctx, w, h) => {
+      const P = CB.palette(), k = +cone();
+      const la = wa(), lb = wb(), A = LMS(la).map((v) => v * ia()), B = LMS(lb).map((v) => v * ib());
+      const top = { x: 54, y: 12, w: w - 70, h: h * 0.46 };
+      const ser = [0, 1, 2].map((j) => {
+        const d = []; for (let l = 390; l <= 720; l += 2) d.push([l, LMS(l)[j]]);
+        return { data: d, color: CONE_COL[j], width: j === k ? 2.6 : 1, dash: j === k ? [] : [3, 3] };
+      });
+      CB.chart(ctx, top, {
+        x: [390, 720], y: [0, 1.05], series: ser,
+        vlines: [{ x: la, color: P.accent, label: "A" }, { x: lb, color: P.accent2, label: "B" }],
+        points: [{ x: la, y: LMS(la)[k], color: P.accent, r: 5 }, { x: lb, y: LMS(lb)[k], color: P.accent2, r: 5 }],
+      });
+      // 막대
+      const by0 = top.y + top.h + 36, bh = h - by0 - 26;
+      const vmax = Math.max(1e-9, ...A, ...B);
+      const gw = (w - 70) / 2;
+      [[A, "빛 A  " + la + " nm", P.accent, CB.wl2rgb(la)], [B, "빛 B  " + lb + " nm", P.accent2, CB.wl2rgb(lb)]].forEach(([v, lab, col, sw], g) => {
+        const gx = 54 + g * gw;
+        ctx.fillStyle = sw; ctx.fillRect(gx, by0 - 22, 12, 12);
+        ctx.fillStyle = col; ctx.font = font(12); ctx.textBaseline = "middle"; ctx.textAlign = "left"; ctx.fillText(lab, gx + 18, by0 - 16);
+        const bw = Math.min(46, gw / 4);
+        v.forEach((val, j) => {
+          const x = gx + 6 + j * (bw + 10), hh = bh * val / vmax;
+          ctx.globalAlpha = j === k ? 1 : 0.35;
+          ctx.fillStyle = CONE_COL[j]; ctx.fillRect(x, by0 + bh - hh, bw, hh);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = P.dim; ctx.font = mono(10); ctx.textAlign = "center";
+          ctx.fillText("LMS"[j], x + bw / 2, by0 + bh + 10);
+        });
+      });
+      ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(54, by0 + bh); ctx.lineTo(w - 16, by0 + bh); ctx.stroke();
+      const same = Math.abs(A[k] - B[k]) <= 0.005 * Math.max(A[k], B[k], 1e-9);
+      CB.stat("o-un-sel", fmt(A[k], 2) + " / " + fmt(B[k], 2));
+      CB.stat("o-un-verdict", same ? "구별 불가 (같은 출력)" : (A[k] > B[k] ? "A가 더 밝다" : "B가 더 밝다"));
+      const oth = [0, 1, 2].filter((j) => j !== k).map((j) => "LMS"[j] + " " + (A[j] > 1e-9 ? CB.fmt(B[j] / A[j], 3) : "∞"));
+      CB.stat("o-un-other", oth.join(", "));
+    }, { aspect: 0.7, maxHeight: 460, minHeight: 320 });
+  })();
+
+  /* ======================================================= 4. 메타머 */
+  (function () {
+    const base = CB.seg("mt-base", () => st.redraw());
+    const obs = CB.seg("mt-obs", () => st.redraw());
+    const k = CB.range("mt-k", (v) => v.toFixed(1), () => st.redraw());
+    const ph = CB.range("mt-ph", (v) => v + "°", () => st.redraw());
+    const amp = CB.range("mt-amp", (v) => v + "%", () => st.redraw());
+    const illA = CB.illum("A"), illF = CB.illum("FL11");
+    const wD65 = reflWhite(CB.D65).map((v) => v / 100);
+    function swatch(R, ill) {
+      const XYZ = reflXYZ(R, ill).map((v) => v / 100);
+      const src = reflWhite(ill).map((v) => v / 100);
+      return CB.XYZ2css(ill === CB.D65 ? XYZ : CB.adapt(XYZ, src, wD65, "bradford"));
+    }
+    const st = CB.canvas(document.getElementById("cv-meta"), (ctx, w, h) => {
+      const P = CB.palette();
+      const R0 = baseRefl(+base());
+      const r = metaPair(R0, k(), ph(), amp() / 100, obs());
+      const chartH = h - 86;
+      const s0 = { data: W5.map((l, n) => [l, R0[n]]), color: P.accent2, width: 2.2 };
+      const s1 = { data: W5.map((l, n) => [l, r.R1[n]]), color: P.accent, width: 2.2 };
+      const sb = { data: W5.map((l, n) => [l, 0.5 + r.a * r.b[n]]), color: P.dim, width: 1.3, dash: [4, 3] };
+      CB.chart(ctx, { x: 50, y: 12, w: w - 66, h: chartH - 46 }, { x: [380, 780], y: [0, 1], xLabel: "파장 [nm]", yLabel: "반사율", series: [sb, s0, s1], hlines: [{ y: 0.5, color: P.faint, dash: [2, 4] }] });
+      // 견본
+      const y0 = chartH + 4, sw = Math.min(70, (w - 120) / 4);
+      [["D65", CB.D65], ["A", illA], ["FL11", illF]].forEach(([nm, ill], i) => {
+        const x = 50 + i * (2 * sw + 18);
+        if (x + 2 * sw > w - 4) return;
+        ctx.fillStyle = swatch(R0, ill); ctx.fillRect(x, y0 + 14, sw, 44);
+        ctx.fillStyle = swatch(r.R1, ill); ctx.fillRect(x + sw, y0 + 14, sw, 44);
+        ctx.fillStyle = P.dim; ctx.font = font(11); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+        ctx.fillText(nm + " (원 | 메타머)", x, y0 + 9);
+      });
+      const l0 = reflLMS(R0, CB.D65), l1 = reflLMS(r.R1, CB.D65);
+      CB.stat("o-mt-lms", l0.map((v) => v.toFixed(1)).join(", ") + " <small>/</small> " + l1.map((v) => v.toFixed(1)).join(", "));
+      CB.stat("o-mt-d65", fmt(reflDE(R0, r.R1, CB.D65), 2));
+      CB.stat("o-mt-a", fmt(reflDE(R0, r.R1, illA), 2));
+      CB.stat("o-mt-fl", fmt(reflDE(R0, r.R1, illF), 2));
+      CB.stat("o-mt-10", fmt(reflDE(R0, r.R1, CB.D65, "1964"), 2));
+    }, { aspect: 0.66, maxHeight: 460, minHeight: 330 });
+    const ex = metaPair(baseRefl(1), 2, 0, 1, "1931");
+    CB.stat("o-mt-ex", "ΔE00 " + reflDE(baseRefl(1), ex.R1, illA).toFixed(1));
+  })();
+
+  /* ======================================================= 5. 관측자 메타머리즘 */
+  (function () {
+    const ids = ["ob-r", "ob-g", "ob-b"];
+    const cs = ids.map((id) => CB.range(id, (v) => v + " nm", () => st.redraw()));
+    const fw = CB.range("ob-fw", (v) => v + " nm", () => st.redraw());
+    const base = CB.seg("ob-base", () => st.redraw());
+    const lens = CB.range("ob-lens", (v) => (v >= 0 ? "+" : "") + v.toFixed(2), () => st.redraw());
+    const mac = CB.range("ob-mac", (v) => (v >= 0 ? "+" : "") + v.toFixed(2), () => st.redraw());
+    const st = CB.canvas(document.getElementById("cv-obs"), (ctx, w, h) => {
+      const P = CB.palette();
+      const bo = base() === "1931" ? { cie: "1931" } : { lens: 0, mac: 0 };
+      const m = matchMix(cs.map((f) => f()), fw(), bo);
+      const ind = indivSens(lens(), mac());
+      let dmax = 0, mmax = 0;
+      for (let l = 380; l <= 780; l++) { dmax = Math.max(dmax, CB.D65(l)); mmax = Math.max(mmax, m.mix(l)); }
+      const d65 = [], mix = [], sl = [[], [], []], tr = [];
+      for (let l = 380; l <= 780; l += 1) {
+        d65.push([l, CB.D65(l) / dmax]); mix.push([l, m.mix(l) / mmax]);
+        const c = ind(l); c.forEach((v, k) => sl[k].push([l, v]));
+        tr.push([l, Math.pow(10, -(lensD(l, lens()) + macD(l, mac())))]);
+      }
+      CB.chart(ctx, null, {
+        x: [380, 780], y: [0, 1.05], xLabel: "파장 [nm]", yLabel: "상대값",
+        series: [{ data: d65, color: P.dim, width: 1.6, fill: P.grid }, { data: mix, color: P.text, width: 1.6 }]
+          .concat(sl.map((d, k) => ({ data: d, color: CONE_COL[k], width: 1.4, dash: [5, 3] })))
+          .concat([{ data: tr, color: P.warn, width: 1.4, dash: [2, 3] }]),
+      });
+      ctx.font = font(11); ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillStyle = P.dim; ctx.fillText("회색 면: D65 · 검은 선: 3원색 혼합(각자 최대 1)", w - 20, 18);
+      ctx.fillStyle = P.warn; ctx.fillText("주황 점선: 표준 대비 추가 투과율 · 색 점선: 변형 관측자 LMS", w - 20, 34);
+      const ws = m.w.map((v) => v / Math.max(...m.w));
+      CB.stat("o-ob-w", ws.map((v) => v.toFixed(3)).join(" : ") + (m.w.some((v) => v < 0) ? " <small>(음수: 재현 불가)</small>" : ""));
+      CB.stat("o-ob-31", fmt(whiteDE(m.mix, { cie: "1931" }), 2));
+      CB.stat("o-ob-64", fmt(whiteDE(m.mix, { cie: "1964" }), 2));
+      CB.stat("o-ob-ss", fmt(whiteDE(m.mix, { lens: 0, mac: 0 }), 2));
+      CB.stat("o-ob-ind", fmt(whiteDE(m.mix, { lens: lens(), mac: mac() }), 2));
+    }, { aspect: 0.6, maxHeight: 420, minHeight: 280 });
+    const ex = matchMix([638, 532, 465], 2, { lens: 0, mac: 0 });
+    CB.stat("o-ob-ex", whiteDE(ex.mix, { lens: 0.5, mac: 0 }).toFixed(1));
+  })();
+
+  /* ======================================================= 6. 반대색 */
+  (function () {
+    const src = document.getElementById("op-src");
+    const wl = CB.range("op-wl", (v) => v + " nm", () => st.redraw());
+    src.addEventListener("change", () => st.redraw());
+    const locus = [];
+    for (let l = 400; l <= 700; l += 2) locus.push([l, opp(LMS(l))]);
+    function stim() {
+      const v = src.value;
+      if (v === "mono") { const lam = wl(); return { S: (l) => (Math.abs(l - lam) < 0.5 ? 1 : 0), lms: LMS(lam), mono: lam }; }
+      if (v === "E") return { S: () => 1 };
+      if (v[0] === "t") { const R = CB.tcs(+v.slice(1)); return { S: (l) => CB.D65(l) * R(l) }; }
+      const f = CB.illum(v); return { S: f };
+    }
+    const st = CB.canvas(document.getElementById("cv-opp"), (ctx, w, h) => {
+      const P = CB.palette(), s = stim();
+      const lms = s.lms || integ(s.S, LMS, 5);
+      const o = opp(lms);
+      const narrow = w < 560;
+      const left = narrow ? { x: 46, y: 12, w: w - 62, h: h * 0.36 } : { x: 46, y: 14, w: w * 0.48 - 56, h: h - 60 };
+      // 스펙트럼
+      const sp = []; let mx = 0;
+      if (s.mono == null) { for (let l = 380; l <= 780; l += 2) { const v = s.S(l); sp.push([l, v]); mx = Math.max(mx, v); } }
+      CB.chart(ctx, left, {
+        x: [380, 780], y: [0, 1.05], xLabel: narrow ? "" : "파장 [nm]",
+        series: [0, 1, 2].map((k) => ({ data: W5.filter((l) => l >= 390).map((l) => [l, LMS(l)[k]]), color: CONE_COL[k], width: 1, dash: [3, 3] }))
+          .concat(sp.length ? [{ data: sp.map(([l, v]) => [l, v / (mx || 1)]), color: P.text, width: 1.8, fill: P.grid }] : []),
+        vlines: s.mono != null ? [{ x: s.mono, color: P.text, dash: [] }] : [],
+      });
+      // 평면
+      const side = narrow ? Math.min(w - 70, h * 0.56 - 30) : Math.min(w * 0.52 - 50, h - 50);
+      const pb = narrow ? { x: (w - side) / 2, y: h * 0.36 + 44, w: side, h: side } : { x: w * 0.48 + 24, y: 14, w: side, h: side };
+      const X = (v) => pb.x + (v + 1) / 2 * pb.w, Y = (v) => pb.y + (1 - v) / 2 * pb.h;
+      ctx.strokeStyle = P.grid; ctx.lineWidth = 1; ctx.strokeRect(pb.x, pb.y, pb.w, pb.h);
+      ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(X(-1), Y(0)); ctx.lineTo(X(1), Y(0)); ctx.moveTo(X(0), Y(-1)); ctx.lineTo(X(0), Y(1)); ctx.stroke();
+      ctx.lineWidth = 3;
+      for (let i = 1; i < locus.length; i++) {
+        ctx.strokeStyle = CB.wl2rgb(locus[i][0]);
+        ctx.beginPath(); ctx.moveTo(X(locus[i - 1][1].x), Y(locus[i - 1][1].y)); ctx.lineTo(X(locus[i][1].x), Y(locus[i][1].y)); ctx.stroke();
+      }
+      ctx.fillStyle = P.dim; ctx.font = mono(10); ctx.textBaseline = "middle";
+      [450, 480, 500, 530, 570, 600, 650].forEach((l) => { const q = opp(LMS(l)); ctx.textAlign = q.x > 0 ? "right" : "left"; ctx.fillText(l, X(q.x) + (q.x > 0 ? -6 : 6), Y(q.y)); });
+      ctx.fillStyle = P.dim; ctx.font = font(11); ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillText("L−M →", pb.x + pb.w - 4, Y(0) + 4);
+      ctx.textAlign = "left"; ctx.fillText("↑ S−A", X(0) + 4, pb.y + 4);
+      ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(X(0), Y(0), 3, 0, 7); ctx.fill();
+      ctx.fillText("E", X(0) + 5, Y(0) + 3);
+      ctx.fillStyle = P.accent; ctx.strokeStyle = P.text; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(X(o.x), Y(o.y), 6, 0, 7); ctx.fill(); ctx.stroke();
+      CB.stat("o-op-lms", [o.L, o.M, o.S].map((v) => CB.fmt(v, 3)).join(", "));
+      CB.stat("o-op-a", CB.fmt(o.A, 3));
+      CB.stat("o-op-rg", CB.fmt(o.rg, 3) + " <small>(" + (o.x >= 0 ? "+" : "") + o.x.toFixed(3) + ")</small>");
+      CB.stat("o-op-by", CB.fmt(o.by, 3) + " <small>(" + (o.y >= 0 ? "+" : "") + o.y.toFixed(3) + ")</small>");
+    }, { aspect: 0.55, maxHeight: 440, minHeight: 360 });
+  })();
+
+  /* ======================================================= 7. 혼동선 */
+  (function () {
+    const cv = document.getElementById("cv-cvd");
+    const type = CB.seg("cd-type", () => st.redraw());
+    const Yl = CB.range("cd-y", (v) => v.toFixed(2), () => st.redraw());
+    const px = CB.range("cd-x", (v) => v.toFixed(3), () => st.redraw());
+    const py = CB.range("cd-yy", (v) => v.toFixed(3), () => st.redraw());
+    const fan = document.getElementById("cd-fan");
+    fan.addEventListener("change", () => st.redraw());
+    let off = null, offKey = "", D = null;
+    const range = { x: [0, 0.8], y: [0, 0.9] };
+    function diagram(w, hd, dpr) {
+      const key = w + "x" + hd + ":" + dpr + ":" + CB.isDark();
+      if (key === offKey) return;
+      offKey = key;
+      off = document.createElement("canvas");
+      off.width = Math.round(w * dpr); off.height = Math.round(hd * dpr);
+      const c2 = off.getContext("2d"); c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c2.fillStyle = CB.color("canvas-bg"); c2.fillRect(0, 0, w, hd);
+      const s = Math.min((w - 60) / 0.8, (hd - 30) / 0.9);
+      const box = { x: (w - s * 0.8) / 2 + 12, y: 8, w: s * 0.8, h: s * 0.9 };
+      D = CB.chromaticity(c2, box, { fill: true, grid: true, labels: true, range });
+    }
+    cv.addEventListener("click", (e) => {
+      if (!D) return;
+      const r = cv.getBoundingClientRect();
+      const xy = D.inv(e.clientX - r.left, e.clientY - r.top);
+      if (xy[0] >= 0.2 && xy[0] <= 0.5 && xy[1] >= 0.2 && xy[1] <= 0.5) { px.set(+xy[0].toFixed(3)); py.set(+xy[1].toFixed(3)); }
+    });
+    const st = CB.canvas(cv, (ctx, w, h) => {
+      const P = CB.palette(), k = +type();
+      const hd = h - 64;
+      diagram(w, hd, st ? st.dpr : Math.min(window.devicePixelRatio || 1, 2));
+      ctx.drawImage(off, 0, 0, w, hd);
+      const cp = copunctal(k);
+      const b = D.box;
+      ctx.save(); ctx.beginPath(); ctx.rect(b.x, b.y, b.w, b.h); ctx.clip();
+      if (fan.checked) {
+        ctx.strokeStyle = P.text; ctx.globalAlpha = 0.28; ctx.lineWidth = 1;
+        for (let l = 420; l <= 680; l += 10) {
+          const m = CB.monoXY(l);
+          const ext = [cp[0] + (m[0] - cp[0]) * 3, cp[1] + (m[1] - cp[1]) * 3];
+          ctx.beginPath(); ctx.moveTo(D.X(cp[0]), D.Y(cp[1])); ctx.lineTo(D.X(ext[0]), D.Y(ext[1])); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+      const X0 = CB.xy2XYZ([px(), py()], Yl()), v = coneDir(k);
+      const iv = gamutInterval(X0, v);
+      const xy0 = [px(), py()];
+      ctx.strokeStyle = P.text; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.2;
+      const far = [cp[0] + (xy0[0] - cp[0]) * 4, cp[1] + (xy0[1] - cp[1]) * 4];
+      ctx.beginPath(); ctx.moveTo(D.X(cp[0]), D.Y(cp[1])); ctx.lineTo(D.X(far[0]), D.Y(far[1])); ctx.stroke(); ctx.setLineDash([]);
+      let ends = null;
+      if (iv) {
+        ends = [iv[0], iv[1]].map((t) => X0.map((x, i) => x + t * v[i]));
+        const e0 = CB.XYZ2xy(ends[0]), e1 = CB.XYZ2xy(ends[1]);
+        ctx.strokeStyle = P.accent; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(D.X(e0[0]), D.Y(e0[1])); ctx.lineTo(D.X(e1[0]), D.Y(e1[1])); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = P.text; ctx.strokeStyle = P.bg; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(D.X(xy0[0]), D.Y(xy0[1]), 5, 0, 7); ctx.fill(); ctx.stroke();
+      if (cp[0] <= 0.8 && cp[1] >= 0) { ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(D.X(cp[0]), D.Y(cp[1]), 5, 0, 7); ctx.fill(); }
+      // 견본 띠
+      const sy = hd + 8, n = 9, sx0 = 16, sw = (w - 32) / n;
+      ctx.font = font(11); ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      if (iv) {
+        for (let i = 0; i < n; i++) {
+          const t = iv[0] + (iv[1] - iv[0]) * (i + 0.5) / n;
+          ctx.fillStyle = CB.XYZ2css(X0.map((x, j) => x + t * v[j]));
+          ctx.fillRect(sx0 + i * sw, sy, sw + 0.5, 34);
+        }
+        ctx.fillStyle = P.dim; ctx.fillText("결손 원추 방향으로만 변하는 sRGB 가멋 내 색 (2색형에게는 같은 원추 응답)", sx0, sy + 38);
+        const w1 = CB.whiteXYZ();
+        const de = CB.dE2000(CB.XYZ2Lab(ends[0], w1), CB.XYZ2Lab(ends[1], w1));
+        const c0 = CB.mat.vec(T_XL, ends[0]), c1 = CB.mat.vec(T_XL, ends[1]);
+        const keep = [0, 1, 2].filter((j) => j !== k).map((j) => "LMS"[j] + " " + (Math.abs(c1[j] - c0[j]) < 1e-9 ? "0" : CB.fmt(c1[j] - c0[j], 2)));
+        CB.stat("o-cd-de", de.toFixed(1));
+        CB.stat("o-cd-y", ends[0][1].toFixed(3) + " – " + ends[1][1].toFixed(3));
+        CB.stat("o-cd-keep", keep.join(", "));
+      } else {
+        ctx.fillText("기준색이 sRGB 가멋 밖이다. Y나 기준점을 바꿔 보라.", sx0, sy + 10);
+        CB.stat("o-cd-de", "—"); CB.stat("o-cd-y", "—"); CB.stat("o-cd-keep", "—");
+      }
+      CB.stat("o-cd-cp", "(" + cp[0].toFixed(3) + ", " + cp[1].toFixed(3) + ")");
+    }, { aspect: 0.95, maxHeight: 620, minHeight: 380 });
+  })();
+})();
+</script>
+</body>
+</html>

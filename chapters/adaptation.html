@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>색온도와 색순응 · ColorBook</title>
+<meta name="description" content="흑체 궤적과 상관 색온도(CCT)·Duv를 1960 uv에서 직접 계산하고, CIE 주광과 D65의 6504 K, von Kries·Bradford·CAT02·CAT16 색순응 변환을 ΔE00로 비교하며 화이트 밸런스까지 다룬다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/adaptation.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="색온도와 색순응 · ColorBook">
+<meta property="og:description" content="흑체 궤적과 상관 색온도(CCT)·Duv를 1960 uv에서 직접 계산하고, CIE 주광과 D65의 6504 K, von Kries·Bradford·CAT02·CAT16 색순응 변환을 ΔE00로 비교하며 화이트 밸런스까지 다룬다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/adaptation.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"색온도와 색순응","name":"색온도와 색순응 · ColorBook","url":"https://colorbook.euiyun.com/chapters/adaptation.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/adaptation.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":8,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"흑체 궤적과 상관 색온도(CCT)·Duv를 1960 uv에서 직접 계산하고, CIE 주광과 D65의 6504 K, von Kries·Bradford·CAT02·CAT16 색순응 변환을 ΔE00로 비교하며 화이트 밸런스까지 다룬다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"08 색온도와 색순응","item":"https://colorbook.euiyun.com/chapters/adaptation.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sim-view canvas { touch-action: pan-y; }
+  #cv-cct { cursor: crosshair; touch-action: none; }
+  .sw { display:inline-block; width:1.5em; height:1em; border:1px solid var(--border); border-radius:3px; vertical-align:-2px; margin-right:4px; }
+  .mat { font-family: var(--mono); font-size: 13px; }
+  table.num td, table.num th { text-align: right; font-variant-numeric: tabular-nums; }
+  table.num td:first-child, table.num th:first-child { text-align: left; }
+  table.num td.best { font-weight: 700; color: var(--accent); }
+</style>
+</head>
+<body data-chapter="adaptation">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 08</div>
+    <h1>색온도와 색순응</h1>
+    <p class="lead">"6500 K 백색"이라는 말에는 두 가지 근사가 겹쳐 있다. 실제 광원의 색도는 흑체 궤적 위에 있지 않으므로 <b>가장 가까운</b> 흑체의 온도(CCT)와 궤적에서 벗어난 거리(Duv)가 함께 필요하다. 그리고 사람의 눈은 광원이 바뀌어도 흰 종이를 흰색으로 보도록 스스로 이득을 조정한다. 이 장에서는 CCT·Duv를 직접 계산하고, 그 이득 조정을 3×3 행렬로 흉내 내는 색순응 변환(CAT)을 숫자로 비교한다.</p>
+    <ul class="objectives">
+      <li>플랑크 흑체 궤적을 xy와 CIE 1960 uv에서 그리고, 색온도(CT)와 상관 색온도(CCT)의 정의 차이를 설명한다.</li>
+      <li>흑체 궤적 표를 이용한 최단거리·포물선 보간으로 CCT와 부호 있는 Duv를 계산하고, McCamy 근사의 오차 범위를 안다.</li>
+      <li>CIE 주광 궤적과 D50·D55·D65·D75의 관계, D65가 6504 K인 이유(c₂ 개정)를 설명한다.</li>
+      <li>von Kries 가설을 행렬 \( \mathbf M^{-1}\,\mathrm{diag}(\cdot)\,\mathbf M \)로 쓰고, XYZ·HPE·Bradford·CAT02·CAT16 공간의 차이를 ΔE00로 비교한다.</li>
+      <li>불완전 순응도 D, 카메라 화이트 밸런스, 디스플레이 백색점, ICC D50 PCS, 야간 모드를 같은 틀로 이해한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="blackbody">
+    <h2>흑체 궤적과 색온도</h2>
+    <p>온도 \(T\)인 흑체<span class="en">(blackbody, Planckian radiator)</span>의 분광 복사휘도는 플랑크 법칙 하나로 정해진다. 따라서 흑체의 색도 \((x,y)\)는 온도만의 함수이고, 온도를 1,000 K에서 무한대까지 바꾸면 색도도 위에 하나의 곡선이 그려진다. 이것이 <span class="term">흑체 궤적</span><span class="en">(Planckian locus)</span>이다.</p>
+    <div class="formula">$$L_{e,\lambda}(\lambda,T)=\frac{2hc^{2}}{\lambda^{5}}\;\frac{1}{\exp\!\left(\dfrac{c_2}{\lambda T}\right)-1},\qquad c_2=\frac{hc}{k}=1.438777\times10^{-2}\ \mathrm{m\cdot K}$$
+      <div class="where">\(L_{e,\lambda}\)의 단위는 W·sr⁻¹·m⁻³(<code>CB.planck</code>). 색도는 스펙트럼의 <b>모양</b>만 보므로 앞의 상수 \(2hc^2\)는 상쇄되고, 흑체 색도는 \(c_2/T\)에만 의존한다. 이 사실은 4절에서 D65가 "6504 K"인 이유를 설명할 때 다시 쓴다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 360" role="img" aria-label="xy 색도도 위의 흑체 궤적과 온도별 흑체 색"><line x1="50" y1="20" x2="50" y2="335" class="s-axis" opacity=".25"/><text x="50" y="350" text-anchor="middle" class="t-mono">0.0</text><line x1="85" y1="20" x2="85" y2="335" class="s-axis" opacity=".25"/><line x1="120" y1="20" x2="120" y2="335" class="s-axis" opacity=".25"/><text x="120" y="350" text-anchor="middle" class="t-mono">0.2</text><line x1="155" y1="20" x2="155" y2="335" class="s-axis" opacity=".25"/><line x1="190" y1="20" x2="190" y2="335" class="s-axis" opacity=".25"/><text x="190" y="350" text-anchor="middle" class="t-mono">0.4</text><line x1="225" y1="20" x2="225" y2="335" class="s-axis" opacity=".25"/><line x1="260" y1="20" x2="260" y2="335" class="s-axis" opacity=".25"/><text x="260" y="350" text-anchor="middle" class="t-mono">0.6</text><line x1="295" y1="20" x2="295" y2="335" class="s-axis" opacity=".25"/><line x1="330" y1="20" x2="330" y2="335" class="s-axis" opacity=".25"/><text x="330" y="350" text-anchor="middle" class="t-mono">0.8</text><line x1="50" y1="335" x2="330" y2="335" class="s-axis" opacity=".25"/><text x="44" y="339" text-anchor="end" class="t-mono">0.0</text><line x1="50" y1="300" x2="330" y2="300" class="s-axis" opacity=".25"/><line x1="50" y1="265" x2="330" y2="265" class="s-axis" opacity=".25"/><text x="44" y="269" text-anchor="end" class="t-mono">0.2</text><line x1="50" y1="230" x2="330" y2="230" class="s-axis" opacity=".25"/><line x1="50" y1="195" x2="330" y2="195" class="s-axis" opacity=".25"/><text x="44" y="199" text-anchor="end" class="t-mono">0.4</text><line x1="50" y1="160" x2="330" y2="160" class="s-axis" opacity=".25"/><line x1="50" y1="124.99999999999997" x2="330" y2="124.99999999999997" class="s-axis" opacity=".25"/><text x="44" y="128.99999999999997" text-anchor="end" class="t-mono">0.6</text><line x1="50" y1="89.99999999999997" x2="330" y2="89.99999999999997" class="s-axis" opacity=".25"/><line x1="50" y1="55" x2="330" y2="55" class="s-axis" opacity=".25"/><text x="44" y="59" text-anchor="end" class="t-mono">0.8</text><line x1="50" y1="20" x2="330" y2="20" class="s-axis" opacity=".25"/><path d="M110.9 333.3 L110.9 333.3 L110.8 333.3 L110.8 333.3 L110.7 333.3 L110.7 333.3 L110.6 333.3 L110.4 333.3 L110.3 333.3 L110.2 333.3 L110.0 333.2 L109.7 333.0 L109.3 332.7 L108.8 332.3 L108.2 331.8 L107.5 331.2 L106.6 330.4 L105.5 329.4 L104.0 328.1 L102.4 326.6 L100.4 324.6 L98.1 321.8 L95.2 317.5 L91.6 311.2 L87.3 301.9 L82.0 288.6 L75.9 270.4 L69.5 246.4 L63.0 216.4 L57.2 182.1 L52.9 146.6 L51.6 113.7 L53.5 85.2 L58.6 63.2 L66.3 49.1 L76.0 43.2 L87.4 45.3 L98.8 50.3 L109.8 56.5 L120.2 63.5 L130.4 71.0 L140.6 79.5 L150.7 88.4 L160.7 97.5 L170.7 106.9 L180.6 116.4 L190.6 126.3 L200.6 136.1 L210.4 145.8 L220.0 155.3 L229.4 164.7 L238.4 173.7 L247.0 182.3 L255.2 190.4 L262.7 197.9 L269.5 204.6 L275.3 210.5 L280.5 215.6 L284.9 220.0 L288.8 223.8 L292.0 227.1 L294.5 229.5 L296.6 231.7 L298.5 233.6 L300.2 235.2 L301.7 236.7 L302.7 237.7 L303.6 238.6 L304.4 239.4 L305.0 240.0 L305.5 240.5 L305.8 240.8 L306.0 241.0 L306.3 241.3 L306.5 241.5 L306.7 241.7 L306.9 241.9 L307.0 242.0 L307.1 242.1 L307.1 242.1 L307.1 242.1 Z" class="f-surface s-line" stroke-width="1.5"/><path d="M278.5 214.4 L274.5 211.0 L270.4 207.6 L265.9 204.3 L261.3 201.1 L256.4 198.1 L251.2 195.5 L245.8 193.3 L240.2 191.5 L234.4 190.4 L228.4 189.7 L222.4 189.7 L216.4 190.3 L210.4 191.4 L204.5 193.0 L198.8 195.1 L193.3 197.5 L188.1 200.2 L183.2 203.1 L178.6 206.1 L174.4 209.1 L170.5 212.2 L166.9 215.2 L163.6 218.1 L160.6 220.9 L158.0 223.5 L155.5 226.0 L153.4 228.3 L151.4 230.4 L149.7 232.4 L148.1 234.2 L146.7 235.9 L145.5 237.4 L144.4 238.8 L143.4 240.1 L142.5 241.2 L141.7 242.3 L140.9 243.2 L140.3 244.1 L139.7 244.9 L139.2 245.6 L138.7 246.2 L138.3 246.8 L137.9 247.3 L137.6 247.8 L137.3 248.2 L137.0 248.6 L136.7 249.0 L136.5 249.3 L136.3 249.6 L136.1 249.9 L135.9 250.2 L135.8 250.4 L135.6 250.6 L135.5 250.8 L135.4 251.0 L135.3 251.1 L135.2 251.3 L135.1 251.4 L135.0 251.6" fill="none" class="s-acc" stroke-width="2.5"/><circle cx="278.5" cy="214.4" r="4.5" fill="#ff1700" stroke="var(--text)" stroke-width="0.8"/><circle cx="255.0" cy="197.4" r="4.5" fill="#ff6600" stroke="var(--text)" stroke-width="0.8"/><circle cx="234.3" cy="190.3" r="4.5" fill="#ff8b16" stroke="var(--text)" stroke-width="0.8"/><circle cx="216.9" cy="190.2" r="4.5" fill="#ffa449" stroke="var(--text)" stroke-width="0.8"/><circle cx="202.9" cy="193.6" r="4.5" fill="#ffb86d" stroke="var(--text)" stroke-width="0.8"/><circle cx="183.2" cy="203.1" r="4.5" fill="#ffd3a5" stroke="var(--text)" stroke-width="0.8"/><circle cx="170.8" cy="211.9" r="4.5" fill="#ffe6d0" stroke="var(--text)" stroke-width="0.8"/><circle cx="159.7" cy="221.7" r="4.5" fill="#fff8fe" stroke="var(--text)" stroke-width="0.8"/><circle cx="148.2" cy="234.1" r="4.5" fill="#cdd9ff" stroke="var(--text)" stroke-width="0.8"/><circle cx="139.8" cy="244.8" r="4.5" fill="#abc2ff" stroke="var(--text)" stroke-width="0.8"/><text x="290.5" y="208.4" class="t-mono" text-anchor="start">1000 K</text><text x="240.3" y="180.3" class="t-mono" text-anchor="start">2000 K</text><text x="187.2" y="193.1" class="t-mono" text-anchor="start">4000 K</text><text x="136.2" y="250.1" class="t-mono" text-anchor="end">10000 K</text><text x="126.1" y="266.9" class="t-mono" text-anchor="end">∞</text><text x="58" y="34" class="t-dim">y</text><text x="322" y="328" class="t-dim" text-anchor="end">x</text><text x="580" y="60" text-anchor="middle" class="t">흑체 색 (1,000–25,000 K)</text><rect x="380.0" y="90" width="16.6" height="60" fill="#ff1700"/><rect x="396.0" y="90" width="16.6" height="60" fill="#ff3b00"/><rect x="412.0" y="90" width="16.6" height="60" fill="#ff5200"/><rect x="428.0" y="90" width="16.6" height="60" fill="#ff6600"/><rect x="444.0" y="90" width="16.6" height="60" fill="#ff7700"/><rect x="460.0" y="90" width="16.6" height="60" fill="#ff880e"/><rect x="476.0" y="90" width="16.6" height="60" fill="#ff9832"/><rect x="492.0" y="90" width="16.6" height="60" fill="#ffa74e"/><rect x="508.0" y="90" width="16.6" height="60" fill="#ffb568"/><rect x="524.0" y="90" width="16.6" height="60" fill="#ffc282"/><rect x="540.0" y="90" width="16.6" height="60" fill="#ffcf9c"/><rect x="556.0" y="90" width="16.6" height="60" fill="#ffdbb6"/><rect x="572.0" y="90" width="16.6" height="60" fill="#ffe6d0"/><rect x="588.0" y="90" width="16.6" height="60" fill="#fff0e8"/><rect x="604.0" y="90" width="16.6" height="60" fill="#fff9ff"/><rect x="620.0" y="90" width="16.6" height="60" fill="#ebedff"/><rect x="636.0" y="90" width="16.6" height="60" fill="#dbe3ff"/><rect x="652.0" y="90" width="16.6" height="60" fill="#cfdaff"/><rect x="668.0" y="90" width="16.6" height="60" fill="#c5d4ff"/><rect x="684.0" y="90" width="16.6" height="60" fill="#bcceff"/><rect x="700.0" y="90" width="16.6" height="60" fill="#b6caff"/><rect x="716.0" y="90" width="16.6" height="60" fill="#b0c6ff"/><rect x="732.0" y="90" width="16.6" height="60" fill="#acc3ff"/><rect x="748.0" y="90" width="16.6" height="60" fill="#a8c0ff"/><rect x="764.0" y="90" width="16.6" height="60" fill="#a5beff"/><rect x="380" y="90" width="400" height="60" fill="none" class="s-line"/><line x1="380.0" y1="150" x2="380.0" y2="158" class="s-axis"/><text x="380.0" y="172" text-anchor="middle" class="t-mono">1000</text><line x1="466.1" y1="150" x2="466.1" y2="158" class="s-axis"/><text x="466.1" y="172" text-anchor="middle" class="t-mono">2000</text><line x1="516.5" y1="150" x2="516.5" y2="158" class="s-axis"/><text x="516.5" y="172" text-anchor="middle" class="t-mono">3000</text><line x1="580.0" y1="150" x2="580.0" y2="158" class="s-axis"/><text x="580.0" y="172" text-anchor="middle" class="t-mono">5000</text><line x1="612.6" y1="150" x2="612.6" y2="158" class="s-axis"/><text x="612.6" y="172" text-anchor="middle" class="t-mono">6500</text><line x1="666.1" y1="150" x2="666.1" y2="158" class="s-axis"/><text x="666.1" y="172" text-anchor="middle" class="t-mono">10k</text><line x1="780.0" y1="150" x2="780.0" y2="158" class="s-axis"/><text x="780.0" y="172" text-anchor="middle" class="t-mono">25k</text><text x="580" y="200" text-anchor="middle" class="t-dim">로그 온도 축. 1,000→3,000 K 구간의 색 변화가</text><text x="580" y="220" text-anchor="middle" class="t-dim">10,000→25,000 K 구간보다 훨씬 크다.</text><text x="580" y="262" text-anchor="middle" class="t-mono">A = 2856 K → (0.4476, 0.4074)</text><text x="580" y="284" text-anchor="middle" class="t-mono">T → ∞ → (0.240, 0.234)</text></svg>
+      <figcaption><b>그림 8-1.</b> 왼쪽: CIE 1931 xy 색도도의 스펙트럼 궤적과 흑체 궤적(1,000 K→∞). 점의 색은 해당 흑체 색도를 sRGB로 최대 밝기로 표시한 것이다. 오른쪽: 온도에 따른 흑체 색(로그 축). 이 장의 모든 흑체 좌표는 <code>CB.planckXY(T)</code>로 CMF(380–780 nm, 5 nm)를 직접 적분해 얻었다.</figcaption>
+    </figure>
+    <p>궤적의 모양에서 세 가지를 읽을 수 있다. 첫째, 저온 쪽은 스펙트럼 궤적의 빨강–주황 가장자리 가까이에서 출발한다. 둘째, 5,000–7,000 K 부근에서 궤적은 등에너지 백색 E(0.3333, 0.3333)와 D65(0.3127, 0.3290) 근처를 지나지만 그 점들을 정확히 통과하지는 않는다. 셋째, \(T\to\infty\)에서 궤적은 무한히 파래지지 않고 \(xy\approx(0.240,\ 0.234)\)로 수렴한다. 높은 온도에서 플랑크 식이 레일리–진스 근사 \(L\propto T/\lambda^4\)로 바뀌어 스펙트럼 모양이 더 이상 변하지 않기 때문이다.</p>
+    <p><span class="term">색온도</span><span class="en">(color temperature, CT)</span>는 광원의 색도가 흑체 궤적 <b>위에</b> 있을 때만 정의된다: 그 색도를 갖는 흑체의 온도다. 백열등(표준 광원 A, 2856 K)은 사실상 흑체이므로 색온도가 의미 있다. 형광등과 LED는 궤적 위에 있지 않으므로 색온도 대신 다음 절의 상관 색온도를 쓴다.</p>
+    <div class="callout">
+      <strong>색온도는 물리 온도가 아니다</strong>
+      <p>"6500 K LED"의 칩 온도는 100 °C 안팎이다. 색온도는 <b>색도를 흑체의 온도 눈금으로 읽은 값</b>일 뿐이다. 또한 직관과 반대로 "따뜻한 색"(warm white)은 낮은 색온도(2700–3000 K), "차가운 색"(cool white)은 높은 색온도(5000 K 이상)다.</p>
+    </div>
+    <p>색온도 눈금은 비선형적으로 느껴진다. 2000 K와 3000 K의 색 차이는 크지만 10,000 K와 20,000 K의 차이는 작다. 궤적상의 색 변화는 \(1/T\)에 더 가깝게 균일하므로 조명·영상 분야에서는 <span class="term">미레드</span><span class="en">(mired, \(10^6/T\) K⁻¹)</span>를 쓴다. 필터의 "색온도 변환량"을 미레드 차로 표시하는 것도 같은 이유다(예: 3200 K→5600 K는 312.5→178.6, 약 −134 mired).</p>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="cct">
+    <h2>상관 색온도와 등온선</h2>
+    <p>궤적 밖의 색도에 온도를 붙이려면 "가장 가까운 흑체"를 정해야 하고, 그러려면 <b>거리</b>를 정의할 색도 공간이 필요하다. xy는 지각적으로 균일하지 않아 부적절하다. CIE는 <span class="term">상관 색온도</span><span class="en">(correlated color temperature, CCT)</span>를 CIE 1960 UCS \((u,v)\) 평면에서 정의한다(CIE 015:2018). 1960 \(u\)는 1976 \(u'\)과 같고, \(v=\tfrac23 v'\)이다.</p>
+    <div class="formula">$$u=\frac{4x}{-2x+12y+3},\qquad v=\frac{6y}{-2x+12y+3},\qquad
+      T_{cp}=\arg\min_{T}\sqrt{\big(u-u_P(T)\big)^2+\big(v-v_P(T)\big)^2}$$
+      <div class="where">\((u_P(T),v_P(T))\)는 온도 \(T\) 흑체의 1960 uv 좌표. 최소 거리 자체가 다음 절의 \(|D_{uv}|\)다. CIE는 이 정의를 \(|D_{uv}|\le 0.05\)인 색도에만 쓰도록 권고한다.</div>
+    </div>
+    <p>최단거리 조건을 기하로 말하면, 같은 CCT를 갖는 점들은 궤적의 한 점에서 궤적에 <b>수직</b>으로 뻗은 직선 위에 있다. 이 직선을 <span class="term">등온선</span><span class="en">(isotemperature line)</span>이라 한다. 등온선은 1960 uv에서만 궤적과 수직이며, xy나 u′v′로 옮기면 기울어진다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 400" role="img" aria-label="CIE 1960 uv에서 흑체 궤적, 등온선, Duv ±0.02 곡선, 주광 궤적"><rect x="60" y="22" width="365.5" height="344.0" fill="none" class="s-axis"/><line x1="92.2" y1="22" x2="92.2" y2="366.0" class="s-axis" opacity=".25"/><text x="92.2" y="381.0" text-anchor="middle" class="t-mono">0.18</text><line x1="135.3" y1="22" x2="135.3" y2="366.0" class="s-axis" opacity=".25"/><text x="135.3" y="381.0" text-anchor="middle" class="t-mono">0.20</text><line x1="178.3" y1="22" x2="178.3" y2="366.0" class="s-axis" opacity=".25"/><text x="178.3" y="381.0" text-anchor="middle" class="t-mono">0.22</text><line x1="221.2" y1="22" x2="221.2" y2="366.0" class="s-axis" opacity=".25"/><text x="221.2" y="381.0" text-anchor="middle" class="t-mono">0.24</text><line x1="264.3" y1="22" x2="264.3" y2="366.0" class="s-axis" opacity=".25"/><text x="264.3" y="381.0" text-anchor="middle" class="t-mono">0.26</text><line x1="307.3" y1="22" x2="307.3" y2="366.0" class="s-axis" opacity=".25"/><text x="307.3" y="381.0" text-anchor="middle" class="t-mono">0.28</text><line x1="350.2" y1="22" x2="350.2" y2="366.0" class="s-axis" opacity=".25"/><text x="350.2" y="381.0" text-anchor="middle" class="t-mono">0.30</text><line x1="393.3" y1="22" x2="393.3" y2="366.0" class="s-axis" opacity=".25"/><text x="393.3" y="381.0" text-anchor="middle" class="t-mono">0.32</text><line x1="60" y1="355.3" x2="425.5" y2="355.3" class="s-axis" opacity=".25"/><text x="55" y="359.3" text-anchor="end" class="t-mono">0.24</text><line x1="60" y1="312.3" x2="425.5" y2="312.3" class="s-axis" opacity=".25"/><text x="55" y="316.3" text-anchor="end" class="t-mono">0.26</text><line x1="60" y1="269.3" x2="425.5" y2="269.3" class="s-axis" opacity=".25"/><text x="55" y="273.3" text-anchor="end" class="t-mono">0.28</text><line x1="60" y1="226.3" x2="425.5" y2="226.3" class="s-axis" opacity=".25"/><text x="55" y="230.3" text-anchor="end" class="t-mono">0.30</text><line x1="60" y1="183.3" x2="425.5" y2="183.3" class="s-axis" opacity=".25"/><text x="55" y="187.3" text-anchor="end" class="t-mono">0.32</text><line x1="60" y1="140.3" x2="425.5" y2="140.3" class="s-axis" opacity=".25"/><text x="55" y="144.3" text-anchor="end" class="t-mono">0.34</text><line x1="60" y1="97.3" x2="425.5" y2="97.3" class="s-axis" opacity=".25"/><text x="55" y="101.3" text-anchor="end" class="t-mono">0.36</text><path d="M421.6 53.2 L401.6 53.8 L382.2 54.6 L363.4 55.9 L345.3 57.6 L327.8 59.7 L311.0 62.2 L294.8 65.1 L279.4 68.4 L264.6 72.1 L250.4 76.2 L236.9 80.7 L224.1 85.5 L212.0 90.6 L200.5 96.0 L189.6 101.7 L179.4 107.5 L169.8 113.6 L160.7 119.8 L152.3 126.0 L144.5 132.4 L137.2 138.8 L130.4 145.1 L124.1 151.5 L118.3 157.7 L113.0 163.9 L108.0 169.9 L103.5 175.8 L99.3 181.6 L95.5 187.2 L92.0 192.6 L88.7 197.8 L85.8 202.8 L83.1 207.6 L80.6 212.2 L78.3 216.6 L76.3 220.8 L74.4 224.8 L72.6 228.6 L71.0 232.2 L69.6 235.6 L68.2 238.8 L67.0 241.9 L65.8 244.8 L64.8 247.6 L63.8 250.1 L62.9 252.6 L62.1 254.9 L61.4 257.1 L60.7 259.1 L60.0 261.1 L59.4 262.9 L58.9 264.6 L58.4 266.2 L57.9 267.8 L57.4 269.2 L57.0 270.6 L56.6 271.8 L56.3 273.0" fill="none" class="s-line" stroke-dasharray="3 4"/><path d="M423.0 139.2 L404.6 139.7 L387.0 140.5 L370.2 141.6 L354.3 143.1 L339.2 144.9 L324.9 147.0 L311.5 149.5 L298.9 152.2 L287.0 155.2 L275.9 158.4 L265.6 161.8 L255.9 165.4 L246.9 169.2 L238.6 173.1 L230.8 177.1 L223.7 181.3 L217.0 185.4 L210.8 189.7 L205.1 193.9 L199.8 198.2 L194.9 202.5 L190.4 206.7 L186.2 211.0 L182.3 215.1 L178.8 219.3 L175.5 223.3 L172.4 227.3 L169.6 231.2 L167.0 235.0 L164.6 238.7 L162.4 242.2 L160.3 245.7 L158.4 249.0 L156.7 252.3 L155.1 255.4 L153.6 258.3 L152.3 261.2 L151.0 263.9 L149.9 266.5 L148.8 269.0 L147.8 271.4 L146.9 273.7 L146.1 275.8 L145.3 277.8 L144.6 279.8 L143.9 281.6 L143.3 283.4 L142.7 285.0 L142.2 286.6 L141.7 288.1 L141.2 289.5 L140.8 290.8 L140.4 292.0 L140.0 293.2 L139.7 294.3 L139.4 295.4 L139.1 296.4 L138.8 297.4" fill="none" class="s-line" stroke-dasharray="3 4"/><line x1="366.8" y1="163.5" x2="355.4" y2="35.0" class="s-line" stroke-width="1"/><text x="355.4" y="31" text-anchor="middle" class="t-mono" font-size="11">2000</text><line x1="304.8" y1="172.9" x2="276.0" y2="47.1" class="s-line" stroke-width="1"/><text x="276.0" y="43.1" text-anchor="middle" class="t-mono" font-size="11">2500</text><line x1="267.0" y1="184.2" x2="221.0" y2="63.7" class="s-line" stroke-width="1"/><text x="221.0" y="59.7" text-anchor="middle" class="t-mono" font-size="11">3000</text><line x1="225.8" y1="205.4" x2="152.6" y2="99.2" class="s-line" stroke-width="1"/><text x="152.6" y="95.2" text-anchor="middle" class="t-mono" font-size="11">4000</text><line x1="205.0" y1="222.6" x2="114.6" y2="130.5" class="s-line" stroke-width="1"/><text x="114.6" y="126.5" text-anchor="middle" class="t-mono" font-size="11">5000</text><line x1="188.4" y1="241.8" x2="84.0" y2="166.0" class="s-line" stroke-width="1"/><text x="84.0" y="162" text-anchor="middle" class="t-mono" font-size="11">6500</text><line x1="172.6" y1="268.6" x2="56.3" y2="212.8" class="s-line" stroke-width="1"/><text x="56.3" y="208.8" text-anchor="middle" class="t-mono" font-size="11">10k</text><line x1="161.9" y1="295.5" x2="39.3" y2="255.3" class="s-line" stroke-width="1"/><text x="39.3" y="251.3" text-anchor="middle" class="t-mono" font-size="11">20k</text><path d="M447.1 96.1 L427.1 96.2 L407.7 96.6 L389.0 97.3 L371.0 98.4 L353.8 99.9 L337.4 101.8 L321.7 104.0 L306.7 106.6 L292.5 109.5 L278.9 112.8 L266.2 116.4 L254.1 120.3 L242.7 124.4 L232.0 128.8 L221.9 133.4 L212.4 138.2 L203.6 143.2 L195.3 148.3 L187.6 153.5 L180.4 158.7 L173.7 164.0 L167.5 169.3 L161.7 174.7 L156.4 179.9 L151.5 185.2 L146.9 190.3 L142.7 195.4 L138.8 200.4 L135.3 205.2 L132.0 209.9 L129.0 214.5 L126.2 219.0 L123.6 223.2 L121.3 227.3 L119.2 231.3 L117.2 235.1 L115.4 238.7 L113.7 242.2 L112.2 245.5 L110.8 248.6 L109.5 251.6 L108.3 254.5 L107.2 257.2 L106.2 259.7 L105.3 262.1 L104.4 264.4 L103.6 266.6 L102.9 268.6 L102.2 270.6 L101.6 272.4 L101.0 274.2 L100.5 275.8 L100.0 277.3 L99.5 278.8 L99.1 280.2 L98.7 281.5 L98.3 282.7 L97.9 283.9 L97.6 284.9 L97.3 286.0" fill="none" class="s-acc" stroke-width="2.5"/><path d="M185.9 147.5 L178.2 152.6 L171.0 157.8 L164.4 163.1 L158.2 168.5 L152.5 173.8 L147.3 179.2 L142.5 184.6 L138.1 189.8 L134.1 195.0 L130.4 200.1 L127.0 205.0 L123.9 209.8 L121.0 214.4 L118.4 218.9 L116.0 223.2 L113.8 227.3 L111.7 231.2 L109.8 235.0 L108.1 238.6 L106.5 242.0 L105.1 245.3 L103.7 248.4 L102.5 251.3 L101.3 254.1 L100.3 256.7 L99.3 259.2 L98.3 261.6 L97.5 263.8 L96.7 266.0 L96.0 268.0 L95.3 269.8 L94.7 271.6 L94.1 273.3 L93.5 274.9 L93.0 276.4 L92.5 277.8 L92.1 279.1" fill="none" class="s-line" stroke-width="2" stroke-dasharray="8 4"/><line x1="136.2" y1="204.0" x2="130.6" y2="200.0" class="s-line" stroke-width="1.5"/><circle cx="130.6" cy="200.0" r="4" class="f-acc"/><text x="122.6" y="194" text-anchor="end" class="t-acc">D65</text><text x="66" y="38" class="t-dim">v</text><text x="419.5" y="360.0" text-anchor="end" class="t-dim">u</text><line x1="470" y1="70" x2="510" y2="70" class="s-acc" stroke-width="2.5"/><text x="520" y="75" class="t">흑체 궤적 (Duv = 0)</text><line x1="470" y1="100" x2="510" y2="100" class="s-line" stroke-width="2" stroke-dasharray="8 4"/><text x="520" y="105" class="t">CIE 주광 궤적</text><line x1="470" y1="130" x2="510" y2="130" class="s-line" stroke-dasharray="3 4"/><text x="520" y="135" class="t">Duv = ±0.02</text><line x1="470" y1="160" x2="510" y2="160" class="s-line"/><text x="520" y="165" class="t">등온선 (궤적에 수직)</text><text x="470" y="215" class="t-dim">궤적 위쪽 = Duv &gt; 0 (녹색 기미)</text><text x="470" y="240" class="t-dim">궤적 아래쪽 = Duv &lt; 0 (마젠타 기미)</text><text x="470" y="280" class="t-dim">같은 등온선 위의 점은 모두 같은 CCT</text><text x="470" y="305" class="t-dim">u = u′,  v = (2/3)·v′</text></svg>
+      <figcaption><b>그림 8-2.</b> CIE 1960 uv 확대도. 실선은 흑체 궤적, 짧은 직선은 등온선(\(D_{uv}=\pm0.03\)까지), 점선은 \(D_{uv}=\pm0.02\) 곡선, 파선은 CIE 주광 궤적(4,000–25,000 K)이다. D65는 6504 K 등온선 위, 궤적보다 약간 위(\(D_{uv}\approx+0.0032\))에 있다. 모든 선은 실제 계산값이다.</figcaption>
+    </figure>
+
+    <h3>계산법 세 가지</h3>
+    <p><b>(1) McCamy 근사(1992).</b> xy에서 바로 계산하는 3차 다항식이다. 등온선들이 xy 평면에서 대략 한 점(\(x_e=0.3320,\ y_e=0.1858\), 이른바 epicenter)으로 모인다는 관찰에서 출발한다. <code>CB.cct(xy)</code>가 이 식이다.</p>
+    <div class="formula">$$n=\frac{x-0.3320}{0.1858-y},\qquad \mathrm{CCT}\approx 449n^{3}+3525n^{2}+6823.3n+5520.33$$
+      <div class="where">궤적 위 3,000–8,000 K에서 오차는 10 K 이내지만, 2,000 K에서 약 −19 K, 10,000 K에서 약 −124 K, 20,000 K에서 약 −2,900 K로 커진다(아래 표). Duv는 주지 않는다.</div>
+    </div>
+    <p><b>(2) Robertson 방법(1968).</b> 미레드 간격으로 미리 계산한 31개 등온선 표(궤적 점 \((u_i,v_i)\)와 기울기 \(t_i\))를 쓴다. 시험 색도에서 각 등온선까지의 부호 있는 거리 \(d_i\)를 구해 부호가 바뀌는 인접 두 선 사이에서 미레드를 선형 보간한다.</p>
+    <div class="formula">$$\frac{1}{T_c}=\frac{1}{T_i}+\frac{d_i}{d_i-d_{i+1}}\left(\frac{1}{T_{i+1}}-\frac{1}{T_i}\right)$$
+      <div class="where">등온선이 미레드에 대해 거의 균일하게 분포한다는 점을 이용한다. 계산이 가벼워 측색 소프트웨어에서 오래 쓰였다.</div>
+    </div>
+    <p><b>(3) Ohno 방법(2013).</b> 흑체 궤적을 1% 온도 간격 같은 촘촘한 표로 만들고, 시험점에 가장 가까운 표 점 \(i\)를 찾은 뒤 이웃 세 점으로 정밀화한다. 궤적 가까이(\(|D_{uv}|\) 작음)에서는 삼각형 해법, 그 밖에서는 거리 \(d(T)\)를 포물선으로 맞춰 최소점을 찾는 포물선 해법을 쓰는 혼합 방식이다. 표를 촘촘히 만들면 정확도를 원하는 만큼 높일 수 있다는 것이 핵심이다.</p>
+    <p>이 장의 시뮬레이터는 Ohno 방식을 단순화한 변형을 구현한다. 1,000–25,000 K를 로그 간격 1,000점(이웃 간격 약 0.32%)으로 샘플해 \(u_P, v_P\) 표를 만들고, 최근접 점과 양옆 두 점에서 거리의 <b>제곱</b> \(d^2_{i-1},d^2_i,d^2_{i+1}\)을 구해 포물선 \(d^2(T)\approx aT^2+bT+c\)를 맞춘다. 거리 \(d\) 자체는 궤적 가까이에서 V자(절댓값) 모양이라 포물선이 잘 맞지 않지만(Ohno가 궤적 근처에서 삼각형 해법을 따로 쓰는 이유), 궤적을 국소적으로 직선으로 보면 \(d^2=D_{uv}^2+(\text{궤적 방향 거리})^2\)이므로 \(d^2\)는 \(T\)에 대해 거의 정확히 2차식이다.</p>
+    <div class="formula">$$T_{c}=-\frac{b}{2a},\qquad D_{uv}=\operatorname{sgn}\!\big(v-v_P(T_c)\big)\,\sqrt{\big(u-u_P(T_c)\big)^2+\big(v-v_P(T_c)\big)^2}$$
+      <div class="where">\(a,b\)는 세 점 \((T_k,d_k^2)\)를 지나는 포물선 계수. Duv는 \(T_c\)에서 흑체를 다시 적분해 정확히 계산한다. 궤적 위의 흑체를 넣으면 0.01% 이내로 원래 온도가 나오고, \((T,D_{uv})\)로 만든 점을 되계산하면 0.1 K, Duv 10⁻⁵ 이내로 돌아온다.</div>
+    </div>
+
+    <div class="sim" id="sim-cct">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>CCT·Duv 계산기 (CIE 1960 uv 확대도)</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cct"></canvas><span class="hint">클릭·드래그로 점 이동</span></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>궤적상 온도 <output id="c-t-out"></output></span><input type="range" id="c-t" min="0" max="1000" value="460"></label>
+          <label class="ctrl"><span>Duv <output id="c-duv-out"></output></span><input type="range" id="c-duv" min="-300" max="300" value="50"></label>
+          <div class="ctrl"><span>바로가기</span><div class="seg" id="c-pre"><button data-value="none" class="on">—</button><button data-value="A">A</button><button data-value="D65">D65</button><button data-value="E">E</button><button data-value="FL2">F2</button><button data-value="LED-B3">LED-B3</button></div></div>
+          <label class="check"><input type="checkbox" id="c-day" checked> 주광 궤적 표시</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">xy</span><span class="v" id="o1-xy">—</span></div>
+        <div class="stat"><span class="k">u′v′ (1976)</span><span class="v" id="o1-uv">—</span></div>
+        <div class="stat"><span class="k">CCT (정밀)</span><span class="v" id="o1-cct">—</span></div>
+        <div class="stat"><span class="k">CCT (McCamy)</span><span class="v" id="o1-mc">—</span></div>
+        <div class="stat"><span class="k">Duv</span><span class="v" id="o1-duv">—</span></div>
+        <div class="stat"><span class="k">색 견본</span><span class="v" id="o1-sw">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① Duv=0으로 두고 온도를 2,000 K→15,000 K로 올리며 McCamy 오차(괄호)가 언제 수십 K를 넘는지 확인하라. ② 4000 K에서 Duv를 −0.02→+0.02로 바꾸면 CCT는 그대로인데 색 견본은 분홍→연두로 변한다. CCT 하나로 백색을 지정하면 안 되는 이유다. ③ "E"를 눌러 등에너지 백색이 5,456 K, Duv −0.0044임을 확인하라.</div>
+    </div>
+
+    <p>표준 광원과 흑체에 두 방법을 적용한 결과가 아래 표다. 흑체 행은 정밀 방법의 검증용이고, McCamy는 6,500 K 근처에서 수 K 수준이지만 10,000 K를 넘으면 수백~수천 K 틀린다.</p>
+    <div class="table-wrap"><table class="num">
+      <thead><tr><th>광원</th><th>x</th><th>y</th><th>CCT 정밀 (K)</th><th>McCamy (K)</th><th>Duv</th></tr></thead>
+      <tbody>
+        <tr><td>흑체 2000 K</td><td>0.5267</td><td>0.4133</td><td>2000</td><td>1981</td><td>0.0000</td></tr>
+        <tr><td>흑체 4000 K</td><td>0.3804</td><td>0.3768</td><td>4000</td><td>4009</td><td>0.0000</td></tr>
+        <tr><td>흑체 10000 K</td><td>0.2807</td><td>0.2884</td><td>10000</td><td>9876</td><td>0.0000</td></tr>
+        <tr><td>흑체 20000 K</td><td>0.2565</td><td>0.2577</td><td>20000</td><td>17092</td><td>0.0000</td></tr>
+        <tr><td>A (스펙트럼)</td><td>0.4475</td><td>0.4074</td><td>2856</td><td>2858</td><td>+0.0000</td></tr>
+        <tr><td>D65 (스펙트럼)</td><td>0.3127</td><td>0.3290</td><td>6504</td><td>6504</td><td>+0.0032</td></tr>
+        <tr><td>E (등에너지)</td><td>0.3333</td><td>0.3333</td><td>5456</td><td>5459</td><td>−0.0044</td></tr>
+        <tr><td>FL2 (냉백색 형광)</td><td>0.3721</td><td>0.3751</td><td>4225</td><td>4230</td><td>+0.0018</td></tr>
+        <tr><td>FL11 (3파장 형광)</td><td>0.3805</td><td>0.3769</td><td>3999</td><td>4007</td><td>+0.0001</td></tr>
+        <tr><td>LED-B3 (청색+형광체)</td><td>0.3756</td><td>0.3723</td><td>4103</td><td>4112</td><td>−0.0007</td></tr>
+        <tr><td>LED-RGB1</td><td>0.4557</td><td>0.4211</td><td>2840</td><td>2842</td><td>+0.0043</td></tr>
+        <tr><td>LED-V1 (보라+형광체)</td><td>0.4548</td><td>0.4044</td><td>2724</td><td>2721</td><td>−0.0019</td></tr>
+        <tr><td>HP1 (고압 나트륨)</td><td>0.5330</td><td>0.4150</td><td>1959</td><td>1944</td><td>+0.0008</td></tr>
+      </tbody>
+    </table></div>
+    <p class="t-dim" style="font-size:14px">표의 값은 이 페이지 스크립트로 계산했다(CMF 5 nm 표, CIE 1931 2°). 1 nm·360–830 nm 공식 표로 계산한 값과 수 K, Duv 0.0001 수준에서 다를 수 있다.</p>
+    <div class="callout warn">
+      <strong>공학자 관점: CCT 계산에서 흔한 실수</strong>
+      <p>① xy나 u′v′ 평면에서 "가장 가까운 흑체"를 찾으면 CIE 정의와 다른 값이 나온다. 반드시 \(v=\tfrac23v'\)인 1960 uv에서 거리를 잰다. ② McCamy 식을 15,000 K 하늘빛이나 1,800 K 촛불에 그대로 쓰면 수백 K 이상 틀린다. ③ CCT만 보고 두 광원이 "같은 백색"이라 판단하면 안 된다. 같은 4000 K라도 Duv가 ±0.006만 달라도 나란히 놓으면 녹색·분홍 차이가 분명히 보인다. 사양에는 항상 CCT와 Duv를 함께 적는다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="duv">
+    <h2>Duv: 궤적에서 벗어난 거리</h2>
+    <p>\(D_{uv}\)는 1960 uv에서 시험 색도와 흑체 궤적 사이의 부호 있는 거리다. 관례(ANSI C78.377, Ohno 2013)에 따라 궤적 <b>위</b>(\(v\)가 큰 쪽)는 양수, <b>아래</b>는 음수다. 궤적 위쪽은 녹색 기미, 아래쪽은 마젠타(분홍) 기미로 보인다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="3000 K와 5000 K에서 Duv −0.02부터 +0.02까지의 백색 견본"><rect x="170" y="50" width="110" height="80" rx="6" fill="#ffa996" stroke="var(--border)"/><rect x="170" y="150" width="110" height="80" rx="6" fill="#ffcadb" stroke="var(--border)"/><text x="225" y="256" text-anchor="middle" class="t-mono">−0.02</text><rect x="294" y="50" width="110" height="80" rx="6" fill="#ffb084" stroke="var(--border)"/><rect x="294" y="150" width="110" height="80" rx="6" fill="#ffd8d6" stroke="var(--border)"/><text x="349" y="256" text-anchor="middle" class="t-mono">−0.01</text><rect x="418" y="50" width="110" height="80" rx="6" fill="#ffb86d" stroke="var(--border)"/><rect x="418" y="150" width="110" height="80" rx="6" fill="#ffe6d0" stroke="var(--border)"/><text x="473" y="256" text-anchor="middle" class="t-mono">0.00</text><rect x="542" y="50" width="110" height="80" rx="6" fill="#ffbf4d" stroke="var(--border)"/><rect x="542" y="150" width="110" height="80" rx="6" fill="#fff5c8" stroke="var(--border)"/><text x="597" y="256" text-anchor="middle" class="t-mono">+0.01</text><rect x="666" y="50" width="110" height="80" rx="6" fill="#ffc500" stroke="var(--border)"/><rect x="666" y="150" width="110" height="80" rx="6" fill="#f8ffba" stroke="var(--border)"/><text x="721" y="256" text-anchor="middle" class="t-mono">+0.02</text><text x="150" y="95" text-anchor="end" class="t">3000 K</text><text x="150" y="195" text-anchor="end" class="t">5000 K</text><text x="150" y="256" text-anchor="end" class="t-dim">Duv</text><text x="170" y="34" class="t-dim">← 마젠타 쪽 (−)</text><text x="776" y="34" text-anchor="end" class="t-dim">녹색 쪽 (+) →</text><text x="473" y="286" text-anchor="middle" class="t-dim">가운데(Duv = 0)가 흑체 색</text></svg>
+      <figcaption><b>그림 8-3.</b> 같은 CCT(3000 K, 5000 K)에서 등온선을 따라 Duv만 바꾼 색도. 견본은 sRGB 최대 밝기로 표시했다(밝기는 같지 않다). CCT가 같아도 Duv ±0.01은 분명히 다른 백색이다.</figcaption>
+    </figure>
+    <p>Duv를 수치로 감각하려면 1960 uv의 단위를 떠올리면 된다. 맥아담 타원(4장 <a href="chromaticity.html">색도도</a>)의 크기는 백색 영역에서 uv로 10⁻³ 자릿수다. 따라서 Duv 0.003은 이미 맥아담 수 단계에 해당하고, 0.01이면 누구나 알아보는 색 차이다. D 계열 주광은 궤적보다 약 +0.003 위에 있고, 등에너지 백색 E는 −0.0044 아래에 있다.</p>
+    <div class="formula">$$\mathbf p(T,D_{uv})=\mathbf u_P(T)+D_{uv}\,\hat{\mathbf n}(T),\qquad \hat{\mathbf n}(T)\perp\frac{d\mathbf u_P}{dT},\ \ \hat n_v>0$$
+      <div class="where">CCT와 Duv가 주어지면 등온선의 단위 법선 \(\hat{\mathbf n}\)을 따라 이동해 색도를 되돌릴 수 있다. 시뮬레이터 슬라이더가 이 식으로 점을 놓고, 계산기는 그 점에서 다시 CCT·Duv를 구한다(왕복 검증).</div>
+    </div>
+    <h3>LED 백색의 허용 영역</h3>
+    <p>조명용 백색 LED의 색도 사양은 ANSI C78.377(미국 표준)이 대표적이다. 이 표준은 2700 K, 3000 K, 3500 K, 4000 K, 4500 K, 5000 K, 5700 K, 6500 K 같은 명목 CCT마다 <b>CCT 범위와 Duv 범위로 둘러싼 사각형</b><span class="en">(quadrangle)</span>을 1931 xy 좌표로 정의한다. 사각형의 좌우 변은 등온선, 위아래 변은 일정 Duv 선에 가깝다. LED 제조사는 생산된 칩을 측정해 이런 사각형보다 더 잘게 나눈 빈<span class="en">(bin)</span>으로 분류하고, 조명 제조사는 같은 빈의 칩만 쓰거나 서로 다른 빈을 섞어 목표 색도를 맞춘다. 개정판마다 수치가 바뀌므로 사각형 꼭짓점은 해당 판의 표를 직접 참조해야 한다.</p>
+    <div class="callout tip">
+      <strong>공학자 관점: Duv와 선호</strong>
+      <p>흑체 궤적은 "자연스러운 백색"의 기준으로 자리 잡았지만 사람이 가장 선호하는 백색이 궤적 위에 있다는 보장은 없다. 저 CCT 실내 조명에서는 궤적보다 약간 아래(음의 Duv)가 더 선호된다는 실험 보고가 여럿 있다. 연색성 지수(CRI)도 기준 광원을 같은 CCT의 흑체 또는 주광으로 잡으므로, Duv가 크면 CRI 계산 자체의 전제가 흔들린다(10장 <a href="lighting.html">조명과 연색성</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="daylight">
+    <h2>CIE 주광 궤적과 D 광원</h2>
+    <p>자연광은 흑체가 아니다. 대기 산란(파란 하늘빛)과 흡수 때문에 같은 CCT의 흑체보다 녹색 쪽(양의 Duv)에 있다. CIE는 많은 주광 측정 스펙트럼을 주성분 분석해 평균 \(S_0\)와 두 기저 \(S_1,S_2\)로 표현하는 <span class="term">CIE 주광</span><span class="en">(CIE daylight illuminant)</span>을 정의했다. CCT가 정해지면 색도가 정해지고, 색도가 정해지면 스펙트럼이 정해진다.</p>
+    <div class="formula">$$x_D=\begin{cases}-4.6070\times10^{9}/T^{3}+2.9678\times10^{6}/T^{2}+0.09911\times10^{3}/T+0.244063 & (4000\text{–}7000\ \mathrm K)\\ -2.0064\times10^{9}/T^{3}+1.9018\times10^{6}/T^{2}+0.24748\times10^{3}/T+0.237040 & (7000\text{–}25000\ \mathrm K)\end{cases}$$
+      $$y_D=-3.000\,x_D^{2}+2.870\,x_D-0.275$$
+      $$S(\lambda)=S_0(\lambda)+M_1S_1(\lambda)+M_2S_2(\lambda),\quad M_1=\frac{-1.3515-1.7703x_D+5.9114y_D}{0.0241+0.2562x_D-0.7341y_D},\quad M_2=\frac{0.0300-31.4424x_D+30.0717y_D}{0.0241+0.2562x_D-0.7341y_D}$$
+      <div class="where"><code>CB.daylightXY(T)</code>, <code>CB.daylight(T)</code>가 이 식이다. \(y_D(x_D)\)라는 하나의 포물선이 <b>주광 궤적</b>이며, 그림 8-2에서 흑체 궤적보다 약간 위에 있는 파선이다. 유효 범위는 4,000–25,000 K.</div>
+    </div>
+    <p>CIE와 ISO가 쓰는 D 광원은 이 식의 특정 온도다. 인쇄·그래픽 아트의 관찰 조건(ISO 3664)과 ICC PCS는 D50, 영상·디스플레이(sRGB, BT.709, BT.2020)는 D65를 백색으로 쓴다.</p>
+    <div class="table-wrap"><table class="num">
+      <thead><tr><th>광원</th><th>식에 넣는 T (K)</th><th>x<sub>D</sub></th><th>y<sub>D</sub></th><th>CCT 정밀</th><th>McCamy</th><th>Duv</th><th>주 용도</th></tr></thead>
+      <tbody>
+        <tr><td>D50</td><td>5003</td><td>0.3457</td><td>0.3586</td><td>5003</td><td>5003</td><td>+0.0033</td><td style="text-align:left">인쇄, ISO 3664, ICC PCS</td></tr>
+        <tr><td>D55</td><td>5503</td><td>0.3324</td><td>0.3475</td><td>5503</td><td>5502</td><td>+0.0033</td><td style="text-align:left">사진 주광</td></tr>
+        <tr><td>D65</td><td>6504</td><td>0.3127</td><td>0.3291</td><td>6504</td><td>6503</td><td>+0.0033</td><td style="text-align:left">sRGB, BT.709/2020, 측색 기본</td></tr>
+        <tr><td>D75</td><td>7504</td><td>0.2990</td><td>0.3150</td><td>7505</td><td>7498</td><td>+0.0032</td><td style="text-align:left">북창광 평가</td></tr>
+      </tbody>
+    </table></div>
+    <p>표준 문서의 D65 xy는 4자리 반올림값 (0.3127, 0.3290)이다. 식에서 바로 나온 \(y_D=0.3291\)과 마지막 자리가 다른 것은 반올림 때문이며, 이 차이로 CCT가 1 K 안팎 달라진다.</p>
+    <h3>D65는 왜 6504 K인가</h3>
+    <p>주광 식이 만들어질 당시 플랑크 식의 2차 복사 상수는 \(c_2=1.4380\times10^{-2}\) m·K였고, 명목 6500 K로 정의되었다. 이후 국제 온도 눈금 개정(IPTS-68)과 함께 \(c_2\)가 \(1.4388\times10^{-2}\) m·K로 바뀌었다. 1절에서 본 것처럼 흑체 색도는 \(c_2/T\)에만 의존하므로, <b>같은 색도</b>를 유지하려면 온도 눈금 값이 비례해서 바뀌어야 한다.</p>
+    <div class="formula">$$T_{\text{new}}=T_{\text{old}}\cdot\frac{c_{2,\text{new}}}{c_{2,\text{old}}}=6500\times\frac{1.4388}{1.4380}=6503.6\approx 6504\ \mathrm K$$
+      <div class="where">D50→5003 K, D55→5503 K, D75→7504 K도 같은 이유다. 그래서 <code>CB.daylight(6504)</code>에 넣어야 표준 D65 스펙트럼이 나온다. "D65 = 6500 K 흑체"는 틀린 말이다: 6500 K 흑체는 Duv=0, D65는 Duv≈+0.0032로 색도가 다르다.</div>
+    </div>
+
+    <div class="sim" id="sim-bd">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>흑체 vs CIE 주광: 같은 CCT, 다른 스펙트럼</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-bd"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>CCT <output id="bd-t-out"></output></span><input type="range" id="bd-t" min="0" max="1000" value="413"></label>
+          <div class="ctrl"><span>바로가기</span><div class="seg" id="bd-pre"><button data-value="5003">D50</button><button data-value="5503">D55</button><button data-value="6504" class="on">D65</button><button data-value="7504">D75</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">흑체 xy</span><span class="v" id="o2-bb">—</span></div>
+        <div class="stat"><span class="k">주광 xy</span><span class="v" id="o2-dl">—</span></div>
+        <div class="stat"><span class="k">주광 CCT (재계산)</span><span class="v" id="o2-cct">—</span></div>
+        <div class="stat"><span class="k">주광 Duv</span><span class="v" id="o2-duv">—</span></div>
+        <div class="stat"><span class="k">Δu′v′ (두 색도)</span><span class="v" id="o2-duv2">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 두 분포 모두 560 nm에서 100으로 맞췄다. 주광은 대기 흡수(오존, 산소, 수증기) 때문에 들쭉날쭉하지만 흑체는 매끈하다. ② CCT를 바꿔도 주광의 Duv는 +0.0025~+0.0033 근처에 머문다. 주광 궤적이 흑체 궤적과 거의 평행하다는 뜻이다. ③ 두 색도의 차이(Δu′v′≈0.004)는 나란히 놓으면 보이는 크기다.</div>
+    </div>
+    <div class="callout deep">
+      <strong>심화: D 광원은 "구현 가능한" 광원이 아니다</strong>
+      <p>D65는 측정 데이터에서 만든 수학적 분포<span class="en">(illuminant)</span>이고, 그 스펙트럼을 그대로 내는 실제 램프<span class="en">(source)</span>는 없다. 관찰 부스의 "D65 램프"는 필터를 씌운 할로겐이나 형광등, 다채널 LED로 근사한 것이며, ISO 3664와 CIE 51.2는 이런 시뮬레이터가 D 광원에 얼마나 가까운지 평가하는 방법을 제공한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="vonkries">
+    <h2>색순응과 von Kries 가설</h2>
+    <p>백열등(2856 K) 아래의 흰 종이는 D65 기준으로 계산하면 \(xy=(0.4476,0.4074)\)로 주황색이다. 그러나 몇 분 그 방에 있으면 종이는 다시 흰색으로 보인다. 시각계가 광원에 맞춰 감도를 조정하는 이 현상을 <span class="term">색순응</span><span class="en">(chromatic adaptation)</span>이라 한다. 망막 원추세포의 감도 조절(광화학적 탈색, 신경 이득)과 그 뒤 단계의 처리가 함께 작용하며, 대부분은 수십 초~수 분 안에 일어난다.</p>
+    <p>1902년 von Kries는 이 조정을 가장 단순한 모형으로 제안했다. <b>세 원추(L, M, S)의 신호가 각각 독립적인 이득으로 조절되고, 그 이득은 그 원추가 받는 백색 자극에 반비례한다.</b> 그러면 광원 1 아래의 백색과 광원 2 아래의 백색은 순응 후 같은 신호를 만든다.</p>
+    <div class="formula">$$L' = L\cdot\frac{L_{w2}}{L_{w1}},\qquad M' = M\cdot\frac{M_{w2}}{M_{w1}},\qquad S' = S\cdot\frac{S_{w2}}{S_{w1}}$$
+      <div class="where">\((L_{w1},M_{w1},S_{w1})\): 광원 1(원 광원)에서 백색의 원추 응답, \((L_{w2},M_{w2},S_{w2})\): 광원 2(목표 백색)의 원추 응답. 이 변환으로 얻은 광원 2 아래의 색 \((L',M',S')\)을 원래 색의 <b>대응색</b><span class="en">(corresponding color)</span>이라 한다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="XYZ에서 원추 유사 공간으로 변환, 대각 이득, 역변환으로 이어지는 색순응 변환 구조">
+        <defs><marker id="ar84" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="70" width="120" height="80" rx="10" class="f-surface"/>
+        <text x="80" y="104" text-anchor="middle" class="t">XYZ</text><text x="80" y="126" text-anchor="middle" class="t-dim">광원 1 아래</text>
+        <line x1="140" y1="110" x2="200" y2="110" class="s-line" marker-end="url(#ar84)"/>
+        <text x="170" y="98" text-anchor="middle" class="t-mono">M</text>
+        <rect x="205" y="70" width="140" height="80" rx="10" class="f-acc-soft"/>
+        <text x="275" y="104" text-anchor="middle" class="t">ρ γ β</text><text x="275" y="126" text-anchor="middle" class="t-dim">원추 유사 공간</text>
+        <line x1="345" y1="110" x2="405" y2="110" class="s-line" marker-end="url(#ar84)"/>
+        <rect x="410" y="55" width="160" height="110" rx="10" class="f-elev"/>
+        <text x="490" y="84" text-anchor="middle" class="t">대각 이득</text>
+        <text x="490" y="108" text-anchor="middle" class="t-mono">ρw2/ρw1</text>
+        <text x="490" y="126" text-anchor="middle" class="t-mono">γw2/γw1</text>
+        <text x="490" y="144" text-anchor="middle" class="t-mono">βw2/βw1</text>
+        <line x1="570" y1="110" x2="630" y2="110" class="s-line" marker-end="url(#ar84)"/>
+        <text x="600" y="98" text-anchor="middle" class="t-mono">M⁻¹</text>
+        <rect x="635" y="70" width="140" height="80" rx="10" class="f-surface"/>
+        <text x="705" y="104" text-anchor="middle" class="t">X′Y′Z′</text><text x="705" y="126" text-anchor="middle" class="t-dim">광원 2 아래 대응색</text>
+        <text x="400" y="200" text-anchor="middle" class="t-dim">세 단계가 모두 선형이므로 하나의 3×3 행렬 M_CAT = M⁻¹ · diag(g) · M 로 합쳐진다.</text>
+        <text x="400" y="226" text-anchor="middle" class="t-dim">방법 간 차이는 오직 M(어느 공간에서 이득을 곱하는가)뿐이다.</text>
+      </svg>
+      <figcaption><b>그림 8-4.</b> 선형 색순응 변환(CAT)의 구조. XYZ를 원추 응답과 비슷한 공간으로 옮겨 채널별 이득을 곱하고 되돌린다.</figcaption>
+    </figure>
+    <p>XYZ 자체는 원추 응답이 아니므로 먼저 3×3 행렬 \(\mathbf M\)으로 원추 유사 공간 \((\rho,\gamma,\beta)\)로 옮긴다. 세 단계를 합치면</p>
+    <div class="formula">$$\begin{bmatrix}X'\\Y'\\Z'\end{bmatrix}=\underbrace{\mathbf M^{-1}\,\mathrm{diag}\!\left(\frac{\rho_{w2}}{\rho_{w1}},\frac{\gamma_{w2}}{\gamma_{w1}},\frac{\beta_{w2}}{\beta_{w1}}\right)\mathbf M}_{\mathbf M_{\text{CAT}}}\begin{bmatrix}X\\Y\\Z\end{bmatrix},\qquad \begin{bmatrix}\rho_w\\\gamma_w\\\beta_w\end{bmatrix}=\mathbf M\begin{bmatrix}X_w\\Y_w\\Z_w\end{bmatrix}$$
+      <div class="where"><code>CB.adaptMatrix(srcW, dstW, method)</code>가 \(\mathbf M_{\text{CAT}}\)을, <code>CB.adapt(XYZ, srcW, dstW, method)</code>가 그 곱을 돌려준다. 백색 \(\mathbf X_{w1}\)은 정확히 \(\mathbf X_{w2}\)로 간다(어떤 \(\mathbf M\)이든).</div>
+    </div>
+    <p>예를 들어 Bradford 공간으로 A(스펙트럼 적분 백색 \(X_w=1.0984,\ Z_w=0.3560\))에서 D65(\(0.9504,\ 1.0888\))로 가는 행렬은 다음과 같다. 대각 원소 \(M_{33}=3.19\)는 A 아래에서 파란 성분이 매우 적었다는 뜻이다.</p>
+    <div class="formula">$$\mathbf M_{\text{A}\to\text{D65}}^{\text{Bradford}}=\begin{bmatrix}0.8447&-0.1179&0.3946\\-0.1366&1.1041&0.1291\\0.0798&-0.1348&3.1913\end{bmatrix}$$</div>
+    <div class="callout">
+      <strong>CIELAB도 일종의 색순응 변환이다</strong>
+      <p>CIELAB은 \(X/X_n,\ Y/Y_n,\ Z/Z_n\)으로 백색을 나누어 정규화한다. 이것은 XYZ 공간에서의 von Kries 변환, 즉 아래의 "XYZ 스케일링"과 같다. 그래서 백열등 아래의 TCS01을 A 백색으로 정규화한 Lab은 (63.9, 19.4, 16.3)으로, Bradford로 D65에 옮긴 뒤의 Lab (62.8, 18.9, 14.4)과 비슷하지만 같지 않다. 광원이 크게 다를 때는 Lab의 내장 정규화에 기대지 말고, 먼저 제대로 된 CAT로 기준 백색에 옮긴 뒤 Lab을 계산하는 것이 원칙이다(7장 <a href="uniform.html">균등 색공간</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="cats">
+    <h2>어느 공간에서 이득을 곱하나: XYZ, HPE, Bradford, CAT02, CAT16</h2>
+    <p>von Kries 가설이 "원추 공간"에서의 대각 이득이라면 \(\mathbf M\)은 원추 기본 함수로의 변환이어야 할 것 같다. 그러나 실제 대응색 데이터에 가장 잘 맞는 \(\mathbf M\)은 원추보다 분광적으로 <b>더 좁은</b>(sharpened) 공간이었다. 다섯 가지 대표 공간은 다음과 같다(행 합이 1이 되도록 맞춘 것이 많다).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>방법</th><th>행렬 M (XYZ → ρ γ β)</th><th>출처·특징</th></tr></thead>
+      <tbody>
+        <tr><td>XYZ 스케일링</td><td class="mat">단위 행렬</td><td>X, Y, Z를 바로 나눔. 구현은 쉽지만 XYZ는 원추 공간이 아니어서 오차가 크다(이른바 "wrong von Kries").</td></tr>
+        <tr><td>von Kries (HPE)</td><td class="mat">[0.40024 0.70760 −0.08081]<br>[−0.22630 1.16532 0.04570]<br>[0 0 0.91822]</td><td>Hunt–Pointer–Estévez 원추 기본 함수. 이 형태는 D65를 (1,1,1)로 보내도록 정규화된 판이다. 분광 감도가 음수 없이 넓게 겹친다.</td></tr>
+        <tr><td>Bradford</td><td class="mat">[0.8951 0.2664 −0.1614]<br>[−0.7502 1.7135 0.0367]<br>[0.0389 −0.0685 1.0296]</td><td>Lam(1985)이 A와 D65 아래의 대응색 데이터로 유도. 원 모형의 청색 채널 비선형항을 뺀 선형판이 ICC에서 표준처럼 쓰인다.</td></tr>
+        <tr><td>CAT02</td><td class="mat">[0.7328 0.4296 −0.1624]<br>[−0.7036 1.6975 0.0061]<br>[0.0030 0.0136 0.9834]</td><td>CIECAM02(CIE 159:2004)의 순응 단계. Bradford와 비슷한 날카로운 감도.</td></tr>
+        <tr><td>CAT16</td><td class="mat">[0.401288 0.650173 −0.051461]<br>[−0.250268 1.204414 0.045854]<br>[−0.002079 0.048952 0.953127]</td><td>CAM16(Li 등, 2017). CAT02에서 보고된 일부 색(고채도 청색 등)의 이상 동작을 줄이도록 다시 최적화.</td></tr>
+      </tbody>
+    </table></div>
+    <p>행렬을 CMF에 곱하면 각 공간의 "분광 감도" \(\mathbf M[\bar x,\bar y,\bar z]^{\mathsf T}\)를 볼 수 있다. HPE와 CAT16은 음수 영역이 없는 원추형이고, Bradford와 CAT02는 γ(중파장) 채널에 최대값의 −11%, −14%에 이르는 음의 로브가 있어 ρ와 γ의 겹침이 줄어든다. 이것이 "sharpening"이다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 270" role="img" aria-label="HPE와 Bradford 공간의 정규화 분광 감도 비교"><line x1="50" y1="190" x2="380" y2="190" class="s-axis"/><line x1="50" y1="40" x2="50" y2="225" class="s-axis"/><text x="215" y="28" text-anchor="middle" class="t">HPE (von Kries)</text><text x="46" y="54" text-anchor="end" class="t-mono">1</text><text x="46" y="194" text-anchor="end" class="t-mono">0</text><text x="69.4" y="245" text-anchor="middle" class="t-mono">400</text><text x="166.5" y="245" text-anchor="middle" class="t-mono">500</text><text x="263.5" y="245" text-anchor="middle" class="t-mono">600</text><text x="360.6" y="245" text-anchor="middle" class="t-mono">700</text><path d="M50.0 190.0 L56.8 190.0 L63.6 190.0 L70.4 189.9 L77.2 189.8 L84.0 189.6 L90.8 189.2 L97.6 188.7 L104.4 188.2 L111.1 187.8 L117.9 187.4 L124.7 186.9 L131.5 186.0 L138.3 184.1 L145.1 181.0 L151.9 176.7 L158.7 170.4 L165.5 161.7 L172.3 149.2 L179.1 133.3 L185.9 115.8 L192.7 100.5 L199.5 87.2 L206.3 76.4 L213.1 67.6 L219.9 60.3 L226.6 54.8 L233.4 51.2 L240.2 50.0 L247.0 51.4 L253.8 55.4 L260.6 62.4 L267.4 72.0 L274.2 84.3 L281.0 98.7 L287.8 114.9 L294.6 131.0 L301.4 145.0 L308.2 157.1 L315.0 166.8 L321.8 174.5 L328.6 179.9 L335.4 183.6 L342.1 185.9 L348.9 187.5 L355.7 188.5 L362.5 189.1 L369.3 189.4 L376.1 189.6" fill="none" stroke="#e0443e" stroke-width="2.2"/><path d="M50.0 190.0 L56.8 190.0 L63.6 190.0 L70.4 190.0 L77.2 189.9 L84.0 189.7 L90.8 189.3 L97.6 188.5 L104.4 187.2 L111.1 185.6 L117.9 183.5 L124.7 180.7 L131.5 177.4 L138.3 173.4 L145.1 168.2 L151.9 162.0 L158.7 153.1 L165.5 140.8 L172.3 123.4 L179.1 102.9 L185.9 82.3 L192.7 67.5 L199.5 57.2 L206.3 51.6 L213.1 50.0 L219.9 51.6 L226.6 56.8 L233.4 65.1 L240.2 76.3 L247.0 89.7 L253.8 104.3 L260.6 118.7 L267.4 132.2 L274.2 144.1 L281.0 154.3 L287.8 163.1 L294.6 170.2 L301.4 175.7 L308.2 180.0 L315.0 183.2 L321.8 185.5 L328.6 187.1 L335.4 188.2 L342.1 188.9 L348.9 189.3 L355.7 189.6 L362.5 189.7 L369.3 189.8 L376.1 189.9" fill="none" stroke="#2fb34f" stroke-width="2.2"/><path d="M50.0 189.5 L56.8 188.9 L63.6 187.4 L70.4 184.0 L77.2 176.7 L84.0 160.7 L90.8 126.6 L97.6 86.0 L104.4 59.8 L111.1 50.3 L117.9 50.0 L124.7 54.6 L131.5 67.0 L138.3 92.2 L145.1 118.5 L151.9 141.3 L158.7 156.8 L165.5 167.2 L172.3 174.1 L179.1 179.7 L185.9 183.8 L192.7 186.0 L199.5 187.4 L206.3 188.5 L213.1 189.2 L219.9 189.5 L226.6 189.7 L233.4 189.8 L240.2 189.9 L247.0 189.9 L253.8 189.9 L260.6 189.9 L267.4 189.9 L274.2 190.0 L281.0 190.0 L287.8 190.0 L294.6 190.0 L301.4 190.0 L308.2 190.0 L315.0 190.0 L321.8 190.0 L328.6 190.0 L335.4 190.0 L342.1 190.0 L348.9 190.0 L355.7 190.0 L362.5 190.0 L369.3 190.0 L376.1 190.0" fill="none" stroke="#3b6cf0" stroke-width="2.2"/><line x1="440" y1="190" x2="770" y2="190" class="s-axis"/><line x1="440" y1="40" x2="440" y2="225" class="s-axis"/><text x="605" y="28" text-anchor="middle" class="t">Bradford</text><text x="436" y="54" text-anchor="end" class="t-mono">1</text><text x="436" y="194" text-anchor="end" class="t-mono">0</text><text x="459.4" y="245" text-anchor="middle" class="t-mono">400</text><text x="556.5" y="245" text-anchor="middle" class="t-mono">500</text><text x="653.5" y="245" text-anchor="middle" class="t-mono">600</text><text x="750.6" y="245" text-anchor="middle" class="t-mono">700</text><path d="M440.0 190.0 L446.8 189.9 L453.6 189.9 L460.4 189.7 L467.2 189.4 L474.0 188.7 L480.8 187.4 L487.6 186.0 L494.4 185.5 L501.1 185.8 L507.9 186.9 L514.7 188.4 L521.5 190.0 L528.3 191.1 L535.1 191.2 L541.9 190.3 L548.7 188.1 L555.5 184.7 L562.3 179.5 L569.1 171.5 L575.9 161.0 L582.7 149.2 L589.5 136.9 L596.3 124.7 L603.1 112.5 L609.9 100.0 L616.6 87.4 L623.4 75.4 L630.2 64.6 L637.0 56.1 L643.8 50.7 L650.6 50.0 L657.4 54.1 L664.2 63.6 L671.0 77.8 L677.8 95.7 L684.6 114.8 L691.4 132.0 L698.2 147.2 L705.0 159.7 L711.8 169.6 L718.6 176.7 L725.4 181.6 L732.1 184.6 L738.9 186.7 L745.7 188.0 L752.5 188.8 L759.3 189.2 L766.1 189.5" fill="none" stroke="#e0443e" stroke-width="2.2"/><path d="M440.0 190.1 L446.8 190.2 L453.6 190.4 L460.4 190.8 L467.2 191.8 L474.0 194.0 L480.8 198.5 L487.6 203.4 L494.4 205.6 L501.1 204.8 L507.9 202.1 L514.7 197.6 L521.5 191.5 L528.3 183.1 L535.1 173.4 L541.9 163.4 L548.7 151.7 L555.5 136.9 L562.3 117.3 L569.1 95.2 L575.9 74.1 L582.7 60.6 L589.5 52.5 L596.3 50.0 L603.1 52.4 L609.9 58.6 L616.6 69.1 L623.4 83.1 L630.2 100.0 L637.0 118.8 L643.8 137.9 L650.6 155.1 L657.4 169.6 L664.2 180.3 L671.0 187.2 L677.8 191.4 L684.6 193.0 L691.4 193.5 L698.2 193.3 L705.0 192.6 L711.8 191.9 L718.6 191.3 L725.4 190.8 L732.1 190.6 L738.9 190.3 L745.7 190.2 L752.5 190.1 L759.3 190.1 L766.1 190.1" fill="none" stroke="#2fb34f" stroke-width="2.2"/><path d="M440.0 189.5 L446.8 188.9 L453.6 187.4 L460.4 184.0 L467.2 176.7 L474.0 160.6 L480.8 126.5 L487.6 85.9 L494.4 59.7 L501.1 50.2 L507.9 50.0 L514.7 54.7 L521.5 67.4 L528.3 92.7 L535.1 119.3 L541.9 142.3 L548.7 158.1 L555.5 169.0 L562.3 176.4 L569.1 182.7 L575.9 187.4 L582.7 189.9 L589.5 191.6 L596.3 192.6 L603.1 193.1 L609.9 193.3 L616.6 193.0 L623.4 192.6 L630.2 192.1 L637.0 191.4 L643.8 190.8 L650.6 190.3 L657.4 189.9 L664.2 189.6 L671.0 189.5 L677.8 189.4 L684.6 189.5 L691.4 189.6 L698.2 189.7 L705.0 189.8 L711.8 189.8 L718.6 189.9 L725.4 189.9 L732.1 190.0 L738.9 190.0 L745.7 190.0 L752.5 190.0 L759.3 190.0 L766.1 190.0" fill="none" stroke="#3b6cf0" stroke-width="2.2"/><text x="400" y="265" text-anchor="middle" class="t-dim">파장 (nm) · 빨강 ρ, 초록 γ, 파랑 β · 0 아래 = 음의 로브</text></svg>
+      <figcaption><b>그림 8-5.</b> \(\mathbf M\cdot\)CMF로 계산한 세 채널의 분광 감도(각 채널 최대값 1로 정규화). 왼쪽 HPE는 원추세포처럼 넓게 겹치고, 오른쪽 Bradford는 장·중파장 채널이 더 분리되며 음의 로브를 갖는다.</figcaption>
+    </figure>
+    <p>왜 날카로운 공간이 더 잘 맞을까? 대각 이득 모형이 정확하려면 각 채널이 광원 변화에 대해 독립적으로 움직여야 한다. 분광 감도가 좁을수록 채널은 "한 파장대의 세기"에 가깝게 반응하고, 광원 스펙트럼의 변화가 그 채널의 단일 스케일 인자로 잘 근사된다. 넓게 겹친 원추 공간에서는 한 채널의 응답이 여러 파장대의 혼합이라 광원 변화가 단일 인자로 흡수되지 않는다. 같은 원리로 카메라 화이트 밸런스도 센서 RGB(비교적 좁은 감도)에서 대각 이득을 곱한다.</p>
+
+    <div class="sim" id="sim-cat">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>색순응 시뮬레이터: TCS 14색, 원 광원 → D65</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cat"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>원 광원</span><div class="seg" id="a-src"><button data-value="bb" class="on">흑체</button><button data-value="dl">주광</button><button data-value="FL2">F2</button><button data-value="FL11">F11</button><button data-value="LED-B3">LED</button></div></div>
+          <label class="ctrl"><span>온도 (흑체·주광) <output id="a-t-out"></output></span><input type="range" id="a-t" min="2000" max="10000" step="50" value="2850"></label>
+          <div class="ctrl"><span>방법</span><div class="seg" id="a-m"><button data-value="xyz">XYZ</button><button data-value="vonkries">HPE</button><button data-value="bradford" class="on">Bradford</button><button data-value="cat02">CAT02</button><button data-value="cat16">CAT16</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">원 광원 CCT / Duv</span><span class="v" id="o3-src">—</span></div>
+        <div class="stat"><span class="k">평균 ΔE00 (순응 전)</span><span class="v" id="o3-raw">—</span></div>
+        <div class="stat"><span class="k">평균 ΔE00 (순응 후)</span><span class="v" id="o3-mean">—</span></div>
+        <div class="stat"><span class="k">최대 ΔE00 (순응 후)</span><span class="v" id="o3-worst">—</span></div>
+      </div>
+      <div class="sim-note">각 칸의 왼쪽 = 원 광원 아래 XYZ를 D65 화면에 그대로 표시(순응 없음), 가운데 = 선택한 CAT로 D65에 옮긴 대응색, 오른쪽 = 같은 시료를 실제로 D65 아래에서 측정한 색. ΔE00은 가운데와 오른쪽의 차이다. 해볼 것: ① 흑체 2850 K에서 XYZ와 Bradford를 비교하라(평균 5.4 → 2.3). ② F11(3파장 형광등)을 고르면 방법 간 차이가 작아지고, 대신 TCS10·TCS12처럼 특정 시료가 크게 틀린다. CAT가 고칠 수 없는 광원 스펙트럼 자체의 차이(색 불변성 실패) 때문이다. ③ 온도를 6500 K 근처로 두면 모든 방법이 ΔE&lt;1로 수렴한다.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="compare">
+    <h2>방법 비교와 대응색 데이터</h2>
+    <p>CAT가 "맞는지"는 무엇으로 판단할까? 정답은 사람의 지각이다. 관찰자가 광원 1에 순응한 상태로 본 시료와 같은 색으로 보이는 색을 광원 2에 순응한 상태에서 찾게 하는 실험(비대칭 매칭, 기억 매칭, 크기 추정 등)으로 <span class="term">대응색 데이터</span><span class="en">(corresponding colors data)</span>를 모은다. Bradford는 Lam(1985)의 데이터에서, CAT02와 CAT16은 여러 연구실의 대응색 데이터를 함께 써서 최적화되었다. 이런 데이터는 관찰자 간 편차 자체가 ΔE 수 단위에 이르므로, 방법 간 차이가 1–2 이하이면 통계적으로 구분하기 어렵다는 점도 기억해야 한다.</p>
+    <p>이 페이지에는 지각 실험 데이터가 없으므로 대신 계산 가능한 기준을 쓴다: <b>같은 반사율 시료를 실제로 D65 아래에서 측색한 값</b>. A 아래 측정값을 각 CAT로 D65에 옮겨 그 값과 비교하면, 광원 변화를 물리적으로 얼마나 잘 예측하는지(물체 색 불변성의 근사) 알 수 있다. 지각적 정답과는 다른 기준이라는 점에 주의한다.</p>
+    <div class="table-wrap"><table class="num">
+      <thead><tr><th>시료 (D65 아래 Lab)</th><th>순응 없음</th><th>XYZ</th><th>HPE</th><th>Bradford</th><th>CAT02</th><th>CAT16</th></tr></thead>
+      <tbody><tr><td>TCS01 (61.5, 17.5, 11.9)</td><td>17.96</td><td>3.46</td><td>3.88</td><td>1.96</td><td class="best">1.85</td><td>2.69</td></tr>
+<tr><td>TCS02 (60.7, 0.1, 29.1)</td><td>15.98</td><td>4.81</td><td>2.79</td><td class="best">0.66</td><td>1.43</td><td>1.67</td></tr>
+<tr><td>TCS03 (62.0, -20.7, 44.6)</td><td>17.36</td><td>3.77</td><td>4.78</td><td class="best">1.93</td><td>3.38</td><td>4.22</td></tr>
+<tr><td>TCS04 (61.2, -33.3, 17.1)</td><td>19.35</td><td>4.73</td><td>4.75</td><td class="best">3.15</td><td>4.32</td><td>5.01</td></tr>
+<tr><td>TCS05 (62.4, -17.5, -8.5)</td><td>27.11</td><td>3.75</td><td>3.99</td><td>2.30</td><td class="best">2.16</td><td>3.09</td></tr>
+<tr><td>TCS06 (61.5, -0.4, -28.4)</td><td>31.14</td><td>6.89</td><td>5.00</td><td>1.19</td><td class="best">0.86</td><td>2.29</td></tr>
+<tr><td>TCS07 (61.1, 20.2, -24.5)</td><td>29.37</td><td>3.50</td><td>3.62</td><td class="best">1.76</td><td>2.69</td><td>3.00</td></tr>
+<tr><td>TCS08 (62.8, 27.5, -13.5)</td><td>27.31</td><td>3.48</td><td>4.28</td><td class="best">3.11</td><td>3.78</td><td>4.36</td></tr>
+<tr><td>TCS09 (40.0, 59.0, 28.2)</td><td>14.15</td><td>9.60</td><td>9.03</td><td class="best">4.58</td><td>5.06</td><td>7.53</td></tr>
+<tr><td>TCS10 (81.3, -3.0, 71.9)</td><td>16.90</td><td>6.33</td><td>4.66</td><td class="best">0.89</td><td>2.09</td><td>3.25</td></tr>
+<tr><td>TCS11 (52.3, -42.4, 13.7)</td><td>16.14</td><td>6.30</td><td>5.92</td><td class="best">4.12</td><td>5.19</td><td>6.09</td></tr>
+<tr><td>TCS12 (30.5, 1.3, -46.4)</td><td>11.20</td><td>13.10</td><td>12.21</td><td>3.93</td><td class="best">3.12</td><td>5.87</td></tr>
+<tr><td>TCS13 (80.2, 11.4, 21.2)</td><td>16.60</td><td>3.14</td><td>3.31</td><td class="best">1.25</td><td>1.45</td><td>1.64</td></tr>
+<tr><td>TCS14 (40.7, -13.9, 24.4)</td><td>15.33</td><td>2.58</td><td>3.75</td><td class="best">1.77</td><td>2.59</td><td>3.14</td></tr>
+<tr><td><b>평균</b></td><td><b>19.71</b></td><td><b>5.39</b></td><td><b>5.14</b></td><td><b>2.33</b></td><td><b>2.86</b></td><td><b>3.85</b></td></tr></tbody>
+    </table></div>
+    <p class="t-dim" style="font-size:14px">A(2856 K 흑체, 스펙트럼 적분) → D65, CIE 1931 2°, 값은 CIEDE2000. 각 행의 최솟값을 강조했다. "순응 없음"은 A 아래 XYZ를 D65 백색 기준 Lab으로 그대로 계산한 것이다.</p>
+    <p>표에서 읽을 점: 순응을 하지 않으면 평균 ΔE00 ≈ 20으로 색이 완전히 틀린다. XYZ 스케일링과 HPE는 5 남짓, Bradford 2.3, CAT02 2.9, CAT16 3.9다. 같은 시료를 Bradford 결과끼리 비교하면 CAT02는 평균 1.2, CAT16은 2.0 차이가 난다. 방법 선택에 따라 실무 허용차(ΔE00 1–2)를 넘는 차이가 생길 수 있다는 뜻이다.</p>
+
+    <div class="sim" id="sim-cmp">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>방법 비교: 원 광원별 ΔE00 실시간 표</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cmp"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>원 광원</span><div class="seg" id="m-src"><button data-value="A" class="on">A</button><button data-value="FL2">F2</button><button data-value="FL11">F11</button><button data-value="LED-B3">LED-B3</button><button data-value="LED-V1">LED-V1</button><button data-value="D50">D50</button></div></div>
+          <div class="ctrl"><span>비교 기준</span><div class="seg" id="m-ref"><button data-value="d65" class="on">D65 실측</button><button data-value="bradford">Bradford 결과</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">원 광원 CCT / Duv</span><span class="v" id="o4-src">—</span></div>
+        <div class="stat"><span class="k">평균 최소 방법</span><span class="v" id="o4-best">—</span></div>
+        <div class="stat"><span class="k">방법 간 평균 차의 폭</span><span class="v" id="o4-spread">—</span></div>
+      </div>
+      <div class="table-wrap" id="m-table" style="margin:0;border-top:1px solid var(--border)"></div>
+      <div class="sim-note">막대 = 14색 평균 ΔE00, 막대 끝의 세로 눈금 = 최대값. 해볼 것: ① A에서는 Bradford가 가장 작지만 F11·LED에서는 순위가 바뀐다. "최고의 CAT"는 데이터와 기준에 따라 다르다. ② D50→D65처럼 가까운 백색 사이에서는 Bradford·CAT02·CAT16이 평균 1 미만이다. ICC가 D65 원본을 D50 PCS로 옮길 때 방법 선택의 영향이 작은 이유다. ③ 기준을 "Bradford 결과"로 바꾸면 방법끼리의 순수한 차이를 볼 수 있다.</div>
+    </div>
+    <div class="callout warn">
+      <strong>공학자 관점: CAT 선택과 문서화</strong>
+      <p>ICC 프로파일은 선형 Bradford를 권장한다(ICC.1, chad 태그). 색 외관 모델 CIECAM02·CAM16을 쓸 때는 각각 CAT02·CAT16을 써야 모델의 나머지 단계와 정합된다. 사내 파이프라인에서 서로 다른 CAT가 섞이면 같은 원본이 경로에 따라 ΔE00 1–2씩 달라지므로, 측정 리포트에는 "A→D65, Bradford, 2°"처럼 광원·방법·관찰자를 함께 적는다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="degree">
+    <h2>불완전 순응과 순응도 D</h2>
+    <p>순응은 항상 완전하지 않다. 어두운 환경, 짧은 관찰 시간, 화면처럼 자체 발광하는 대상에서는 시각계가 광원 색을 일부만 상쇄한다. 저녁 백열등 아래 사진이 화이트 밸런스를 완전히 맞추면 오히려 "분위기가 사라져" 보이는 것도 같은 현상이다. CIECAM02는 순응도 \(D\)(0 = 순응 없음, 1 = 완전 순응)를 순응 휘도 \(L_A\)와 주변 조건 계수 \(F\)로 추정한다.</p>
+    <div class="formula">$$D=F\left[1-\frac{1}{3.6}\exp\!\left(\frac{-L_A-42}{92}\right)\right],\qquad F=\begin{cases}1.0 & \text{average}\\0.9&\text{dim}\\0.8&\text{dark}\end{cases}$$
+      <div class="where">\(L_A\): 순응 시야의 휘도(cd/m²). 흔히 백색 휘도의 20%(\(L_A=L_w Y_b/100,\ Y_b=20\))로 둔다. \(F=1\)일 때 \(L_A=4\)이면 \(D=0.83\), 64이면 0.91, 200이면 0.98, 1000이면 1.00이다.</div>
+    </div>
+    <p>이 장에서는 D를 두 백색 사이의 CAT에 다음처럼 넣는다(채널별 이득을 1과 완전 순응 이득 사이에서 보간). 원래 CIECAM02는 등에너지 기준 백색을 거치는 구조이므로 이 식은 그 단순형이다. 색 외관 모델 전체는 9장 <a href="appearance.html">색 외관 모델</a>에서 다룬다.</p>
+    <div class="formula">$$g_i = D\,\frac{\rho_{i,w2}}{\rho_{i,w1}} + (1-D),\qquad \mathbf X'=\mathbf M^{-1}\,\mathrm{diag}(g_1,g_2,g_3)\,\mathbf M\,\mathbf X$$
+      <div class="where">\(D<1\)이면 원 광원의 백색이 목표 백색까지 가지 못하고 그 사이 어딘가에 남는다. 그 "남은 색"이 관찰자가 느끼는 광원의 색 기미다.</div>
+    </div>
+    <div class="sim" id="sim-deg">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>불완전 순응: A → D65, CAT02 공간</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-deg"></canvas></div>
+        <div class="sim-controls">
+          <label class="check"><input type="checkbox" id="d-auto" checked> D를 L<sub>A</sub>·F에서 계산</label>
+          <label class="ctrl"><span>순응 휘도 L<sub>A</sub> <output id="d-la-out"></output></span><input type="range" id="d-la" min="0" max="300" value="180"></label>
+          <div class="ctrl"><span>주변 조건 F</span><div class="seg" id="d-f"><button data-value="1" class="on">average</button><button data-value="0.9">dim</button><button data-value="0.8">dark</button></div></div>
+          <label class="ctrl"><span>D (수동) <output id="d-d-out"></output></span><input type="range" id="d-d" min="0" max="100" value="70"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">순응도 D</span><span class="v" id="o5-d">—</span></div>
+        <div class="stat"><span class="k">순응 후 백색 xy</span><span class="v" id="o5-xy">—</span></div>
+        <div class="stat"><span class="k">그 백색의 CCT / Duv</span><span class="v" id="o5-cct">—</span></div>
+        <div class="stat"><span class="k">완전 순응 대비 평균 ΔE00</span><span class="v" id="o5-de">—</span></div>
+      </div>
+      <div class="sim-note">왼쪽: 1960 uv에서 A 백색(D=0)부터 D65(D=1)까지 순응 후 백색이 움직이는 경로와 현재 위치. 오른쪽: 위 줄은 완전 순응(D=1), 아래 줄은 현재 D의 TCS01–08. 해볼 것: ① 자동 모드에서 L<sub>A</sub>를 1→1000 cd/m²로 올려 D가 0.82→1.0으로 변하는 것을 보라. ② dark(F=0.8)에서는 밝아도 D≤0.8이다. 극장처럼 어두운 주변에서 화면 백색의 기미가 더 남는 이유다. ③ 수동으로 D=0.5를 주면 남은 백색이 약 4,100 K(Duv −0.004)로 꽤 따뜻하고, D=0.8에서도 약 5,400 K다.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="whitebalance">
+    <h2>카메라·디스플레이·ICC의 백색</h2>
+    <h3>카메라 화이트 밸런스</h3>
+    <p>카메라는 사람처럼 순응하지 않으므로 이 일을 신호 처리로 한다. 센서 RGB에서 장면 광원의 백색 \((R_w,G_w,B_w)\)을 추정하고(회색 세계, 화이트 패치, 학습 기반 추정 등), 채널 이득 \(\mathrm{diag}(G_w/R_w,\,1,\,G_w/B_w)\)를 곱해 광원 백색을 무채색으로 만든다. 이것은 <b>센서 공간에서의 von Kries 변환</b>이다. 그 뒤 색 보정 행렬(CCM)로 센서 RGB를 XYZ나 출력 색공간으로 옮긴다. 광원마다 CCM을 따로 보정해 두고 추정된 CCT로 보간하는 것이 일반적이다. 자세한 내용은 12장 <a href="camera.html">카메라 색 재현</a>에서 다룬다.</p>
+    <h3>디스플레이 백색점</h3>
+    <p>디스플레이의 백색은 R, G, B 원색을 최대로 켰을 때의 혼합색이다. sRGB(IEC 61966-2-1)와 BT.709/2020은 D65, 극장용 DCI-P3는 (0.314, 0.351)을 백색으로 쓴다. 패널의 원래 백색이 목표와 다르면 채널 최대 구동값을 낮춰 맞춘다. 원색 행렬을 \(\mathbf M_{RGB}\)라 하면 목표 백색에 필요한 선형 이득은</p>
+    <div class="formula">$$\mathbf g=\frac{\mathbf M_{RGB}^{-1}\,\mathbf X_{w,\text{target}}}{\max\!\big(\mathbf M_{RGB}^{-1}\,\mathbf X_{w,\text{target}}\big)}$$
+      <div class="where">최대 성분을 1로 두므로 나머지 채널은 1보다 작아지고, 백색 휘도는 \(Y_w=1/\max(\cdot)\)배로 떨어진다. 백색점을 옮기는 일은 공짜가 아니다: 휘도와 비트 깊이를 잃는다.</div>
+    </div>
+    <h3>야간 모드</h3>
+    <p>스마트폰·PC의 야간 모드(블루라이트 저감)는 바로 위 식으로 백색을 흑체 궤적을 따라 낮은 CCT로 옮긴다. 아래 시뮬레이터에서 sRGB 원색 기준 3400 K로 옮기면 선형 이득은 (1, 0.55, 0.24), 백색 휘도는 원래의 63%가 된다. 이것은 색도의 이동이지 사용자의 순응 상태를 바꾸는 것은 아니며, 어두운 방에서 오래 보면 순응(앞 절의 D) 때문에 기미가 상당 부분 사라진다. 수면·생체 리듬에 대한 정량 효과는 이 장의 범위 밖이다.</p>
+    <div class="sim" id="sim-night">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>디스플레이 백색점 이동 / 야간 모드</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-night"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>목표 백색 (흑체) <output id="n-t-out"></output></span><input type="range" id="n-t" min="1900" max="6500" step="50" value="3400"></label>
+          <div class="ctrl"><span>패널 원색</span><div class="seg" id="n-sp"><button data-value="srgb" class="on">sRGB</button><button data-value="p3">Display P3</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">선형 이득 R, G, B</span><span class="v" id="o6-g">—</span></div>
+        <div class="stat"><span class="k">8비트 최대 코드</span><span class="v" id="o6-code">—</span></div>
+        <div class="stat"><span class="k">백색 휘도 (원래 대비)</span><span class="v" id="o6-y">—</span></div>
+        <div class="stat"><span class="k">목표 xy / Duv</span><span class="v" id="o6-xy">—</span></div>
+      </div>
+      <div class="sim-note">패널의 원래 백색은 D65로 가정했다(RGB=(1,1,1)이 D65). 해볼 것: ① 6500 K에서도 이득이 (1,1,1)이 아니다. 6500 K 흑체는 D65보다 Duv가 약 0.0032 낮아 G를 6% 줄여야 한다. ② 1900 K 근처에서는 B 이득이 0이 된다: 더 낮은 CCT는 이 원색으로 만들 수 없다. ③ P3 원색은 G 원색이 더 녹색이어서 같은 목표에 다른 이득이 필요하다. 이득은 패널 원색에 종속된다.</div>
+    </div>
+    <h3>ICC의 D50 PCS와 Bradford</h3>
+    <p>ICC 색 관리는 모든 프로파일을 <b>D50</b> 백색의 프로파일 연결 공간(PCS)으로 잇는다(ICC.1). PCS의 D50 XYZ는 (0.9642, 1.0000, 0.8249)다. sRGB처럼 D65가 백색인 장치의 프로파일은 장치 색을 D50으로 색순응시킨 값을 담고, 사용한 순응 행렬을 chad 태그에 기록한다. 권장 방법은 선형 Bradford다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 230" role="img" aria-label="D65 원본을 Bradford로 D50 PCS로 옮기고 다시 출력 장치 백색으로 옮기는 ICC 경로">
+        <defs><marker id="ar86" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="50" width="160" height="80" rx="10" class="f-surface"/>
+        <text x="100" y="84" text-anchor="middle" class="t">sRGB 원본</text><text x="100" y="106" text-anchor="middle" class="t-dim">백색 D65</text>
+        <line x1="180" y1="90" x2="300" y2="90" class="s-line" marker-end="url(#ar86)"/>
+        <text x="240" y="78" text-anchor="middle" class="t-mono">Bradford</text><text x="240" y="112" text-anchor="middle" class="t-dim">D65→D50</text>
+        <rect x="305" y="40" width="190" height="100" rx="12" class="f-acc-soft"/>
+        <text x="400" y="78" text-anchor="middle" class="t">PCS (XYZ / Lab)</text><text x="400" y="100" text-anchor="middle" class="t-mono">D50 = (0.9642, 1, 0.8249)</text>
+        <line x1="495" y1="90" x2="615" y2="90" class="s-line" marker-end="url(#ar86)"/>
+        <text x="555" y="78" text-anchor="middle" class="t-mono">Bradford⁻¹</text><text x="555" y="112" text-anchor="middle" class="t-dim">D50→장치 백색</text>
+        <rect x="620" y="50" width="160" height="80" rx="10" class="f-surface"/>
+        <text x="700" y="84" text-anchor="middle" class="t">출력 장치</text><text x="700" y="106" text-anchor="middle" class="t-dim">디스플레이·프린터</text>
+        <text x="400" y="180" text-anchor="middle" class="t-dim">상대 색도 인텐트: 원본 백색 → PCS D50 → 출력 백색. 백색은 항상 백색으로 간다.</text>
+        <text x="400" y="204" text-anchor="middle" class="t-dim">순응 행렬은 프로파일의 chad 태그에 저장되어 역변환에 쓰인다.</text>
+      </svg>
+      <figcaption><b>그림 8-6.</b> ICC 파이프라인에서의 색순응. 장치 백색과 PCS 백색(D50) 사이를 Bradford로 오간다. 렌더링 인텐트와 프로파일 구조는 16장 <a href="management.html">색 관리 시스템</a>에서 다룬다.</figcaption>
+    </figure>
+    <p>실제 수치로 확인하자. sRGB 규격의 D65 XYZ (0.9505, 1, 1.0890)에서 PCS D50 (0.9642, 1, 0.8249)로 가는 Bradford 행렬은 다음과 같다. 대각선이 1에 가깝고 \(M_{33}=0.75\)로 청색 성분만 크게 줄어든다.</p>
+    <div class="formula">$$\mathbf M_{\text{D65}\to\text{D50}}^{\text{Bradford}}=\begin{bmatrix}1.0478&0.0229&-0.0502\\0.0295&0.9905&-0.0171\\-0.0093&0.0151&0.7517\end{bmatrix}$$</div>
+    <div class="callout tip">
+      <strong>공학자 관점: 백색점 혼동이 만드는 버그</strong>
+      <p>① sRGB 행렬(D65)로 얻은 XYZ를 D50 기준 Lab 공식에 그대로 넣으면 백색이 \(b^*\approx-19\)의 파랑으로 계산된다. CIELAB의 \(X_n Y_n Z_n\)과 XYZ의 백색은 항상 같아야 한다. ② ICC 프로파일에서 읽은 rXYZ·gXYZ·bXYZ 태그는 이미 D50으로 순응된 값이다. 이것으로 원색 xy를 계산하면 sRGB 원색 (0.64, 0.33)이 나오지 않는다. 원래 원색을 알려면 chad의 역행렬을 먼저 곱한다. ③ 측정 장비가 보고하는 Lab의 기준 광원(D50/D65)과 관찰자(2°/10°)를 확인하지 않고 두 리포트를 비교하는 것도 흔한 실수다.</p>
+    </div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>흑체 색도는 \(c_2/T\)에만 의존한다. 흑체 궤적은 T→∞에서 xy≈(0.240, 0.234)로 수렴하고, 색 변화는 미레드(10⁶/T)에 대해 더 균일하다.</li>
+      <li>CCT는 CIE 1960 uv(\(v=\tfrac23v'\))에서 가장 가까운 흑체의 온도이고, 같은 CCT의 점들은 궤적에 수직인 등온선 위에 있다.</li>
+      <li>Duv는 궤적까지의 부호 있는 거리(위=+, 녹색; 아래=−, 마젠타)다. 백색 사양은 CCT와 Duv를 함께 적는다. D65: 6504 K, Duv +0.0032. E: 5456 K, −0.0044.</li>
+      <li>McCamy 근사는 3,000–8,000 K에서 10 K 이내지만 10,000 K 흑체에서 약 120 K, 20,000 K에서 약 2,900 K 틀린다. 촘촘한 궤적 표 + 포물선 보간(Ohno 방식)은 임의 정밀도를 준다.</li>
+      <li>CIE 주광 궤적은 흑체 궤적보다 Duv ≈ +0.003 위에 있다. D65가 6504 K인 이유는 c₂가 1.4380→1.4388로 개정되었기 때문(6500×1.4388/1.4380)이다.</li>
+      <li>선형 CAT는 \(\mathbf M^{-1}\mathrm{diag}(\rho_{w2}/\rho_{w1},\dots)\mathbf M\)이다. 방법의 차이는 \(\mathbf M\)뿐이며, 날카로운(sharpened) 공간이 대각 모형에 잘 맞는다.</li>
+      <li>A→D65에서 14개 TCS의 평균 ΔE00(D65 실측 기준): 순응 없음 ≈ 20, XYZ 5.4, HPE 5.1, Bradford 2.3, CAT02 2.9, CAT16 3.9. 방법 간 차이만으로 1–2 ΔE00가 생긴다.</li>
+      <li>불완전 순응은 \(D=F[1-\tfrac1{3.6}e^{(-L_A-42)/92}]\)로 추정하고, 이득을 1과 완전 순응 이득 사이에서 보간한다.</li>
+      <li>카메라 WB는 센서 공간의 von Kries 변환, 디스플레이 백색점 조정과 야간 모드는 원색 행렬 역변환으로 구한 채널 이득, ICC는 D50 PCS와 선형 Bradford를 쓴다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. CIE가 상관 색온도(CCT)를 정의할 때 "가장 가까운 흑체"까지의 거리를 재는 평면은?</p><div class="opts">
+        <button class="opt">CIE 1931 xy</button><button class="opt">CIE 1976 u′v′</button><button class="opt" data-correct>CIE 1960 uv (u=u′, v=⅔v′)</button><button class="opt">CIELAB a*b*</button>
+      </div><div class="quiz-exp">CCT는 CIE 1960 UCS에서 정의된다. 1976 u′v′에서 재면 v축 스케일이 1.5배 달라 다른 결과가 나온다. 등온선도 1960 uv에서만 궤적과 수직이다.</div></div>
+
+      <div class="quiz-q"><p>2. 두 LED가 모두 CCT 4000 K인데 하나는 Duv +0.006, 다른 하나는 −0.006이다. 나란히 놓으면?</p><div class="opts">
+        <button class="opt">CCT가 같으므로 같은 색으로 보인다</button><button class="opt" data-correct>+쪽은 녹색 기미, −쪽은 분홍(마젠타) 기미로 구분된다</button><button class="opt">+쪽이 더 따뜻해(주황) 보인다</button><button class="opt">밝기만 다르다</button>
+      </div><div class="quiz-exp">Duv는 등온선을 따라 궤적 위(녹색)·아래(마젠타)로 벗어난 정도다. 1960 uv에서 0.012 떨어진 두 색은 맥아담 타원 여러 단계 차이로, 쉽게 구분된다.</div></div>
+
+      <div class="quiz-q"><p>3. D65의 CCT가 6500 K가 아니라 약 6504 K인 이유는?</p><div class="opts">
+        <button class="opt">D65는 6504 K 흑체이기 때문</button><button class="opt">McCamy 근사의 오차</button><button class="opt" data-correct>2차 복사 상수 c₂가 1.4380→1.4388×10⁻² m·K로 개정되어, 같은 색도의 온도 값이 6500×1.4388/1.4380로 바뀌었기 때문</button><button class="opt">관찰자가 2°에서 10°로 바뀌었기 때문</button>
+      </div><div class="quiz-exp">흑체 색도는 c₂/T에만 의존한다. 색도를 고정하면 T는 c₂에 비례해야 하므로 6503.6≈6504 K가 된다. D65는 흑체가 아니며 Duv≈+0.0032다.</div></div>
+
+      <div class="quiz-q"><p>4. 20,000 K 흑체 색도에 McCamy 식을 적용하면?</p><div class="opts">
+        <button class="opt">20,000 K ± 5 K</button><button class="opt" data-correct>약 17,100 K (수천 K 과소평가)</button><button class="opt">약 25,000 K</button><button class="opt">음수가 나온다</button>
+      </div><div class="quiz-exp">McCamy 3차식은 대략 2,000–12,500 K 범위에 맞춘 근사다. 이 페이지 계산으로 20,000 K 흑체에서 17,092 K가 나온다. 고 CCT(하늘빛, 일부 디스플레이)에는 표 기반 방법을 쓴다.</div></div>
+
+      <div class="quiz-q"><p>5. 선형 색순응 변환 \(\mathbf M^{-1}\mathrm{diag}(\mathbf g)\mathbf M\)에서 von Kries, Bradford, CAT02, CAT16이 서로 다른 점은?</p><div class="opts">
+        <button class="opt">이득 g의 계산 방식</button><button class="opt" data-correct>원추 유사 공간으로 가는 행렬 M</button><button class="opt">백색이 백색으로 가는지 여부</button><button class="opt">비선형 압축 지수</button>
+      </div><div class="quiz-exp">이득은 모두 목표 백색/원 백색의 채널 비이고, 어떤 M을 쓰든 원 백색은 정확히 목표 백색으로 간다. 차이는 그 밖의 색이 어디로 가는지를 정하는 M뿐이다.</div></div>
+
+      <div class="quiz-q"><p>6. Bradford·CAT02 행렬이 HPE 원추 공간보다 대응색 데이터를 더 잘 예측하는 주된 이유는?</p><div class="opts">
+        <button class="opt">음수가 없는 감도라서</button><button class="opt" data-correct>분광 감도가 더 날카로워(sharpened) 채널별 단일 이득 모형이 광원 변화를 더 잘 흡수하기 때문</button><button class="opt">행렬 원소 수가 더 많아서</button><button class="opt">D50 기준으로 정규화되어서</button>
+      </div><div class="quiz-exp">그림 8-5처럼 Bradford는 장·중파장 채널의 겹침이 작고 음의 로브가 있다. 채널이 좁을수록 광원 변화가 채널별 스케일 인자로 잘 근사된다.</div></div>
+
+      <div class="quiz-q"><p>7. CIELAB의 \(X/X_n, Y/Y_n, Z/Z_n\) 정규화는 색순응 관점에서 무엇과 같은가?</p><div class="opts">
+        <button class="opt">Bradford 변환</button><button class="opt">CAT16 변환</button><button class="opt" data-correct>XYZ 공간에서의 von Kries 변환(XYZ 스케일링)</button><button class="opt">색순응과 무관하다</button>
+      </div><div class="quiz-exp">백색 XYZ로 나누는 것은 M=I인 대각 순응이다. XYZ는 원추 공간이 아니므로 광원이 크게 다를 때 오차가 크다. 먼저 적절한 CAT로 기준 백색에 옮긴 뒤 Lab을 계산한다.</div></div>
+
+      <div class="quiz-q"><p>8. CIECAM02의 순응도 D에 대한 설명으로 옳은 것은?</p><div class="opts">
+        <button class="opt">항상 1이다</button><button class="opt">순응 휘도가 낮을수록 1에 가까워진다</button><button class="opt" data-correct>순응 휘도가 높고 주변이 밝을수록(F=1) 1에 가까워지고, 어두운 주변(F=0.8)에서는 0.8을 넘지 못한다</button><button class="opt">광원의 CCT로만 결정된다</button>
+      </div><div class="quiz-exp">D = F[1 − (1/3.6)e^{(−L_A−42)/92}]. 대괄호 안은 1 이하이므로 D ≤ F다. L_A=4 cd/m²이면 F=1에서도 0.83 정도다.</div></div>
+
+      <div class="quiz-q"><p>9. D65 백색의 sRGB 패널을 3400 K 흑체 백색으로 옮기는 야간 모드에서, 최대 채널을 1로 둘 때 일어나는 일은?</p><div class="opts">
+        <button class="opt">휘도는 그대로이고 B만 줄어든다</button><button class="opt" data-correct>G와 B 이득이 1보다 작아져 백색 휘도가 원래의 약 63%로 떨어진다</button><button class="opt">R 이득이 1보다 커진다</button><button class="opt">색도는 그대로이고 휘도만 줄어든다</button>
+      </div><div class="quiz-exp">g = M⁻¹X_target / max(·) = (1, 0.55, 0.24), Y = 1/max ≈ 0.63. 패널은 원색 최대값 이상을 낼 수 없으므로 백색점 이동은 항상 휘도 손실을 동반한다.</div></div>
+
+      <div class="quiz-q"><p>10. ICC v4 프로파일의 PCS 백색과 권장 색순응 방법은?</p><div class="opts">
+        <button class="opt">D65, CAT02</button><button class="opt" data-correct>D50, 선형 Bradford (chad 태그에 기록)</button><button class="opt">E, XYZ 스케일링</button><button class="opt">D50, CAT16</button>
+      </div><div class="quiz-exp">ICC PCS는 D50 (0.9642, 1, 0.8249)이다. D65 장치는 Bradford로 D50에 순응시킨 값을 프로파일에 담고, 사용한 행렬을 chad 태그에 기록한다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  /*CORE*/
+  const CAT = {
+    xyz: CB.CAT.xyz, vonkries: CB.CAT.vonkries, bradford: CB.CAT.bradford, cat02: CB.CAT.cat02,
+    cat16: [[0.401288, 0.650173, -0.051461], [-0.250268, 1.204414, 0.045854], [-0.002079, 0.048952, 0.953127]],
+  };
+  const METHODS = ["xyz", "vonkries", "bradford", "cat02", "cat16"];
+  const MNAME = { xyz: "XYZ", vonkries: "HPE", bradford: "Bradford", cat02: "CAT02", cat16: "CAT16" };
+  const uv60 = ([x, y]) => { const d = -2 * x + 12 * y + 3; return [(4 * x) / d, (6 * y) / d]; };
+  const uv602xy = ([u, v]) => { const d = 2 * u - 8 * v + 4; return [(3 * u) / d, (2 * v) / d]; };
+  const locUV = (T) => uv60(CB.planckXY(T));
+  const NL = 1000, TMIN = 1000, TMAX = 25000, LUT = [];
+  for (let i = 0; i < NL; i++) { const T = TMIN * Math.pow(TMAX / TMIN, i / (NL - 1)); const p = locUV(T); LUT.push([T, p[0], p[1]]); }
+
+  function cctDuv(xy) {
+    const [u, v] = uv60(xy);
+    let bi = 0, bd = Infinity;
+    for (let i = 0; i < NL; i++) { const d = Math.hypot(u - LUT[i][1], v - LUT[i][2]); if (d < bd) { bd = d; bi = i; } }
+    const i = Math.min(NL - 2, Math.max(1, bi));
+    const t = [LUT[i - 1][0], LUT[i][0], LUT[i + 1][0]];
+    const d = [i - 1, i, i + 1].map((k) => (u - LUT[k][1]) ** 2 + (v - LUT[k][2]) ** 2);
+    const X = (t[2] - t[0]) * (t[1] - t[2]) * (t[0] - t[1]);
+    const a = (t[2] * (d[1] - d[0]) + t[1] * (d[0] - d[2]) + t[0] * (d[2] - d[1])) / X;
+    const b = -(t[2] * t[2] * (d[1] - d[0]) + t[1] * t[1] * (d[0] - d[2]) + t[0] * t[0] * (d[2] - d[1])) / X;
+    let T = a !== 0 ? -b / (2 * a) : t[1];
+    if (!(T >= t[0] && T <= t[2])) T = t[1];
+    const p = locUV(T);
+    const duv = Math.sign(v - p[1]) * Math.hypot(u - p[0], v - p[1]);
+    return { T, duv, uv: [u, v], foot: p, edge: bi === 0 || bi === NL - 1 };
+  }
+  function normal(T) {
+    const a = locUV(T * 0.999), b = locUV(T * 1.001);
+    let n = [-(b[1] - a[1]), b[0] - a[0]];
+    const L = Math.hypot(n[0], n[1]);
+    n = [n[0] / L, n[1] / L];
+    return n[1] < 0 ? [-n[0], -n[1]] : n;
+  }
+  const offUV = (T, duv) => { const p = locUV(T), n = normal(T); return [p[0] + duv * n[0], p[1] + duv * n[1]]; };
+  const fromTDuv = (T, duv) => uv602xy(offUV(T, duv));
+  function catMatrix(M, Ws, Wd, D = 1) {
+    const s = CB.mat.vec(M, Ws), d = CB.mat.vec(M, Wd);
+    const g = s.map((v, i) => (D * d[i]) / v + 1 - D);
+    return CB.mat.mul(CB.mat.inv(M), CB.mat.mul(CB.mat.diag(g), M));
+  }
+  const Dciecam = (LA, F) => F * (1 - (1 / 3.6) * Math.exp((-LA - 42) / 92));
+  const TCS = Array.from({ length: 14 }, (_, i) => CB.tcs(i + 1));
+  const tcsXYZ = (ill) => TCS.map((R) => CB.spd2XYZ(R, { illum: ill }).map((v) => v / 100));
+  const WD65 = CB.spd2XYZ(CB.D65);
+  const REF = tcsXYZ(CB.D65), REFLAB = REF.map((X) => CB.XYZ2Lab(X, WD65));
+  function adaptAll(ill, method, D = 1) {
+    const Ws = CB.spd2XYZ(ill), Xs = tcsXYZ(ill);
+    const A = catMatrix(CAT[method], Ws, WD65, D);
+    return { Ws, Xs, out: Xs.map((X) => CB.mat.vec(A, X)) };
+  }
+  /*END*/
+
+  const fmtT = (T) => Math.round(T).toLocaleString("en-US") + " K";
+  const sgn = (v, n = 4) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(n);
+  const swatch = (css) => `<span class="sw" style="background:${css}"></span>`;
+  const tlog = (v, a, b) => a * Math.pow(b / a, v / 1000);
+  const ilog = (T, a, b) => Math.round((1000 * Math.log(T / a)) / Math.log(b / a));
+  const font = (px) => px + "px " + (getComputedStyle(document.body).getPropertyValue("--mono") || "monospace");
+  const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+  const lerpRange = (get, v) => { const el = get.el; el.value = v; el.style.setProperty("--fill", ((v - el.min) / (el.max - el.min)) * 100 + "%"); };
+  const ILL = (name) => (name === "A" ? CB.illuminantA : CB.illum(name));
+
+  /* ------------------------------------------------ sim 1: CCT·Duv */
+  (function () {
+    const V = { u: [0.165, 0.345], v: [0.235, 0.39] };
+    let xy = fromTDuv(4000, 0.005), geo = null, bg = null, bgKey = "";
+    const ISO = [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5700, 6500, 8000, 10000, 15000, 25000];
+    const fmtSl = (v) => fmtT(tlog(v, 1700, 25000));
+    const tS = CB.range("c-t", fmtSl, () => { xy = fromTDuv(tlog(tS(), 1700, 25000), dS() / 1e4); preS.set("none", false); cv.redraw(); });
+    const dS = CB.range("c-duv", (v) => sgn(v / 1e4), () => { xy = fromTDuv(tlog(tS(), 1700, 25000), dS() / 1e4); preS.set("none", false); cv.redraw(); });
+    const showDay = document.getElementById("c-day");
+    showDay.addEventListener("change", () => cv.redraw());
+    const PRE = { A: () => CB.XYZ2xy(CB.spd2XYZ(CB.illuminantA)), D65: () => [0.3127, 0.329], E: () => [1 / 3, 1 / 3], FL2: () => CB.XYZ2xy(CB.spd2XYZ(CB.illum("FL2"))), "LED-B3": () => CB.XYZ2xy(CB.spd2XYZ(CB.illum("LED-B3"))) };
+    const preS = CB.seg("c-pre", (v) => { if (PRE[v]) setXY(PRE[v]()); });
+    function syncSliders(r) {
+      const T = Math.min(25000, Math.max(1700, r.T));
+      lerpRange(tS, ilog(T, 1700, 25000));
+      lerpRange(dS, Math.round(Math.max(-0.03, Math.min(0.03, r.duv)) * 1e4));
+      document.getElementById("c-t-out").textContent = fmtT(r.T);
+      document.getElementById("c-duv-out").textContent = sgn(r.duv);
+    }
+    function setXY(p) { xy = p; syncSliders(cctDuv(xy)); cv.redraw(); }
+    function geom(w, h) {
+      const s = Math.min((w - 58) / (V.u[1] - V.u[0]), (h - 36) / (V.v[1] - V.v[0]));
+      const bw = s * (V.u[1] - V.u[0]), bh = s * (V.v[1] - V.v[0]);
+      const ox = 48 + Math.max(0, (w - 58 - bw) / 2), oy = 8;
+      return { s, ox, oy, bw, bh, X: (u) => ox + (u - V.u[0]) * s, Y: (v) => oy + (V.v[1] - v) * s, inv: (px, py) => [V.u[0] + (px - ox) / s, V.v[1] - (py - oy) / s] };
+    }
+    function background(g) {
+      const key = Math.round(g.bw) + "x" + Math.round(g.bh);
+      if (bg && bgKey === key) return bg;
+      const W = Math.ceil(g.bw), H = Math.ceil(g.bh), c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const x = c.getContext("2d"), img = x.createImageData(W, H), st = 2;
+      for (let py = 0; py < H; py += st) for (let px = 0; px < W; px += st) {
+        const col = CB.xy2display(uv602xy([V.u[0] + px / g.s, V.v[1] - py / g.s]));
+        for (let dy = 0; dy < st && py + dy < H; dy++) for (let dx = 0; dx < st && px + dx < W; dx++) {
+          const k = ((py + dy) * W + px + dx) * 4;
+          img.data[k] = col[0]; img.data[k + 1] = col[1]; img.data[k + 2] = col[2]; img.data[k + 3] = 255;
+        }
+      }
+      x.putImageData(img, 0, 0);
+      bg = c; bgKey = key;
+      return c;
+    }
+    const poly = (ctx, g, fn, T0, T1) => { ctx.beginPath(); let f = true; for (let T = T0; T <= T1 * 1.0001; T *= 1.015) { const p = fn(T); f ? ctx.moveTo(g.X(p[0]), g.Y(p[1])) : ctx.lineTo(g.X(p[0]), g.Y(p[1])); f = false; } ctx.stroke(); };
+    const cv = CB.canvas(document.getElementById("cv-cct"), (ctx, w, h) => {
+      const P = CB.palette(), g = geom(w, h); geo = g;
+      ctx.save(); ctx.globalAlpha = CB.isDark() ? 0.5 : 0.6; ctx.drawImage(background(g), g.ox, g.oy, g.bw, g.bh); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.rect(g.ox, g.oy, g.bw, g.bh); ctx.clip();
+      ctx.strokeStyle = P.grid; ctx.lineWidth = 1;
+      for (let u = 0.18; u < V.u[1]; u += 0.02) { ctx.beginPath(); ctx.moveTo(g.X(u), g.oy); ctx.lineTo(g.X(u), g.oy + g.bh); ctx.stroke(); }
+      for (let v = 0.24; v < V.v[1]; v += 0.02) { ctx.beginPath(); ctx.moveTo(g.ox, g.Y(v)); ctx.lineTo(g.ox + g.bw, g.Y(v)); ctx.stroke(); }
+      ctx.strokeStyle = P.dim; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      poly(ctx, g, (T) => offUV(T, 0.02), 1700, 25000); poly(ctx, g, (T) => offUV(T, -0.02), 1700, 25000);
+      ctx.setLineDash([]);
+      ctx.strokeStyle = P.text; ctx.lineWidth = 1; ctx.font = font(10); ctx.fillStyle = P.text; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ISO.forEach((T) => {
+        const a = offUV(T, -0.03), b = offUV(T, 0.03);
+        ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(g.X(a[0]), g.Y(a[1])); ctx.lineTo(g.X(b[0]), g.Y(b[1])); ctx.stroke(); ctx.globalAlpha = 1;
+        if ([2000, 3000, 4000, 5000, 6500, 10000, 25000].includes(T)) ctx.fillText(T >= 10000 ? T / 1000 + "k" : T, g.X(b[0]), g.Y(b[1]) - 2);
+      });
+      ctx.strokeStyle = P.accent; ctx.lineWidth = 2.4; poly(ctx, g, locUV, 1700, 25000);
+      if (showDay.checked) { ctx.strokeStyle = P.accent2; ctx.lineWidth = 2; ctx.setLineDash([7, 4]); poly(ctx, g, (T) => uv60(CB.daylightXY(T)), 4000, 25000); ctx.setLineDash([]); }
+      const r = cctDuv(xy), p = r.uv;
+      ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(g.X(r.foot[0]), g.Y(r.foot[1])); ctx.lineTo(g.X(p[0]), g.Y(p[1])); ctx.stroke();
+      ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(g.X(r.foot[0]), g.Y(r.foot[1]), 3, 0, 7); ctx.fill();
+      ctx.fillStyle = CB.rgb8css(CB.xy2display(xy)); ctx.strokeStyle = P.text; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(g.X(p[0]), g.Y(p[1]), 7, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle = P.axis; ctx.strokeRect(g.ox, g.oy, g.bw, g.bh);
+      ctx.fillStyle = P.dim; ctx.font = font(10); ctx.textAlign = "center"; ctx.textBaseline = "top";
+      for (let u = 0.18; u < V.u[1]; u += 0.04) ctx.fillText(u.toFixed(2), g.X(u), g.oy + g.bh + 4);
+      ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      for (let v = 0.24; v < V.v[1]; v += 0.04) ctx.fillText(v.toFixed(2), g.ox - 4, g.Y(v));
+      ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("v (1960)", g.ox + 4, g.oy + 4);
+      ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("u", g.ox + g.bw - 4, g.oy + g.bh - 4);
+      const mc = CB.cct(xy), uvp = CB.xy2uv(xy);
+      CB.stat("o1-xy", xy[0].toFixed(4) + ", " + xy[1].toFixed(4));
+      CB.stat("o1-uv", uvp[0].toFixed(4) + ", " + uvp[1].toFixed(4));
+      CB.stat("o1-cct", r.edge ? "범위 밖" : fmtT(r.T));
+      CB.stat("o1-mc", fmtT(mc) + ` <small>(${mc - r.T >= 0 ? "+" : "−"}${Math.abs(mc - r.T).toFixed(0)})</small>`);
+      CB.stat("o1-duv", sgn(r.duv) + (Math.abs(r.duv) > 0.05 ? " <small>|Duv|&gt;0.05</small>" : ""));
+      CB.stat("o1-sw", swatch(CB.rgb8css(CB.xy2display(xy))) + "<small>" + CB.rgb2hex(CB.xy2display(xy)) + "</small>");
+    }, { aspect: 0.8, maxHeight: 560, minHeight: 300 });
+    syncSliders(cctDuv(xy));
+    const canvas = document.getElementById("cv-cct");
+    let drag = false;
+    function pick(e) {
+      if (!geo) return;
+      const rc = canvas.getBoundingClientRect();
+      const p = geo.inv(e.clientX - rc.left, e.clientY - rc.top);
+      if (p[0] < V.u[0] || p[0] > V.u[1] || p[1] < V.v[0] || p[1] > V.v[1]) return;
+      preS.set("none", false);
+      setXY(uv602xy(p));
+    }
+    canvas.addEventListener("pointerdown", (e) => { drag = true; canvas.setPointerCapture(e.pointerId); pick(e); });
+    canvas.addEventListener("pointermove", (e) => { if (drag) pick(e); });
+    canvas.addEventListener("pointerup", () => { drag = false; });
+    canvas.addEventListener("pointercancel", () => { drag = false; });
+  })();
+
+  /* ------------------------------------------------ sim 2: 흑체 vs 주광 */
+  (function () {
+    const tS = CB.range("bd-t", (v) => fmtT(tlog(v, 4000, 25000)), () => { pre.set("none", false); cv.redraw(); });
+    const pre = CB.seg("bd-pre", (v) => { if (v !== "none") { lerpRange(tS, ilog(+v, 4000, 25000)); document.getElementById("bd-t-out").textContent = fmtT(+v); cv.redraw(); } });
+    const T = () => { const p = pre(); return p !== "none" ? +p : tlog(tS(), 4000, 25000); };
+    const cv = CB.canvas(document.getElementById("cv-bd"), (ctx, w, h) => {
+      const P = CB.palette(), t = T();
+      const dl = CB.daylight(t), k = 100 / dl(560);
+      const bbD = [], dlD = [];
+      for (let l = 380; l <= 780; l += 5) { bbD.push([l, CB.blackbody(l, t)]); dlD.push([l, dl(l) * k]); }
+      const ymax = Math.ceil(Math.max(...bbD.map((p) => p[1]), ...dlD.map((p) => p[1])) / 20) * 20 + 10;
+      const box = { x: 54, y: 14, w: w - 70, h: h - 14 - 46 - 46 };
+      CB.chart(ctx, box, { x: [380, 780], y: [0, ymax], xLabel: "파장 (nm)", yLabel: "상대 분포 (560 nm = 100)", series: [{ data: bbD, color: P.accent, width: 2.2 }, { data: dlD, color: P.accent2, width: 2, dash: [6, 3] }] });
+      const xyB = CB.planckXY(t), xyD = CB.daylightXY(t);
+      const sy = h - 36, sw = Math.min(150, (w - 80) / 2);
+      [[xyB, "흑체", P.accent], [xyD, "CIE 주광", P.accent2]].forEach(([xy, name, c], i) => {
+        const x0 = 54 + i * (sw + 20);
+        ctx.fillStyle = CB.rgb8css(CB.xy2display(xy)); ctx.fillRect(x0, sy, sw, 26);
+        ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.strokeRect(x0, sy, sw, 26);
+        ctx.fillStyle = "#222"; ctx.font = font(11); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(name, x0 + sw / 2, sy + 13);
+      });
+      const r = cctDuv(xyD), a = CB.xy2uv(xyB), b = CB.xy2uv(xyD);
+      CB.stat("o2-bb", xyB[0].toFixed(4) + ", " + xyB[1].toFixed(4));
+      CB.stat("o2-dl", xyD[0].toFixed(4) + ", " + xyD[1].toFixed(4));
+      CB.stat("o2-cct", fmtT(r.T));
+      CB.stat("o2-duv", sgn(r.duv));
+      CB.stat("o2-duv2", Math.hypot(a[0] - b[0], a[1] - b[1]).toFixed(4));
+    }, { aspect: 0.62, maxHeight: 440, minHeight: 300 });
+    lerpRange(tS, ilog(6504, 4000, 25000)); document.getElementById("bd-t-out").textContent = fmtT(6504); cv.redraw();
+  })();
+
+  /* ------------------------------------------------ sim 3: 색순응 TCS 14색 */
+  (function () {
+    const src = CB.seg("a-src", () => run());
+    const tS = CB.range("a-t", (v) => v + " K", () => run());
+    const mS = CB.seg("a-m", () => run());
+    let st = null;
+    function ill() {
+      const k = src(), T = tS();
+      if (k === "bb") return (l) => CB.blackbody(l, T);
+      if (k === "dl") return CB.daylight(Math.max(4000, T));
+      return CB.illum(k);
+    }
+    function run() {
+      const I = ill(), r = adaptAll(I, mS());
+      const Ws = r.Ws;
+      const de = r.out.map((X, i) => CB.dE2000(CB.XYZ2Lab(X, WD65), REFLAB[i]));
+      const raw = r.Xs.map((X, i) => CB.dE2000(CB.XYZ2Lab(X, WD65), REFLAB[i]));
+      st = { r, de };
+      const c = cctDuv(CB.XYZ2xy(Ws));
+      CB.stat("o3-src", fmtT(c.T) + " <small>" + sgn(c.duv) + "</small>");
+      CB.stat("o3-raw", mean(raw).toFixed(2));
+      CB.stat("o3-mean", mean(de).toFixed(2));
+      const wi = de.indexOf(Math.max(...de));
+      CB.stat("o3-worst", de[wi].toFixed(2) + ` <small>TCS${String(wi + 1).padStart(2, "0")}</small>`);
+      document.getElementById("a-t").disabled = !(src() === "bb" || src() === "dl");
+      cv.redraw();
+    }
+    const cv = CB.canvas(document.getElementById("cv-cat"), (ctx, w, h) => {
+      if (!st) return;
+      const P = CB.palette(), cols = w < 520 ? 4 : 7, rows = Math.ceil(14 / cols), gap = 8;
+      const tw = (w - 16 - (cols - 1) * gap) / cols;
+      const th = Math.min(tw * 0.85, (h - 30) / rows - 22);
+      ctx.font = font(10); ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText("왼쪽: 순응 없음 · 가운데: " + MNAME[mS()] + " · 오른쪽: D65 실측", 8, 6);
+      for (let i = 0; i < 14; i++) {
+        const cx = 8 + (i % cols) * (tw + gap), cy = 26 + Math.floor(i / cols) * (th + 22);
+        const parts = [st.r.Xs[i], st.r.out[i], REF[i]];
+        parts.forEach((X, k) => { ctx.fillStyle = CB.XYZ2css(X); ctx.fillRect(cx + (k * tw) / 3, cy, tw / 3 + 0.5, th); });
+        ctx.strokeStyle = P.border; ctx.strokeRect(cx, cy, tw, th);
+        ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.fillText(String(i + 1).padStart(2, "0") + "  ΔE " + st.de[i].toFixed(1), cx + tw / 2, cy + th + 4);
+      }
+    }, { aspect: 0.5, minHeight: 330, maxHeight: 420 });
+    run();
+  })();
+
+  /* ------------------------------------------------ sim 4: 방법 비교 */
+  (function () {
+    const srcS = CB.seg("m-src", () => run()), refS = CB.seg("m-ref", () => run());
+    const cache = {};
+    let res = null;
+    function compute(name) {
+      if (cache[name]) return cache[name];
+      const I = ILL(name), labs = {};
+      METHODS.forEach((m) => { labs[m] = adaptAll(I, m).out.map((X) => CB.XYZ2Lab(X, WD65)); });
+      return (cache[name] = { labs, Ws: CB.spd2XYZ(I) });
+    }
+    function run() {
+      const c = compute(srcS()), ref = refS();
+      const de = {};
+      METHODS.forEach((m) => { de[m] = c.labs[m].map((L, i) => CB.dE2000(L, ref === "d65" ? REFLAB[i] : c.labs.bradford[i])); });
+      res = { de, ref };
+      const s = cctDuv(CB.XYZ2xy(c.Ws));
+      CB.stat("o4-src", fmtT(s.T) + " <small>" + sgn(s.duv) + "</small>");
+      const means = METHODS.map((m) => mean(de[m]));
+      const cand = METHODS.filter((m) => !(ref === "bradford" && m === "bradford"));
+      const best = cand.reduce((a, m) => (mean(de[m]) < mean(de[a]) ? m : a), cand[0]);
+      CB.stat("o4-best", MNAME[best] + ` <small>${mean(de[best]).toFixed(2)}</small>`);
+      const cm = cand.map((m) => mean(de[m]));
+      CB.stat("o4-spread", (Math.max(...cm) - Math.min(...cm)).toFixed(2));
+      let html = '<table class="num"><thead><tr><th>시료</th>' + METHODS.map((m) => `<th>${MNAME[m]}</th>`).join("") + "</tr></thead><tbody>";
+      for (let i = 0; i < 14; i++) {
+        const row = METHODS.map((m) => de[m][i]), mn = Math.min(...cand.map((m) => de[m][i]));
+        html += `<tr><td>TCS${String(i + 1).padStart(2, "0")}</td>` + row.map((v, k) => `<td${cand.includes(METHODS[k]) && v === mn ? ' class="best"' : ""}>${v.toFixed(2)}</td>`).join("") + "</tr>";
+      }
+      html += "<tr><td><b>평균</b></td>" + means.map((v) => `<td><b>${v.toFixed(2)}</b></td>`).join("") + "</tr></tbody></table>";
+      document.getElementById("m-table").innerHTML = html;
+      cv.redraw();
+    }
+    const cv = CB.canvas(document.getElementById("cv-cmp"), (ctx, w, h) => {
+      if (!res) return;
+      const P = CB.palette(), lx = 76, top = 12, bh = (h - top - 36) / METHODS.length;
+      const vmax = Math.max(1, ...METHODS.map((m) => Math.max(...res.de[m])));
+      const sx = (v) => lx + (v / (vmax * 1.08)) * (w - lx - 20);
+      ctx.font = font(11);
+      ctx.strokeStyle = P.grid; ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.textBaseline = "top";
+      const step = vmax > 10 ? 5 : vmax > 4 ? 2 : 1;
+      for (let v = 0; v <= vmax * 1.08; v += step) { ctx.beginPath(); ctx.moveTo(sx(v), top); ctx.lineTo(sx(v), h - 24); ctx.stroke(); ctx.fillText(v, sx(v), h - 20); }
+      METHODS.forEach((m, i) => {
+        const y = top + i * bh + bh * 0.2, hh = bh * 0.6, mv = mean(res.de[m]), mx = Math.max(...res.de[m]);
+        ctx.fillStyle = P.series[i % P.series.length]; ctx.fillRect(lx, y, sx(mv) - lx, hh);
+        ctx.strokeStyle = P.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(mx), y - 3); ctx.lineTo(sx(mx), y + hh + 3); ctx.stroke(); ctx.lineWidth = 1;
+        ctx.fillStyle = P.text; ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(MNAME[m], lx - 6, y + hh / 2);
+        ctx.textAlign = "left"; ctx.fillText(mv.toFixed(2), Math.min(w - 40, sx(mx) + 6), y + hh / 2);
+      });
+      ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("ΔE00", w - 6, h - 2);
+    }, { aspect: 0.5, minHeight: 240, maxHeight: 320 });
+    run();
+  })();
+
+  /* ------------------------------------------------ sim 5: 불완전 순응 D */
+  (function () {
+    const auto = document.getElementById("d-auto");
+    const laS = CB.range("d-la", (v) => CB.fmt(Math.pow(10, v / 100), 3) + " cd/m²", () => run());
+    const fS = CB.seg("d-f", () => run());
+    const dS = CB.range("d-d", (v) => (v / 100).toFixed(2), () => { auto.checked = false; run(); });
+    auto.addEventListener("change", () => run());
+    const Ws = CB.spd2XYZ(CB.illuminantA), XsA = tcsXYZ(CB.illuminantA), M = CAT.cat02;
+    const full = XsA.map((X) => CB.mat.vec(catMatrix(M, Ws, WD65, 1), X));
+    const fullLab = full.map((X) => CB.XYZ2Lab(X, WD65));
+    const path = [];
+    for (let d = 0; d <= 1.0001; d += 0.02) path.push(uv60(CB.XYZ2xy(CB.mat.vec(catMatrix(M, Ws, WD65, d), Ws))));
+    let st = null;
+    function run() {
+      let D = auto.checked ? Dciecam(Math.pow(10, laS() / 100), +fS()) : dS() / 100;
+      if (auto.checked) { lerpRange(dS, Math.round(D * 100)); document.getElementById("d-d-out").textContent = D.toFixed(2); }
+      const A = catMatrix(M, Ws, WD65, D);
+      const out = XsA.map((X) => CB.mat.vec(A, X)), w = CB.XYZ2xy(CB.mat.vec(A, Ws));
+      st = { D, out, w };
+      const r = cctDuv(w);
+      CB.stat("o5-d", D.toFixed(3));
+      CB.stat("o5-xy", w[0].toFixed(4) + ", " + w[1].toFixed(4));
+      CB.stat("o5-cct", fmtT(r.T) + " <small>" + sgn(r.duv) + "</small>");
+      CB.stat("o5-de", mean(out.map((X, i) => CB.dE2000(CB.XYZ2Lab(X, WD65), fullLab[i]))).toFixed(2));
+      cv.redraw();
+    }
+    const cv = CB.canvas(document.getElementById("cv-deg"), (ctx, w, h) => {
+      if (!st) return;
+      const P = CB.palette(), narrow = w < 560;
+      const pw = narrow ? w : w * 0.48, ph = narrow ? h * 0.52 : h;
+      const R = { u: [0.17, 0.27], v: [0.29, 0.37] };
+      const s = Math.min((pw - 50) / (R.u[1] - R.u[0]), (ph - 30) / (R.v[1] - R.v[0]));
+      const ox = 40, oy = 8, X = (u) => ox + (u - R.u[0]) * s, Y = (v) => oy + (R.v[1] - v) * s;
+      ctx.strokeStyle = P.axis; ctx.strokeRect(ox, oy, (R.u[1] - R.u[0]) * s, (R.v[1] - R.v[0]) * s);
+      ctx.font = font(10); ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.textBaseline = "top";
+      [0.18, 0.22, 0.26].forEach((u) => ctx.fillText(u.toFixed(2), X(u), oy + (R.v[1] - R.v[0]) * s + 3));
+      ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      [0.3, 0.32, 0.34, 0.36].forEach((v) => ctx.fillText(v.toFixed(2), ox - 3, Y(v)));
+      ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, (R.u[1] - R.u[0]) * s, (R.v[1] - R.v[0]) * s); ctx.clip();
+      ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.beginPath();
+      for (let T = 2500, f = true; T <= 9000; T *= 1.02, f = false) { const p = locUV(T); f ? ctx.moveTo(X(p[0]), Y(p[1])) : ctx.lineTo(X(p[0]), Y(p[1])); }
+      ctx.stroke();
+      ctx.strokeStyle = P.text; ctx.setLineDash([3, 3]); ctx.lineWidth = 1.2; ctx.beginPath();
+      path.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])))); ctx.stroke(); ctx.setLineDash([]);
+      const lab = (p, t, c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 4, 0, 7); ctx.fill(); ctx.fillStyle = P.text; ctx.textAlign = "left"; ctx.textBaseline = "bottom"; ctx.fillText(t, X(p[0]) + 6, Y(p[1]) - 3); };
+      lab(path[0], "A (D=0)", P.dim); lab(path[path.length - 1], "D65 (D=1)", P.dim);
+      const cur = uv60(st.w);
+      ctx.fillStyle = CB.rgb8css(CB.xy2display(st.w)); ctx.strokeStyle = P.text; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(X(cur[0]), Y(cur[1]), 7, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("1960 uv", ox + 4, oy + 4);
+      const sx0 = narrow ? 10 : pw + 10, sy0 = narrow ? ph + 10 : 20, sW = (narrow ? w - 20 : w - pw - 20), cw = sW / 8;
+      const ch = Math.min(cw, ((narrow ? h - ph : h) - 70) / 2);
+      ctx.textAlign = "left"; ctx.textBaseline = "bottom"; ctx.fillStyle = P.dim;
+      ctx.fillText("D = 1 (완전 순응)", sx0, sy0 + 14);
+      ctx.fillText("D = " + st.D.toFixed(2), sx0, sy0 + 34 + ch + 14);
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = CB.XYZ2css(full[i]); ctx.fillRect(sx0 + i * cw, sy0 + 18, cw - 3, ch);
+        ctx.fillStyle = CB.XYZ2css(st.out[i]); ctx.fillRect(sx0 + i * cw, sy0 + 38 + ch, cw - 3, ch);
+      }
+    }, { aspect: 0.5, minHeight: 340, maxHeight: 420 });
+    run();
+  })();
+
+  /* ------------------------------------------------ sim 6: 야간 모드 */
+  (function () {
+    const tS = CB.range("n-t", (v) => v + " K", () => run());
+    const spS = CB.seg("n-sp", () => run());
+    let st = null;
+    function run() {
+      const T = tS(), xy = CB.planckXY(T);
+      const Mi = spS() === "p3" ? CB.mat.inv(CB.rgb2xyzMatrix(CB.SPACES.p3)) : CB.M_SRGB_INV;
+      const lin = CB.mat.vec(Mi, CB.xy2XYZ(xy, 1)), mx = Math.max(...lin);
+      const g = lin.map((v) => Math.max(0, v / mx)), neg = lin.some((v) => v < -1e-4);
+      const Y = 1 / mx, codes = g.map((v) => Math.round(255 * CB.srgbEncode(v)));
+      st = { g, Y, xy, neg };
+      CB.stat("o6-g", g.map((v) => v.toFixed(3)).join(", ") + (neg ? " <small>클리핑</small>" : ""));
+      CB.stat("o6-code", codes.join(", "));
+      CB.stat("o6-y", (Y * 100).toFixed(1) + " %");
+      CB.stat("o6-xy", xy[0].toFixed(4) + ", " + xy[1].toFixed(4) + " <small>" + sgn(cctDuv(xy).duv) + "</small>");
+      cv.redraw();
+    }
+    const cv = CB.canvas(document.getElementById("cv-night"), (ctx, w, h) => {
+      if (!st) return;
+      const P = CB.palette(), half = w * 0.5, base = h - 34, top = 20, bw = Math.min(56, (half - 60) / 3 - 10);
+      ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(40, top); ctx.lineTo(40, base); ctx.lineTo(half - 10, base); ctx.stroke();
+      ctx.font = font(10); ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      [0, 0.5, 1].forEach((v) => { const y = base - v * (base - top); ctx.fillText(v.toFixed(1), 36, y); ctx.strokeStyle = P.grid; ctx.beginPath(); ctx.moveTo(41, y); ctx.lineTo(half - 10, y); ctx.stroke(); });
+      const cols = ["#e0443e", "#2fb34f", "#3b6cf0"];
+      st.g.forEach((v, i) => {
+        const x = 54 + i * (bw + 14);
+        ctx.fillStyle = cols[i]; ctx.fillRect(x, base - v * (base - top), bw, v * (base - top));
+        ctx.fillStyle = P.text; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText("RGB"[i] + " " + v.toFixed(2), x + bw / 2, base + 6);
+      });
+      const sw = Math.min(half - 30, h - 70), sx = half + 10, sy = 24;
+      ctx.fillStyle = CB.XYZ2css(CB.whiteXYZ("D65", 1)); ctx.fillRect(sx, sy, sw / 2, sw);
+      ctx.fillStyle = CB.XYZ2css(CB.xy2XYZ(st.xy, st.Y)); ctx.fillRect(sx + sw / 2, sy, sw / 2, sw);
+      ctx.strokeStyle = P.border; ctx.strokeRect(sx, sy, sw, sw);
+      ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.fillText("원래 D65", sx + sw / 4, sy + sw + 6); ctx.fillText("목표 " + tS() + " K", sx + (3 * sw) / 4, sy + sw + 6);
+    }, { aspect: 0.48, minHeight: 240, maxHeight: 340 });
+    run();
+  })();
+})();
+
+</script>
+</body>
+</html>

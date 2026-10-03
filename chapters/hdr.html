@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>HDR과 광색역 영상 · ColorBook</title>
+<meta name="description" content="SDR의 상대 휘도에서 HDR의 절대 휘도로: PQ(ST 2084)와 HLG 전달 함수, 양자화와 대비 감도, BT.2100과 ICtCp, 톤 매핑과 색상 보존, HDR 메타데이터, 203 nit 기준 백색을 계산으로 다룬다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/hdr.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="HDR과 광색역 영상 · ColorBook">
+<meta property="og:description" content="SDR의 상대 휘도에서 HDR의 절대 휘도로: PQ(ST 2084)와 HLG 전달 함수, 양자화와 대비 감도, BT.2100과 ICtCp, 톤 매핑과 색상 보존, HDR 메타데이터, 203 nit 기준 백색을 계산으로 다룬다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/hdr.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"HDR과 광색역 영상","name":"HDR과 광색역 영상 · ColorBook","url":"https://colorbook.euiyun.com/chapters/hdr.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/hdr.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":14,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"SDR의 상대 휘도에서 HDR의 절대 휘도로: PQ(ST 2084)와 HLG 전달 함수, 양자화와 대비 감도, BT.2100과 ICtCp, 톤 매핑과 색상 보존, HDR 메타데이터, 203 nit 기준 백색을 계산으로 다룬다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"14 HDR과 광색역 영상","item":"https://colorbook.euiyun.com/chapters/hdr.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sim-view canvas { touch-action: pan-y; }
+  .sim-view canvas + canvas { margin-top: 8px; }
+  .lg-dash { display:inline-block; width:18px; height:0; border-top:2px dashed var(--text-dim); vertical-align:middle; margin-right:4px; }
+</style>
+</head>
+<body data-chapter="hdr">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 14</div>
+    <h1>HDR과 광색역 영상</h1>
+    <p class="lead">SDR 영상의 코드값 255는 "그 화면이 낼 수 있는 가장 밝은 흰색"이라는 상대적인 약속이었다. HDR 영상의 PQ 코드값은 다르다. 10비트 코드 769는 어느 화면에서든 1,000 cd/m²를 뜻한다. 신호가 절대 휘도를 실어 나르기 시작하면서 전달 함수는 인간 시각의 대비 감도에 맞춰 다시 설계되었고, 화면이 그 휘도를 다 내지 못할 때 어떻게 줄일지(톤 매핑)가 새로운 공학 문제가 되었다.</p>
+    <ul class="objectives">
+      <li>SDR(BT.1886)의 상대 휘도 인코딩과 HDR(PQ)의 절대 휘도 인코딩을 구분하고, 장면·디스플레이의 휘도 범위를 수치로 말한다.</li>
+      <li>SMPTE ST 2084 PQ의 EOTF와 역함수를 정확한 상수로 계산하고, 비트 깊이별 코드 간격(ΔL/L)을 대비 임계와 비교한다.</li>
+      <li>HLG(ARIB STD-B67, BT.2100)의 장면 기준 OETF와 시스템 감마 \( \gamma = 1.2 + 0.42\log_{10}(L_W/1000) \)를 계산한다.</li>
+      <li>BT.2100의 ICtCp 변환과 ΔE<sub>ITP</sub>(BT.2124)를 구현하고, 10비트 PQ 한 코드의 색차를 구한다.</li>
+      <li>Reinhard·필름형·BT.2390 EETF 톤 커브를 비교하고, 채널별 톤 매핑이 만드는 색상 이동을 색도도 위에서 확인한다.</li>
+      <li>정적·동적 HDR 메타데이터(ST 2086, MaxCLL/MaxFALL, ST 2094)와 SDR↔HDR 변환의 기준 백색 203 cd/m²를 설명한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="absolute">
+    <h2>상대 휘도에서 절대 휘도로</h2>
+    <p><a href="transfer.html">6장</a>에서 본 SDR 영상의 전달 함수는 <strong>상대적</strong>이다. ITU-R BT.1886은 기준 디스플레이의 EOTF를 \( L = a\,\max(V+b,0)^{2.4} \)로 정의하는데, 계수 \(a, b\)는 그 디스플레이의 백색 휘도 \(L_W\)와 흑 휘도 \(L_B\)로부터 정해진다. 신호 \(V=1\)은 "100 cd/m²"가 아니라 "이 화면의 백색"이다. 마스터링 기준 환경(어두운 방, 약 100 cd/m²의 기준 모니터)이 관례로 정해져 있을 뿐, 소비자가 300 cd/m² 모니터로 보면 영상 전체가 세 배 밝아진다. 비율(대비)만 보존되고 절대 밝기는 화면이 정한다.</p>
+    <div class="formula">$$L = a\,\bigl[\max(V+b,\,0)\bigr]^{2.4},\qquad a = \bigl(L_W^{1/2.4}-L_B^{1/2.4}\bigr)^{2.4},\quad b = \frac{L_B^{1/2.4}}{L_W^{1/2.4}-L_B^{1/2.4}}$$
+      <div class="where">BT.1886 EOTF. \(V\): 정규화 신호(0–1), \(L\): 화면 휘도(cd/m²). \(L_B = 0\)이면 \(L = L_W V^{2.4}\)인 순수 거듭제곱이 된다.</div>
+    </div>
+    <p>이 방식은 화면의 밝기 범위가 대략 0.1–300 cd/m²로 비슷하던 시절에는 문제가 없었다. 그러나 실제 장면의 휘도는 훨씬 넓다. 아래 그림은 장면과 디스플레이의 휘도를 한 로그 축에 놓은 것이다. 장면 값은 조건에 따라 한두 자릿수씩 달라지는 <strong>개략적인 크기</strong>로만 읽어야 한다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 330" role="img" aria-label="장면 휘도와 디스플레이 휘도 범위를 로그 축에 나타낸 그림">
+        <defs>
+          <marker id="h-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <!-- axis: 1e-4 (x=60) .. 1e6 (x=760), 70 px / decade -->
+        <line x1="60" y1="70" x2="770" y2="70" class="s-axis" marker-end="url(#h-ar)"/>
+        <g class="t-mono" font-size="11" text-anchor="middle">
+          <text x="60" y="58">10⁻⁴</text><text x="130" y="58">10⁻³</text><text x="200" y="58">10⁻²</text><text x="270" y="58">10⁻¹</text><text x="340" y="58">1</text><text x="410" y="58">10</text><text x="480" y="58">10²</text><text x="550" y="58">10³</text><text x="620" y="58">10⁴</text><text x="690" y="58">10⁵</text><text x="760" y="58">10⁶</text>
+        </g>
+        <g class="s-axis"><line x1="60" y1="66" x2="60" y2="74"/><line x1="130" y1="66" x2="130" y2="74"/><line x1="200" y1="66" x2="200" y2="74"/><line x1="270" y1="66" x2="270" y2="74"/><line x1="340" y1="66" x2="340" y2="74"/><line x1="410" y1="66" x2="410" y2="74"/><line x1="480" y1="66" x2="480" y2="74"/><line x1="550" y1="66" x2="550" y2="74"/><line x1="620" y1="66" x2="620" y2="74"/><line x1="690" y1="66" x2="690" y2="74"/><line x1="760" y1="66" x2="760" y2="74"/></g>
+        <text x="400" y="26" text-anchor="middle" class="t">휘도 (cd/m², 로그 축)</text>
+        <!-- scene band -->
+        <text x="20" y="104" class="t-dim" font-size="12">장면</text>
+        <rect x="95" y="90" width="665" height="22" rx="5" class="f-acc-soft"/>
+        <g class="t" font-size="11" text-anchor="middle">
+          <text x="120" y="130">별빛 밤하늘</text><text x="120" y="144" class="t-dim">~10⁻³</text>
+          <text x="210" y="130">달빛 장면</text><text x="210" y="144" class="t-dim">~10⁻²</text>
+          <text x="480" y="130">실내 조명 아래</text><text x="480" y="144" class="t-dim">~10²</text>
+          <text x="592" y="130">맑은 날 야외 반사면</text><text x="592" y="144" class="t-dim">10³–10⁴</text>
+          <text x="735" y="130">눈·직사광 반사</text><text x="735" y="144" class="t-dim">10⁵ 이상</text>
+        </g>
+        <text x="772" y="104" class="t-dim" font-size="11" text-anchor="end">태양 원반 ~10⁹ →</text>
+        <!-- display bands -->
+        <text x="20" y="190" class="t-dim" font-size="12">SDR</text>
+        <rect x="270" y="177" width="210" height="18" rx="4" class="f-elev"/>
+        <rect x="480" y="177" width="33" height="18" rx="4" class="f-surface"/>
+        <text x="375" y="190" text-anchor="middle" class="t" font-size="11">0.1 – 100 (기준)</text>
+        <text x="520" y="190" class="t-dim" font-size="11">~300 (소비자)</text>
+        <text x="20" y="232" class="t-dim" font-size="12">HDR</text>
+        <rect x="179" y="219" width="373" height="18" rx="4" class="f-acc-soft"/>
+        <rect x="552" y="219" width="42" height="18" rx="4" class="f-surface"/>
+        <text x="365" y="232" text-anchor="middle" class="t" font-size="11">0.005 – 1,000 (흔한 마스터링 모니터)</text>
+        <text x="598" y="232" class="t-dim" font-size="11">~4,000</text>
+        <text x="20" y="274" class="t-dim" font-size="12">PQ</text>
+        <rect x="60" y="261" width="560" height="18" rx="4" class="f-surface" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="340" y="274" text-anchor="middle" class="t-acc" font-size="11">0 – 10,000 cd/m² 를 하나의 절대 척도로 부호화</text>
+        <line x1="501" y1="160" x2="501" y2="300" class="s-acc" stroke-dasharray="4 4"/>
+        <text x="505" y="312" class="t-acc" font-size="11">203 (HDR 기준 백색)</text>
+      </svg>
+      <figcaption><b>그림 14-1.</b> 장면 휘도와 디스플레이 휘도 범위(로그 축). 장면 값은 날씨·재질·노출 조건에 따라 크게 달라지는 개략적 크기다. SDR은 약 3자릿수, 고급 HDR 디스플레이는 5자릿수 이상을 표현하며, PQ는 0–10,000 cd/m²를 절대값으로 부호화한다.</figcaption>
+    </figure>
+
+    <p>장면은 10자릿수 이상에 걸치지만, 사람은 한 시야 안에서 그 전부를 동시에 보지 않는다. 눈은 적응 상태에 따라 한 번에 대략 4–5자릿수 정도의 범위를 구분하고, 적응을 바꿔 가며 나머지를 덮는다. HDR 영상의 목표는 장면을 그대로 재현하는 것이 아니라, <strong>밝은 하이라이트와 깊은 그림자를 SDR보다 훨씬 넓은 디스플레이 범위 안에서 의도대로 재현</strong>하는 것이다. 그러려면 "이 픽셀은 몇 cd/m²로 보여야 한다"를 신호에 담아야 하고, 그 신호는 사람 눈이 구분하는 단계보다 촘촘해야 한다. 이 두 요구에서 PQ가 나왔다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>SDR (BT.709/BT.1886)</th><th>HDR PQ (ST 2084 / BT.2100)</th><th>HDR HLG (BT.2100)</th></tr></thead>
+      <tbody>
+        <tr><td>신호의 의미</td><td>디스플레이 기준, 상대 휘도</td><td>디스플레이 기준, <strong>절대 휘도</strong></td><td>장면 기준, 상대 장면광</td></tr>
+        <tr><td>정의된 함수</td><td>EOTF(γ 2.4)</td><td>EOTF(PQ)</td><td>OETF(HLG) + OOTF(시스템 감마)</td></tr>
+        <tr><td>부호화 상한</td><td>화면 백색 = 1</td><td>10,000 cd/m²</td><td>장면광 1 = 디스플레이 피크 \(L_W\)</td></tr>
+        <tr><td>기준 백색(그래픽 백색)</td><td>100 cd/m² 관례</td><td>203 cd/m² (BT.2408)</td><td>신호 75% (1,000 cd/m² 화면에서 203 cd/m²)</td></tr>
+        <tr><td>원색</td><td>BT.709</td><td>BT.2020</td><td>BT.2020</td></tr>
+        <tr><td>비트 깊이</td><td>8 / 10</td><td>10 / 12</td><td>10 / 12</td></tr>
+        <tr><td>메타데이터</td><td>없음</td><td>정적(HDR10) 또는 동적</td><td>없음(설계상 불필요)</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout">
+      <p><b>공학자 관점 — 단위와 용어.</b> HDR 업계는 cd/m²를 흔히 "nit"이라 부른다(1 nit = 1 cd/m²). 이 장에서도 두 표기를 섞어 쓴다. "SDR 100 nit"는 기준 마스터링 관례일 뿐 BT.1886 자체에 박힌 값이 아니라는 점, 반면 PQ의 10,000 cd/m²는 SMPTE ST 2084 식에 상수로 들어 있는 절대 상한이라는 점을 구분하자.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="pq">
+    <h2>PQ: 지각 양자화 곡선</h2>
+    <p><strong>PQ</strong><span class="en">(Perceptual Quantizer)</span>는 SMPTE ST 2084로 표준화되고 ITU-R BT.2100에 포함된 EOTF다. 정규화 신호 \(E' \in [0,1]\)을 디스플레이 휘도 \(F_D \in [0, 10000]\) cd/m²로 직접 대응시킨다. 감마 곡선처럼 하나의 거듭제곱이 아니라, 유리함수를 거듭제곱으로 감싼 형태다.</p>
+    <div class="formula">$$F_D = \mathrm{EOTF}[E'] = 10000\left(\frac{\max\!\bigl(E'^{1/m_2}-c_1,\;0\bigr)}{c_2 - c_3\,E'^{1/m_2}}\right)^{1/m_1}$$
+      $$E' = \mathrm{EOTF}^{-1}[F_D] = \left(\frac{c_1 + c_2\,Y^{m_1}}{1 + c_3\,Y^{m_1}}\right)^{m_2},\qquad Y = F_D/10000$$
+      <div class="where">\( m_1 = \tfrac{2610}{16384} = 0.1593017578125,\;\; m_2 = \tfrac{2523}{4096}\times128 = 78.84375,\;\; c_1 = \tfrac{3424}{4096} = 0.8359375 = c_3 - c_2 + 1,\;\; c_2 = \tfrac{2413}{4096}\times32 = 18.8515625,\;\; c_3 = \tfrac{2392}{4096}\times32 = 18.6875 \)</div>
+    </div>
+    <p>상수들이 4096이나 16384를 분모로 갖는 것은 고정소수점 구현을 염두에 둔 것이다. \(c_1 = c_3 - c_2 + 1\)이므로 \(Y = 1\)이면 분수가 정확히 1이 되어 \(E' = 1\)이고, \(Y=0\)이면 \(E' = c_1^{m_2} \approx 7.3\times10^{-7}\)으로 사실상 0이다. 즉 코드 전 범위가 0–10,000 cd/m²에 남김없이 쓰인다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="SDR과 PQ, HLG의 신호 사슬 비교">
+        <defs>
+          <marker id="h-ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <text x="20" y="30" class="t" font-size="13">PQ — 디스플레이 기준</text>
+        <rect x="20" y="44" width="140" height="56" rx="8" class="f-surface"/><text x="90" y="68" text-anchor="middle" class="t" font-size="12">장면</text><text x="90" y="86" text-anchor="middle" class="t-dim" font-size="11">카메라·그레이딩</text>
+        <rect x="200" y="44" width="160" height="56" rx="8" class="f-elev"/><text x="280" y="68" text-anchor="middle" class="t" font-size="12">마스터링 모니터</text><text x="280" y="86" text-anchor="middle" class="t-dim" font-size="11">예: 1,000 nit, P3</text>
+        <rect x="400" y="44" width="140" height="56" rx="8" class="f-acc-soft"/><text x="470" y="68" text-anchor="middle" class="t-acc" font-size="12">PQ 신호</text><text x="470" y="86" text-anchor="middle" class="t-dim" font-size="11">= 절대 nit</text>
+        <rect x="580" y="44" width="200" height="56" rx="8" class="f-surface"/><text x="680" y="68" text-anchor="middle" class="t" font-size="12">디스플레이 EOTF</text><text x="680" y="86" text-anchor="middle" class="t-dim" font-size="11">능력 밖이면 톤 매핑(EETF)</text>
+        <line x1="160" y1="72" x2="196" y2="72" class="s-line" marker-end="url(#h-ar2)"/><line x1="360" y1="72" x2="396" y2="72" class="s-line" marker-end="url(#h-ar2)"/><line x1="540" y1="72" x2="576" y2="72" class="s-line" marker-end="url(#h-ar2)"/>
+        <text x="380" y="122" text-anchor="middle" class="t-dim" font-size="11">보는 사람이 본 화면(마스터링 결과)을 그대로 nit 값으로 전송한다. OOTF는 그레이딩 단계에서 이미 적용되어 있다.</text>
+        <text x="20" y="170" class="t" font-size="13">HLG — 장면 기준</text>
+        <rect x="20" y="184" width="140" height="56" rx="8" class="f-surface"/><text x="90" y="208" text-anchor="middle" class="t" font-size="12">장면광 E</text><text x="90" y="226" text-anchor="middle" class="t-dim" font-size="11">상대값 0–1</text>
+        <rect x="200" y="184" width="160" height="56" rx="8" class="f-acc-soft"/><text x="280" y="208" text-anchor="middle" class="t-acc" font-size="12">HLG OETF</text><text x="280" y="226" text-anchor="middle" class="t-dim" font-size="11">√ + log</text>
+        <rect x="400" y="184" width="140" height="56" rx="8" class="f-elev"/><text x="470" y="208" text-anchor="middle" class="t" font-size="12">HLG 신호</text><text x="470" y="226" text-anchor="middle" class="t-dim" font-size="11">= 상대 장면광</text>
+        <rect x="580" y="184" width="200" height="56" rx="8" class="f-surface"/><text x="680" y="208" text-anchor="middle" class="t" font-size="12">OETF⁻¹ → OOTF(γ)</text><text x="680" y="226" text-anchor="middle" class="t-dim" font-size="11">γ는 화면 피크 L<tspan baseline-shift="sub" font-size="8">W</tspan>에 따라</text>
+        <line x1="160" y1="212" x2="196" y2="212" class="s-line" marker-end="url(#h-ar2)"/><line x1="360" y1="212" x2="396" y2="212" class="s-line" marker-end="url(#h-ar2)"/><line x1="540" y1="212" x2="576" y2="212" class="s-line" marker-end="url(#h-ar2)"/>
+        <text x="380" y="262" text-anchor="middle" class="t-dim" font-size="11">카메라가 본 장면광의 비율을 전송하고, 각 디스플레이가 자기 피크에 맞춰 OOTF를 적용한다.</text>
+        <text x="380" y="282" text-anchor="middle" class="t-dim" font-size="11">메타데이터 없이 1,000 nit와 500 nit 화면이 각자 알맞게 표시한다.</text>
+      </svg>
+      <figcaption><b>그림 14-2.</b> PQ와 HLG의 신호 사슬. PQ는 마스터링 화면의 휘도를 절대값으로 실어 나르고, 수신 측이 그 값을 낼 수 없을 때만 톤 매핑한다. HLG는 장면광의 상대값을 보내고 수신 측이 OOTF를 적용한다.</figcaption>
+    </figure>
+
+    <p>아래 표는 대표 휘도의 PQ 신호값이다. 10비트 "풀 레인지"는 \(\mathrm{round}(1023E')\), "리미티드 레인지"(방송·영상 파일의 일반형)는 \(\mathrm{round}(64 + 876E')\)이다(레인지 개념은 <a href="encoding.html">15장</a>). 0–100 cd/m²에 10비트 풀 레인지 코드의 절반 남짓(0–520)이 할당된다는 점이 PQ의 성격을 요약한다. 어두운 쪽을 촘촘히, 밝은 쪽을 성기게 쓴다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>휘도 (cd/m²)</th><th>PQ \(E'\)</th><th>10비트 풀</th><th>10비트 리미티드</th><th>12비트 풀</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>0.01</td><td>0.0215</td><td>22</td><td>83</td><td>88</td><td>OLED급 흑</td></tr>
+        <tr><td>0.1</td><td>0.0623</td><td>64</td><td>119</td><td>255</td><td></td></tr>
+        <tr><td>1</td><td>0.1499</td><td>153</td><td>195</td><td>614</td><td></td></tr>
+        <tr><td>10</td><td>0.2997</td><td>307</td><td>327</td><td>1227</td><td></td></tr>
+        <tr><td>100</td><td>0.5081</td><td>520</td><td>509</td><td>2081</td><td>SDR 기준 백색 관례</td></tr>
+        <tr><td>203</td><td>0.5807</td><td>594</td><td>573</td><td>2378</td><td>HDR 기준 백색(BT.2408)</td></tr>
+        <tr><td>1,000</td><td>0.7518</td><td>769</td><td>723</td><td>3079</td><td>흔한 마스터링 피크</td></tr>
+        <tr><td>4,000</td><td>0.9026</td><td>923</td><td>855</td><td>3696</td><td>고급 마스터링 피크</td></tr>
+        <tr><td>10,000</td><td>1.0000</td><td>1023</td><td>940</td><td>4095</td><td>PQ 상한</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn">
+      <p><b>흔한 실수 — PQ 코드값으로 평균 내기.</b> PQ 신호는 휘도의 강한 비선형 함수다. 1 nit(0.150)와 1,000 nit(0.752) 두 픽셀의 PQ 평균 0.451은 약 55 nit에 해당하지만, 광량 평균은 500.5 nit다. 스케일링·블러·합성·평균 휘도(MaxFALL) 계산은 반드시 EOTF로 선형 nit로 되돌린 뒤 해야 한다(<a href="transfer.html">6장</a>의 "선형광 연산" 원칙과 같다).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="quant">
+    <h2>양자화와 대비 감도: 왜 이런 곡선인가</h2>
+    <p>코드값 하나를 올렸을 때의 휘도 변화 \( \Delta L \)를 그 휘도로 나눈 <strong>Weber 비율</strong> \( \Delta L / L \)이 그 휘도에서 사람이 볼 수 있는 최소 대비(대비 임계)보다 작으면, 매끈한 그라데이션에서 계단(밴딩)이 보이지 않는다. 반대로 임계보다 크면 하늘이나 어두운 벽에 등고선 같은 띠가 생긴다.</p>
+    <div class="formula">$$\frac{\Delta L}{L}(L) = \frac{\mathrm{EOTF}\!\left(E' + \tfrac{1}{N}\right) - \mathrm{EOTF}(E')}{\mathrm{EOTF}(E')},\qquad E' = \mathrm{EOTF}^{-1}(L),\;\; N = 2^{\text{bit}}-1$$
+      <div class="where">곡선이 미분 가능하면 \( \Delta L/L \approx \dfrac{1}{N}\,\dfrac{d\ln L}{dE'} \). 즉 Weber 비율은 "로그 휘도의 기울기"를 코드 수로 나눈 것이다.</div>
+    </div>
+    <p>이 식에서 곡선 설계의 세 가지 극단이 보인다.</p>
+    <ul>
+      <li><strong>순수 로그</strong> \( E' \propto \log L \): \( d\ln L/dE' \)가 상수이므로 모든 휘도에서 \(\Delta L/L\)이 같다. 0.001–10,000 nit(7자릿수)를 10비트로 나누면 \(10^{7/1023}-1 \approx 1.59\%\)로 일정하다.</li>
+      <li><strong>거듭제곱(감마)</strong> \( E' = (L/L_{max})^{1/\gamma} \): \( \Delta L/L \approx \gamma/(N E') \)로 어두울수록 급격히 커진다. 감마 2.4를 10,000 nit까지 늘리면 밝은 쪽은 지나치게 촘촘하고 어두운 쪽은 밴딩이 심하다.</li>
+      <li><strong>대비 감도에 맞춘 곡선</strong>: 사람의 대비 임계는 밝은 곳에서는 거의 일정(Weber 영역)하고, 어두워질수록 커진다(드브리스–로즈 영역). 이 모양을 따르면 같은 비트로 가장 넓은 범위를 덮는다. PQ가 이 방식이다.</li>
+    </ul>
+    <p>PQ의 설계 동기는 Barten의 대비 감도 모델이다. 각 휘도 적응 상태에서 <em>가장 민감한 공간 주파수</em>의 대비 임계를 모아 놓은 곡선("Barten ramp")을 기준으로 삼고, 12비트 PQ의 코드 간격이 이 임계를 전 범위에서 밑돌도록 곡선을 맞추었다. 이것은 최악 조건(최적 주파수, 완전 적응, 잡음 없는 화면)의 임계라서 보수적이다. 10비트 PQ는 이 임계보다 약간 위에 놓이지만, 실제 영상은 카메라 잡음과 디더 덕분에 10비트 배포에서도 밴딩이 거의 보이지 않는다는 것이 업계 경험이다.</p>
+
+    <div class="sim" id="sim-quant">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>비트 깊이와 곡선에 따른 코드 간격 ΔL/L</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-quant"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--accent)"></i>PQ</span><span><i style="background:var(--warn)"></i>감마 2.4 (10,000 nit까지 확장)</span><span><i style="background:var(--ok)"></i>순수 로그 (10⁻³–10⁴)</span><span><i style="background:var(--accent-2)"></i>SDR 감마 2.4 (100 nit)</span><span><span class="lg-dash"></span>개략적 대비 임계</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>비트 깊이</span><div class="seg" id="q-bits"><button data-value="8">8 bit</button><button data-value="10" class="on">10 bit</button><button data-value="12">12 bit</button></div></div>
+          <label class="check"><input type="checkbox" id="q-pq" checked> PQ</label>
+          <label class="check"><input type="checkbox" id="q-g24" checked> 감마 2.4 → 10,000 nit</label>
+          <label class="check"><input type="checkbox" id="q-log" checked> 순수 로그</label>
+          <label class="check"><input type="checkbox" id="q-sdr"> SDR 감마 2.4 (100 nit)</label>
+          <label class="ctrl"><span>조사 휘도 <output id="q-l-out"></output></span><input type="range" id="q-l" min="0" max="1000" value="714" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">조사 휘도에서 ΔL/L (PQ · γ2.4 · log)</span><span class="v" id="o-q-at">—</span></div>
+        <div class="stat"><span class="k">개략적 임계</span><span class="v" id="o-q-th">—</span></div>
+        <div class="stat"><span class="k">임계 아래인 구간 비율 0.01–1,000 nit (PQ · γ2.4 · log)</span><span class="v" id="o-q-ok">—</span></div>
+        <div class="stat"><span class="k">0–100 nit에 쓰인 코드 수 (PQ · γ2.4 · log)</span><span class="v" id="o-q-codes">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 12비트로 바꾸면 PQ 곡선이 임계선 바로 아래로 내려온다 — PQ가 그렇게 맞춰 설계되었다. ② 감마 2.4를 10,000 nit로 늘린 곡선은 1 nit 아래에서 10비트로도 ΔL/L이 10%를 넘는다. ③ 순수 로그는 평평하지만 밝은 영역에서 PQ보다 성기다. ④ 8비트 PQ는 어디서나 임계를 크게 넘는다 — HDR 배포가 최소 10비트인 이유다. 점선 임계는 Barten 모델을 직접 계산한 것이 아니라, 밝은 곳에서 약 0.25%로 평탄하고 어두울수록 오르는 경향을 \(T(L)=0.25\%\,[1+(1.2/L)^{0.45}]\)로 흉내 낸 <strong>개략적 교육용 근사</strong>다.</div>
+    </div>
+
+    <p>시뮬레이터에서 100 nit의 값을 읽어 보면, 10비트 PQ의 코드 간격은 약 0.98%, 12비트는 0.24%다. 같은 10비트라도 감마 2.4를 10,000 nit까지 늘린 곡선은 100 nit에서 1.6%, 1 nit에서 11%로, 어두운 영역이 PQ보다 5배 이상 성기다. 반대로 5,000 nit에서는 감마 곡선이 0.31%로 PQ(0.92%)보다 촘촘하다 — 아무도 구분하지 못하는 밝은 쪽 차이에 코드를 낭비하는 셈이다.</p>
+    <div class="callout tip">
+      <p><b>공학자 관점 — 파이프라인의 비트 깊이.</b> 배포는 10비트 PQ로 충분하지만, 그레이딩·합성·톤 매핑 같은 중간 처리는 부동소수점(half float 이상)이나 12비트 이상에서 하는 것이 원칙이다. 10비트 PQ 신호에 게인이나 커브를 적용하고 다시 10비트로 양자화하면 코드 간격이 벌어진 구간에서 밴딩이 드러난다. 디스플레이 쪽 패널 구동도 10비트 + FRC/디더링을 흔히 쓴다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="hlg">
+    <h2>HLG: 장면 기준 하이브리드 로그-감마</h2>
+    <p><strong>HLG</strong><span class="en">(Hybrid Log-Gamma)</span>는 NHK와 BBC가 방송용으로 설계해 ARIB STD-B67로 먼저 표준화되었고, BT.2100에 PQ와 함께 들어갔다. PQ와 철학이 반대다. 신호가 나타내는 것은 디스플레이 휘도가 아니라 <strong>카메라가 본 장면광의 상대값</strong> \(E \in [0,1]\)이며, 정의의 중심은 OETF다.</p>
+    <div class="formula">$$E' = \mathrm{OETF}[E] = \begin{cases} \sqrt{3E}, & 0 \le E \le \tfrac{1}{12} \\[4pt] a\,\ln(12E - b) + c, & \tfrac{1}{12} \lt E \le 1 \end{cases}$$
+      <div class="where">\( a = 0.17883277,\;\; b = 1 - 4a = 0.28466892,\;\; c = 0.5 - a\ln(4a) = 0.55991073 \). 경계 \(E = 1/12\)에서 두 식은 값(\(E'=0.5\))과 기울기가 모두 이어지고, \(E = 1\)에서 \(E' = 1\)이 된다.</div>
+    </div>
+    <p>아래쪽 절반의 신호(\(E' \le 0.5\))는 제곱근, 즉 감마 2에 해당하는 전통적인 카메라 곡선과 거의 같다. 그래서 HLG 신호를 BT.2020 원색의 SDR 디스플레이에 그대로 넣어도 중간톤까지는 그럴듯한 영상이 나온다(<strong>SDR 호환성</strong>). 위쪽 절반은 로그로 바뀌어 하이라이트를 압축한다. 로그 구간의 Weber 비율은 일정하므로, 밝은 영역에서도 코드가 효율적으로 쓰인다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 310" role="img" aria-label="HLG OETF 곡선: 제곱근 구간과 로그 구간">
+        <rect x="70" y="30" width="400" height="240" class="f-surface"/>
+        <g class="s-axis"><line x1="70" y1="270" x2="470" y2="270"/><line x1="70" y1="30" x2="70" y2="270"/></g>
+        <g stroke="var(--grid)" stroke-width="1"><line x1="70" y1="150" x2="470" y2="150"/><line x1="103.3" y1="30" x2="103.3" y2="270"/><line x1="70" y1="90" x2="470" y2="90"/></g>
+        <path d="M70.0 270.0L73.3 232.1L76.7 216.3L80.0 204.3L83.3 194.1L86.7 185.1L90.0 177.0L93.3 169.6L96.7 162.7L100.0 156.2L103.3 150.0L106.7 144.1L110.0 138.5L113.3 133.2L116.7 128.0L120.0 123.0L123.3 118.2L126.7 113.5L130.0 109.0L133.3 104.6L136.7 100.3L140.0 96.1L143.3 92.0L146.7 88.0L150.0 84.1L153.3 80.3L156.7 76.5L160.0 72.8L163.3 69.2L166.7 65.6L170.0 62.2L173.3 58.7L176.7 55.3L180.0 52.0L183.3 48.7L186.7 45.5L190.0 42.3L193.3 39.2L196.7 36.1L200.0 33.0L203.3 30.0" fill="none" stroke="var(--text-dim)" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <path d="M70.0 270.0L73.3 232.1L76.7 216.3L80.0 204.3L83.3 194.1L86.7 185.1L90.0 177.0L93.3 169.6L96.7 162.7L100.0 156.2L103.3 150.0L106.7 144.4L110.0 139.4L113.3 135.0L116.7 130.9L120.0 127.3L123.3 123.9L126.7 120.7L130.0 117.8L133.3 115.0L136.7 112.5L140.0 110.0L143.3 107.7L146.7 105.5L150.0 103.5L153.3 101.5L156.7 99.6L160.0 97.8L163.3 96.0L166.7 94.4L170.0 92.7L173.3 91.2L176.7 89.7L180.0 88.3L183.3 86.9L186.7 85.5L190.0 84.2L193.3 82.9L196.7 81.7L200.0 80.5L203.3 79.3L206.7 78.2L210.0 77.0L213.3 76.0L216.7 74.9L220.0 73.9L223.3 72.9L226.7 71.9L230.0 70.9L233.3 70.0L236.7 69.1L240.0 68.2L243.3 67.3L246.7 66.4L250.0 65.6L253.3 64.7L256.7 63.9L260.0 63.1L263.3 62.3L266.7 61.6L270.0 60.8L273.3 60.1L276.7 59.3L280.0 58.6L283.3 57.9L286.7 57.2L290.0 56.5L293.3 55.8L296.7 55.2L300.0 54.5L303.3 53.9L306.7 53.3L310.0 52.6L313.3 52.0L316.7 51.4L320.0 50.8L323.3 50.2L326.7 49.6L330.0 49.1L333.3 48.5L336.7 47.9L340.0 47.4L343.3 46.8L346.7 46.3L350.0 45.8L353.3 45.2L356.7 44.7L360.0 44.2L363.3 43.7L366.7 43.2L370.0 42.7L373.3 42.2L376.7 41.7L380.0 41.2L383.3 40.8L386.7 40.3L390.0 39.8L393.3 39.4L396.7 38.9L400.0 38.5L403.3 38.0L406.7 37.6L410.0 37.2L413.3 36.7L416.7 36.3L420.0 35.9L423.3 35.5L426.7 35.0L430.0 34.6L433.3 34.2L436.7 33.8L440.0 33.4L443.3 33.0L446.7 32.6L450.0 32.3L453.3 31.9L456.7 31.5L460.0 31.1L463.3 30.7L466.7 30.4L470.0 30.0" fill="none" stroke="var(--accent)" stroke-width="2.6"/>
+        <circle cx="103.3" cy="150" r="4.5" fill="var(--accent)"/>
+        <g class="t-mono" font-size="11"><text x="70" y="288" text-anchor="middle">0</text><text x="103.3" y="288" text-anchor="middle">1/12</text><text x="470" y="288" text-anchor="middle">1</text><text x="62" y="274" text-anchor="end">0</text><text x="62" y="154" text-anchor="end">0.5</text><text x="62" y="94" text-anchor="end">0.75</text><text x="62" y="34" text-anchor="end">1</text></g>
+        <text x="270" y="305" text-anchor="middle" class="t-dim" font-size="12">장면광 E (상대값)</text>
+        <text x="20" y="20" class="t-dim" font-size="12">신호 E′</text>
+        <text x="112" y="166" class="t-acc" font-size="11">경계 (1/12, 0.5)</text>
+        <text x="215" y="25" class="t-dim" font-size="11">√(3E) 연장 (점선)</text>
+        <text x="300" y="72" class="t-acc" font-size="12">로그 구간: a·ln(12E−b)+c</text>
+        <text x="140" y="200" class="t-acc" font-size="12">제곱근 구간 ≈ 감마 2</text>
+        <g font-size="12">
+          <text x="500" y="60" class="t">• 하위 절반 신호 = 전통적 카메라 감마</text>
+          <text x="514" y="80" class="t-dim">→ SDR 화면에서도 중간톤까지 자연스럽다</text>
+          <text x="500" y="115" class="t">• 상위 절반 = 로그 압축</text>
+          <text x="514" y="135" class="t-dim">→ 하이라이트(장면광 1/12–1)를 담는다</text>
+          <text x="500" y="170" class="t">• E′ = 0.75: 기준 백색(그래픽 백색)</text>
+          <text x="514" y="190" class="t-dim">→ 1,000 nit 화면에서 203 cd/m²</text>
+          <text x="500" y="225" class="t">• 신호가 nit를 정하지 않는다</text>
+          <text x="514" y="245" class="t-dim">→ 화면이 OOTF로 결정</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 14-3.</b> HLG OETF. \(E \le 1/12\)에서는 \(\sqrt{3E}\)(점선과 일치), 그 위에서는 로그 곡선으로 갈라져 하이라이트를 압축한다. 장면광의 12분의 1까지가 신호 범위의 절반을 차지한다.</figcaption>
+    </figure>
+
+    <p>HLG에서 디스플레이 휘도는 OETF의 역함수로 장면광을 되찾은 뒤, 디스플레이가 <strong>OOTF</strong><span class="en">(Opto-Optical Transfer Function)</span>를 적용해 정한다. BT.2100의 OOTF는 장면 휘도 \(Y_S\)에 시스템 감마를 걸고 그 비율을 세 채널에 똑같이 곱한다. 채널별로 감마를 걸지 않으므로 색도가 보존된다.</p>
+    <div class="formula">$$F_D = \alpha\, Y_S^{\,\gamma-1}\,E,\qquad Y_S = 0.2627R_S + 0.6780G_S + 0.0593B_S,\qquad \gamma = 1.2 + 0.42\,\log_{10}\!\frac{L_W}{1000}$$
+      <div class="where">\(\alpha = L_W\): 디스플레이 공칭 피크(cd/m²). \(\gamma\) 식은 \(L_W\) 400–2,000 cd/m² 범위에 대해 BT.2100이 주는 값이며, 1,000 cd/m²에서 1.2다. 흑 휘도 \(L_B\)가 있으면 EOTF 입력에 \(\beta = \sqrt{3(L_B/L_W)^{1/\gamma}}\)를 더해 \( \max(0,(1-\beta)E'+\beta) \)를 OETF⁻¹에 넣는다.</div>
+    </div>
+    <p>시스템 감마가 1보다 큰 이유는 <a href="appearance.html">9장</a>의 외관 효과 때문이다. 밝은 장면을 어둑한 시청 환경의 화면으로 보면 대비가 약해 보이므로(Stevens·Bartleson–Breneman 효과), 재생 쪽에서 감마를 조금 올려 보상한다. 화면이 밝을수록 필요한 보상이 커지므로 \(\gamma\)가 \(L_W\)에 따라 오른다. 실제로 신호 75%(기준 백색)를 계산하면 \(E = \mathrm{OETF}^{-1}(0.75) = 0.26497\)이고, 1,000 nit 화면에서 \(1000 \times 0.26497^{1.2} = 203.2\) cd/m², 2,000 nit 화면(\(\gamma = 1.326\))에서 343 cd/m², 400 nit 화면(\(\gamma = 1.033\))에서 102 cd/m²가 된다. 같은 신호가 화면 능력에 맞춰 다르게, 그러나 각자 자연스럽게 표시된다.</p>
+
+    <div class="sim" id="sim-eotf">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>EOTF 비교: PQ · HLG(+시스템 감마) · BT.1886</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-eotf"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--accent)"></i>PQ (ST 2084)</span><span><i style="background:var(--warn)"></i>HLG (L<sub>W</sub>, γ)</span><span><i style="background:var(--ok)"></i>BT.1886 SDR</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>신호값 E′ <output id="e-v-out"></output></span><input type="range" id="e-v" min="0" max="1" value="0.75" step="0.001"></label>
+          <label class="ctrl"><span>HLG 디스플레이 피크 L<sub>W</sub> <output id="e-hw-out"></output></span><input type="range" id="e-hw" min="400" max="2000" value="1000" step="50"></label>
+          <label class="ctrl"><span>SDR 디스플레이 백색 <output id="e-sw-out"></output></span><input type="range" id="e-sw" min="80" max="400" value="100" step="10"></label>
+          <div class="ctrl"><span>디스플레이 흑 L<sub>B</sub> (cd/m²)</span><div class="seg" id="e-lb"><button data-value="0.005">0.005</button><button data-value="0.05" class="on">0.05</button><button data-value="0.1">0.1</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">PQ 휘도</span><span class="v" id="o-e-pq">—</span></div>
+        <div class="stat"><span class="k">HLG 휘도</span><span class="v" id="o-e-hlg">—</span></div>
+        <div class="stat"><span class="k">HLG 시스템 감마 γ</span><span class="v" id="o-e-g">—</span></div>
+        <div class="stat"><span class="k">BT.1886 휘도</span><span class="v" id="o-e-sdr">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 신호를 0.58에 두면 PQ가 203 nit, 0.75에 두면 HLG(1,000 nit 화면)가 203 nit다 — 두 방식의 기준 백색 위치가 다르다. ② HLG 피크를 400 ↔ 2,000으로 움직이면 HLG 곡선 전체가 위아래로 움직이지만 PQ는 그대로다(절대 vs 상대). ③ SDR 백색을 100 → 300으로 올리면 BT.1886 곡선도 위로 평행이동한다. ④ 흑 L<sub>B</sub>를 바꾸면 어두운 쪽 꼬리가 들린다. PQ는 흑 오프셋이 신호 정의에 없다.</div>
+    </div>
+
+    <div class="callout">
+      <p><b>공학자 관점 — PQ와 HLG의 선택.</b> PQ는 마스터링 의도(절대 nit)를 정밀하게 전달하므로 영화·스트리밍(HDR10, Dolby Vision, HDR10+)에서 주류다. 대신 화면 능력이 마스터링보다 낮으면 수신기 톤 매핑에 결과가 좌우된다. HLG는 메타데이터 없이 실시간 생방송에 쓰기 쉽고 SDR 수신기 호환성이 있어 방송에서 주로 쓰인다. 두 방식 사이 변환은 BT.2100·BT.2408에 정의된 관계(HLG를 1,000 nit 기준 디스플레이로 표시한 결과를 PQ로 부호화하는 식)를 쓴다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="ictcp">
+    <h2>BT.2100과 ICtCp</h2>
+    <p>ITU-R BT.2100은 HDR 영상 시스템의 매개변수를 한데 묶은 권고다. 원색과 백색점은 BT.2020과 같고(R 0.708/0.292, G 0.170/0.797, B 0.131/0.046, D65), 전달 함수로 PQ와 HLG 두 가지를, 비트 깊이로 10·12비트를 정한다. 색차 신호로는 BT.2020과 같은 비상수 휘도 Y′C′<sub>B</sub>C′<sub>R</sub>(<a href="encoding.html">15장</a>) 외에 <strong>ICtCp</strong>를 정의한다.</p>
+    <p>Y′C′<sub>B</sub>C′<sub>R</sub>은 감마(또는 PQ) 인코딩된 R′G′B′를 섞기 때문에, 고채도·고휘도 색에서 "휘도" 성분 Y′에 색 정보가 새고 색차 신호에 휘도 정보가 샌다. 크로마 서브샘플링이나 톤 매핑 때 이 누설이 색상·밝기 오차로 나타난다. ICtCp는 순서를 바꾸어, 먼저 <strong>원추세포에 가까운 LMS</strong>로 선형 변환한 뒤 PQ(또는 HLG)를 각 성분에 적용하고, 마지막에 반대색 축으로 회전한다. 지각적으로 더 균등하고, 휘도와 색이 더 잘 분리된다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 210" role="img" aria-label="BT.2020 RGB에서 ICtCp까지 변환 단계">
+        <defs>
+          <marker id="h-ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <rect x="10" y="50" width="150" height="70" rx="8" class="f-surface"/><text x="85" y="78" text-anchor="middle" class="t" font-size="13">선형 RGB</text><text x="85" y="98" text-anchor="middle" class="t-dim" font-size="11">BT.2020, cd/m²</text>
+        <rect x="210" y="50" width="150" height="70" rx="8" class="f-elev"/><text x="285" y="78" text-anchor="middle" class="t" font-size="13">LMS</text><text x="285" y="98" text-anchor="middle" class="t-dim" font-size="11">크로스토크 포함 3×3</text>
+        <rect x="410" y="50" width="150" height="70" rx="8" class="f-acc-soft"/><text x="485" y="78" text-anchor="middle" class="t-acc" font-size="13">L′M′S′</text><text x="485" y="98" text-anchor="middle" class="t-dim" font-size="11">각 성분에 PQ⁻¹</text>
+        <rect x="610" y="50" width="180" height="70" rx="8" class="f-elev"/><text x="700" y="78" text-anchor="middle" class="t" font-size="13">I, C<tspan baseline-shift="sub" font-size="9">T</tspan>, C<tspan baseline-shift="sub" font-size="9">P</tspan></text><text x="700" y="98" text-anchor="middle" class="t-dim" font-size="11">밝기 · 청-황 · 적-녹</text>
+        <line x1="160" y1="85" x2="206" y2="85" class="s-line" marker-end="url(#h-ar3)"/><line x1="360" y1="85" x2="406" y2="85" class="s-line" marker-end="url(#h-ar3)"/><line x1="560" y1="85" x2="606" y2="85" class="s-line" marker-end="url(#h-ar3)"/>
+        <text x="183" y="40" text-anchor="middle" class="t-mono" font-size="11">M₁/4096</text>
+        <text x="383" y="40" text-anchor="middle" class="t-mono" font-size="11">비선형</text>
+        <text x="583" y="40" text-anchor="middle" class="t-mono" font-size="11">M₂/4096</text>
+        <text x="400" y="158" text-anchor="middle" class="t-dim" font-size="12">각 행렬의 행 합: M₁은 4096(백색 → L = M = S), M₂의 C<tspan baseline-shift="sub" font-size="8">T</tspan>·C<tspan baseline-shift="sub" font-size="8">P</tspan> 행은 0(무채색 → C<tspan baseline-shift="sub" font-size="8">T</tspan> = C<tspan baseline-shift="sub" font-size="8">P</tspan> = 0)</text>
+        <text x="400" y="182" text-anchor="middle" class="t-dim" font-size="12">비선형 단계가 행렬 사이에 있어 "휘도에 색이 새는" 문제가 Y′C′<tspan baseline-shift="sub" font-size="8">B</tspan>C′<tspan baseline-shift="sub" font-size="8">R</tspan>보다 작다</text>
+      </svg>
+      <figcaption><b>그림 14-4.</b> BT.2100 ICtCp 변환. 선형 BT.2020 RGB → 크로스토크가 섞인 LMS → 성분별 PQ 역EOTF → 반대색 회전. 무채색은 정확히 \(C_T = C_P = 0\)으로 가고, \(I\)는 PQ 신호값과 같아진다.</figcaption>
+    </figure>
+
+    <div class="formula">$$\begin{bmatrix}L\\M\\S\end{bmatrix} = \frac{1}{4096}\begin{bmatrix}1688 & 2146 & 262\\ 683 & 2951 & 462\\ 99 & 309 & 3688\end{bmatrix}\begin{bmatrix}R\\G\\B\end{bmatrix},\qquad L' = \mathrm{EOTF}^{-1}_{PQ}(L),\;\dots$$
+      $$\begin{bmatrix}I\\C_T\\C_P\end{bmatrix} = \frac{1}{4096}\begin{bmatrix}2048 & 2048 & 0\\ 6610 & -13613 & 7003\\ 17933 & -17390 & -543\end{bmatrix}\begin{bmatrix}L'\\M'\\S'\end{bmatrix}$$
+      <div class="where">RGB는 BT.2020 원색의 선형 휘도(cd/m²)이며 PQ 역함수 안에서 10,000으로 정규화된다. HLG용 ICtCp는 같은 LMS에 HLG OETF를 적용하고 회전 행렬 계수가 다르다(여기서는 PQ판만 다룬다).</div>
+    </div>
+    <p>ICtCp 공간에서 HDR 색차 지표 <strong>ΔE<sub>ITP</sub></strong>가 ITU-R BT.2124로 정해졌다. \(C_T\) 축은 지각 균등성을 위해 절반으로 줄여 \(T = 0.5\,C_T\), \(P = C_P\)로 쓰고, 720을 곱해 ΔE<sub>ITP</sub> = 1이 대략 한 단계의 가시 차이(JND)가 되게 맞추었다.</p>
+    <div class="formula">$$\Delta E_{ITP} = 720\sqrt{\Delta I^2 + \Delta T^2 + \Delta P^2},\qquad T = 0.5\,C_T,\;\; P = C_P$$
+      <div class="where">무채색에서 10비트 PQ 코드 하나는 \(\Delta I = 1/1023\)이므로 \(\Delta E_{ITP} = 720/1023 = 0.704\), 12비트는 0.176이다 — 앞 절의 "10비트는 임계 근처, 12비트는 충분히 아래"와 같은 결론이 색차 단위로 나온다.</div>
+    </div>
+
+    <div class="sim" id="sim-calc">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>PQ · HLG · SDR 신호 계산기와 ICtCp / ΔE<sub>ITP</sub></h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-calc"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--accent)"></i>휘도 δ% 변화의 ΔE<sub>ITP</sub> (선택 색)</span><span><i style="background:var(--warn)"></i>10비트 PQ 1코드 (무채색)</span><span><i style="background:var(--ok)"></i>12비트 PQ 1코드</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>휘도 Y <output id="c-l-out"></output></span><input type="range" id="c-l" min="0" max="1000" value="758" step="1"></label>
+          <div class="ctrl"><span>색 (BT.2020 선형 비율)</span><div class="seg" id="c-hue"><button data-value="white" class="on">무채색</button><button data-value="red">2020 R</button><button data-value="green">P3 G</button><button data-value="blue">709 B</button><button data-value="skin">피부톤</button></div></div>
+          <label class="ctrl"><span>휘도 변화 δ <output id="c-d-out"></output></span><input type="range" id="c-d" min="0.1" max="10" value="1" step="0.1"></label>
+          <label class="ctrl"><span>HLG 기준 디스플레이 피크 <output id="c-hw-out"></output></span><input type="range" id="c-hw" min="400" max="2000" value="1000" step="50"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">PQ E′ (10비트 풀 / 리미티드 · 12비트)</span><span class="v" id="o-c-pq">—</span></div>
+        <div class="stat"><span class="k">HLG 신호 (무채색)</span><span class="v" id="o-c-hlg">—</span></div>
+        <div class="stat"><span class="k">SDR 신호 (100 nit, γ2.4)</span><span class="v" id="o-c-sdr">—</span></div>
+        <div class="stat"><span class="k">RGB₂₀₂₀ (cd/m²)</span><span class="v" id="o-c-rgb">—</span></div>
+        <div class="stat"><span class="k">I, C<sub>T</sub>, C<sub>P</sub></span><span class="v" id="o-c-itp">—</span></div>
+        <div class="stat"><span class="k">ΔE<sub>ITP</sub> (Y → Y·(1+δ))</span><span class="v" id="o-c-de">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 무채색 203 nit에서 PQ 0.5807, HLG 0.75, SDR은 범위 밖(100 nit 초과)임을 확인하자. ② δ = 1%로 두고 휘도를 0.1 → 1,000 nit로 올리면 ΔE<sub>ITP</sub>가 0.19 → 0.78로 커진다. 같은 1% 변화라도 어두운 곳에서는 덜 보인다는 뜻이다(드브리스–로즈 영역). ③ 10비트 PQ 1코드 선은 휘도에 무관하게 0.704로 평평하다 — I가 PQ 신호 그 자체이기 때문이다. ④ 색을 바꾸면 I와 C<sub>T</sub>·C<sub>P</sub>가 함께 바뀐다. 2020 R처럼 고채도 색은 C<sub>P</sub>가 크다.</div>
+    </div>
+    <p>계산 예: BT.2020 적색 원색 1,000 cd/m²(\(R = 1000, G = B = 0\))는 \((I, C_T, C_P) = (0.608, -0.165, 0.443)\)이다. 같은 \(Y\)의 무채색보다 \(I\)가 낮게 나오는 것은 LMS의 원추 감도 가중 때문이며, \(I\)가 "휘도"가 아니라 "지각 밝기의 근사"라는 점을 보여 준다.</p>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="tonemap">
+    <h2>톤 매핑: 마스터링 휘도를 디스플레이 능력으로</h2>
+    <p>PQ 콘텐츠가 4,000 nit 모니터에서 마스터링되었는데 시청자의 TV 피크가 600 nit라면, 600 nit를 넘는 값을 어떻게 할지 정해야 한다. 이 변환을 <strong>톤 매핑</strong><span class="en">(tone mapping)</span>, BT.2390의 용어로는 <strong>EETF</strong><span class="en">(Electrical-Electrical Transfer Function)</span>라 한다. 설계 목표는 서로 충돌한다.</p>
+    <ul>
+      <li>중간톤(얼굴, 기준 백색 203 nit 근처)은 가능한 한 <strong>원래 휘도 그대로</strong> 둔다.</li>
+      <li>디스플레이 피크 근처에서 <strong>기울기를 부드럽게 줄여</strong> 하이라이트의 계조를 남긴다(단순 클리핑은 구름·불꽃의 디테일을 하얗게 날린다).</li>
+      <li>단조 증가하고 연속이어야 하며, 마스터링 피크가 정확히 디스플레이 피크로 가야 한다.</li>
+    </ul>
+    <p>대표 커브를 출력 휘도 \(L_o\)(cd/m²)에 대해 정리하면 다음과 같다. \(L_m\)은 마스터링 피크(또는 MaxCLL), \(L_d\)는 디스플레이 피크, \(x = L/L_d\), \(w = L_m/L_d\)이다.</p>
+    <div class="formula">$$\text{Reinhard: } L_o = L_d\frac{x}{1+x}\qquad \text{확장 Reinhard: } L_o = L_d\,\frac{x\,(1 + x/w^2)}{1+x}$$
+      $$\text{필름형(Hable): } L_o = L_d\,\frac{h(11.2\,L/L_m)}{h(11.2)},\quad h(t) = \frac{t(At + CB) + DE}{t(At + B) + DF} - \frac{E}{F}$$
+      <div class="where">Hable 곡선의 상수는 널리 쓰이는 값 \(A=0.15, B=0.50, C=0.10, D=0.20, E=0.02, F=0.30\), 백색점 11.2를 썼다. 단순 Reinhard는 \(L_m\)과 무관하게 \(L_d\)에 점근할 뿐 도달하지 않고, 확장형은 \(x = w\)에서 정확히 \(L_d\)가 된다.</div>
+    </div>
+    <p><strong>BT.2390 EETF</strong>는 PQ 신호 영역에서 작동한다. 마스터링 범위 \([L_B, L_W]\)의 PQ 값을 0–1로 정규화한 \(E_1\)에 대해, 디스플레이 피크의 정규화 PQ값 \(m_L\)으로부터 knee 시작점 \(KS = 1.5\,m_L - 0.5\)를 잡고, 그 아래는 그대로(기울기 1), 위쪽은 에르미트 스플라인으로 \((1, m_L)\)에 기울기 0으로 닿게 한다.</p>
+    <div class="formula">$$E_2 = \begin{cases} E_1, & E_1 \lt KS\\ P(E_1), & KS \le E_1 \le 1\end{cases},\qquad T = \frac{E_1 - KS}{1 - KS}$$
+      $$P = (2T^3 - 3T^2 + 1)\,KS + (T^3 - 2T^2 + T)(1-KS) + (-2T^3 + 3T^2)\,m_L$$
+      <div class="where">\(E_1 = \bigl(E' - \mathrm{PQ}(L_B)\bigr)/\bigl(\mathrm{PQ}(L_W) - \mathrm{PQ}(L_B)\bigr)\), \(m_L\)도 같은 방식으로 정규화한 디스플레이 피크. 흑 쪽에는 \(E_3 = E_2 + b(1-E_2)^4\)(\(b\): 정규화 디스플레이 흑)로 바닥을 들어 올리는 항이 있다. 이 장의 시뮬레이터는 \(L_B = 0\), 디스플레이 흑 0으로 두어 이 항을 생략한다. 결과는 \(E_4 = E_2(\mathrm{PQ}(L_W)-\mathrm{PQ}(L_B)) + \mathrm{PQ}(L_B)\)를 EOTF로 되돌린다.</div>
+    </div>
+    <p>PQ가 지각적으로 균등하므로, PQ 영역에서의 knee는 "눈에 보이는 단계"로 균형 잡힌 압축이 된다. 예를 들어 1,000 → 600 nit 매핑의 knee는 약 464 nit에서 시작하고, 4,000 → 600 nit 매핑에서는 약 229 nit에서 시작한다. 두 경우 모두 203 nit 기준 백색은 그대로 203 nit에 남는다. 반면 단순 Reinhard는 4,000 → 600 nit에서 203 nit를 152 nit로 끌어내려 영상 전체를 어둡게 만든다.</p>
+
+    <div class="sim" id="sim-tm">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>톤 매핑 커브 편집기와 합성 HDR 장면</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-tm"></canvas><canvas id="cv-scene"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>마스터링 피크 L<sub>m</sub> <output id="t-lm-out"></output></span><input type="range" id="t-lm" min="600" max="10000" value="4000" step="100"></label>
+          <label class="ctrl"><span>디스플레이 피크 L<sub>d</sub> <output id="t-ld-out"></output></span><input type="range" id="t-ld" min="100" max="2000" value="600" step="50"></label>
+          <div class="ctrl"><span>커브</span><div class="seg" id="t-curve"><button data-value="clip">클리핑</button><button data-value="reinhard">Reinhard</button><button data-value="ext">확장 R.</button><button data-value="hable">필름형</button><button data-value="bt2390" class="on">BT.2390</button></div></div>
+          <div class="ctrl"><span>색 처리</span><div class="seg" id="t-mode"><button data-value="rgb">채널별</button><button data-value="lum">휘도 Y</button><button data-value="max" class="on">maxRGB</button><button data-value="ictcp">ICtCp I</button></div></div>
+          <label class="check"><input type="checkbox" id="t-split"> 장면 왼쪽 절반은 단순 클리핑으로 비교</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">203 nit →</span><span class="v" id="o-t-203">—</span></div>
+        <div class="stat"><span class="k">1,000 nit →</span><span class="v" id="o-t-1000">—</span></div>
+        <div class="stat"><span class="k">기울기 1에서 벗어나는 지점(±2%)</span><span class="v" id="o-t-knee">—</span></div>
+        <div class="stat"><span class="k">L<sub>m</sub> → </span><span class="v" id="o-t-top">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 클리핑으로 두면 장면 상단 그라데이션의 오른쪽 끝이 L<sub>d</sub>에서 평평하게 하얗게 잘리고, 밝은 패치 줄(맨 아래 패치 행)의 색 구분이 사라진다. ② Reinhard는 하이라이트를 살리지만 203 nit 이하까지 어둡게 누른다(장면 전체가 침침해짐). ③ BT.2390은 knee 아래를 그대로 두고 위만 압축한다. L<sub>d</sub>를 L<sub>m</sub> 가까이 올리면 knee가 올라가 거의 항등이 된다. ④ 색 처리를 "채널별"로 바꾸고 파랑·마젠타 패치의 맨 아래 행을 보라 — 하양·청록 쪽으로 색이 바랜다. 장면은 BT.2020 선형 nit로 계산한 뒤, 디스플레이 피크 L<sub>d</sub>를 이 화면의 백색으로 놓고 sRGB로 표시했다(sRGB 밖 색은 화면에서 클리핑됨).</div>
+    </div>
+    <div class="callout deep">
+      <p><b>심화 — 톤 매핑은 어디서 일어나는가.</b> HDR10 TV는 정적 메타데이터(마스터링 피크, MaxCLL)를 보고 자체 알고리즘으로 EETF를 고른다. 같은 콘텐츠가 TV 제조사마다 다르게 보이는 주된 원인이다. 동적 메타데이터는 장면별 통계를 실어 보내 이 추정을 돕고, 게임·그래픽에서는 콘솔/OS가 디스플레이 능력을 질의해 렌더러 안에서 직접 톤 매핑하기도 한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="hue">
+    <h2>색상 보존: 무엇에 톤 커브를 거는가</h2>
+    <p>톤 커브 \(f\)는 1차원 함수인데 픽셀은 3차원이다. 커브를 어디에 거느냐에 따라 색이 달라진다.</p>
+    <ul>
+      <li><strong>채널별</strong> \( (f(R), f(G), f(B)) \): 구현이 가장 쉽다. 그러나 \(f\)가 비선형이므로 채널 비율이 바뀐다. 가장 큰 채널이 먼저 포화되고 작은 채널이 따라 올라오므로 밝은 색은 <strong>채도가 떨어지며 색상도 이동</strong>한다. 파랑(B 큼, G 중간)은 하늘색·청록을 거쳐 흰색으로, 빨강은 주황·노랑을 거쳐 흰색으로 간다. 필름 느낌의 "하이라이트 탈색"으로 일부러 쓰기도 한다.</li>
+      <li><strong>휘도 기반</strong> \( \mathbf{c}\cdot f(Y)/Y \): 색도를 정확히 보존하지만, 채도 높은 색은 \(Y\)가 작아도 한 채널이 이미 크므로 스케일 후 그 채널이 \(L_d\)를 넘어 다시 클리핑된다. 클리핑이 색상 이동을 다시 만든다.</li>
+      <li><strong>maxRGB 기반</strong> \( \mathbf{c}\cdot f(M)/M,\; M = \max(R,G,B) \): 채널이 \(L_d\)를 넘지 않음이 보장되고 색도가 보존된다. 대신 채도 높은 색이 무채색보다 더 많이 눌려 어두워진다. HDR10+ 등에서 장면 통계로 쓰이는 값도 maxRGB 계열이다.</li>
+      <li><strong>ICtCp(또는 IPT) 기반</strong>: 지각 밝기 \(I\)에만 커브를 걸고 \(C_T, C_P\)는 유지하거나 약간 줄인다. 지각적 색상 보존이 좋지만, 결과가 디스플레이 가멋 밖으로 나갈 수 있어 뒤에 가멋 매핑이 필요하다. 이 장의 구현은 \(C_T, C_P\)에 \(\min(I/I', I'/I)\)를 곱하는 단순한 채도 보정을 쓴다.</li>
+    </ul>
+
+    <div class="sim" id="sim-hue">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>채널별 vs 휘도·maxRGB·ICtCp 톤 매핑의 색도 궤적</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-hue"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--bad)"></i>채널별</span><span><i style="background:var(--warn)"></i>휘도 Y + 클리핑</span><span><i style="background:var(--ok)"></i>maxRGB</span><span><i style="background:var(--accent)"></i>ICtCp I</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>원래 색 (BT.2020 선형 비율)</span><div class="seg" id="h-col"><button data-value="blue" class="on">밝은 파랑</button><button data-value="red">빨강</button><button data-value="green">초록</button><button data-value="magenta">마젠타</button><button data-value="skin">피부톤</button></div></div>
+          <div class="ctrl"><span>커브</span><div class="seg" id="h-curve"><button data-value="reinhard">Reinhard</button><button data-value="hable">필름형</button><button data-value="bt2390" class="on">BT.2390</button></div></div>
+          <label class="ctrl"><span>마스터링 피크 <output id="h-lm-out"></output></span><input type="range" id="h-lm" min="1000" max="10000" value="4000" step="100"></label>
+          <label class="ctrl"><span>디스플레이 피크 <output id="h-ld-out"></output></span><input type="range" id="h-ld" min="100" max="1000" value="400" step="50"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">입력 색도 xy</span><span class="v" id="o-h-xy">—</span></div>
+        <div class="stat"><span class="k">피크에서 색상각 변화 Δh<sub>TP</sub> (채널별 · Y · max · ICtCp)</span><span class="v" id="o-h-dh">—</span></div>
+        <div class="stat"><span class="k">피크에서 색도 이동 Δu′v′ (같은 순서)</span><span class="v" id="o-h-duv">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 밝은 파랑에서 채널별 궤적(빨강 선)이 원래 점에서 출발해 청록·흰색 방향으로 길게 끌려간다. maxRGB는 한 점에 머문다. ② 휘도 Y 방식은 처음엔 제자리였다가, B 채널이 L<sub>d</sub>를 넘는 순간부터 클리핑 때문에 움직인다. ③ 디스플레이 피크를 마스터링 피크 쪽으로 올리면 모든 궤적이 짧아진다 — 톤 매핑이 덜 필요하기 때문이다. ④ 피부톤은 채도가 낮아 방식 간 차이가 작다. 아래 띠는 세기를 10 nit부터 마스터링 피크까지 올리며 각 방식의 결과 색을 L<sub>d</sub> = 화면 백색으로 정규화해 늘어놓은 것이다. Δh<sub>TP</sub>는 ICtCp의 \(\mathrm{atan2}(C_P, 0.5C_T)\) 각도 차다.</div>
+    </div>
+    <p>밝은 파랑(BT.2020 선형 비율 0.1 : 0.25 : 1, xy = 0.169, 0.160)을 4,000 nit 피크로 마스터링하고 600 nit 화면에 BT.2390 커브로 채널별 톤 매핑하면, 최대 세기에서 색도가 (0.263, 0.318)로 이동한다 — 원래의 짙은 파랑이 연한 하늘색이 된다. maxRGB 방식은 (0.169, 0.160)을 그대로 지킨다. 채널별 톤 매핑의 색상 이동은 버그가 아니라 수학적 필연이다.</p>
+    <div class="callout warn">
+      <p><b>흔한 실수 — 감마 영역에서 maxRGB나 Y 구하기.</b> \(Y = 0.2627R + 0.6780G + 0.0593B\)는 <em>선형</em> BT.2020 성분에만 유효하다. PQ 인코딩된 R′G′B′에 이 가중치를 곱한 값은 휘도가 아니다(이것이 비상수 휘도 Y′의 정의이고, 바로 ICtCp가 피하려는 누설의 원인이다). 톤 매핑의 "휘도"는 항상 선형광에서 구한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="metadata">
+    <h2>HDR 메타데이터</h2>
+    <p>PQ 신호만으로는 "이 영상에서 실제로 쓰인 최대 휘도"를 알 수 없다. 10,000 nit 범위 중 1,000 nit까지만 쓴 영상인지, 4,000 nit까지 쓴 영상인지에 따라 수신기의 최적 톤 커브가 달라진다. 메타데이터는 이 정보를 실어 보낸다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>구분</th><th>이름</th><th>내용</th><th>쓰임</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="3">정적</td><td>SMPTE ST 2086 (MDCV)</td><td>마스터링 디스플레이의 원색·백색점 xy, 최대·최소 휘도</td><td>콘텐츠가 실제로 존재할 수 있는 색역·휘도 범위의 상한</td></tr>
+        <tr><td>MaxCLL</td><td>전체 콘텐츠에서 가장 밝은 픽셀의 광 레벨(픽셀별 max(R,G,B), cd/m²)</td><td>톤 커브의 상단 기준(L<sub>m</sub> 대신)</td></tr>
+        <tr><td>MaxFALL</td><td>프레임 평균 광 레벨(픽셀별 max(R,G,B)의 프레임 평균)의 최댓값</td><td>전력·ABL 제한 추정, 전체 밝기 판단</td></tr>
+        <tr><td rowspan="2">동적</td><td>SMPTE ST 2094 계열</td><td>장면·프레임별 휘도 분포 통계와 톤 매핑 매개변수</td><td>장면마다 다른 커브 적용</td></tr>
+        <tr><td>상용 체계</td><td>Dolby Vision(ST 2094-10 계열), HDR10+(ST 2094-40 계열)</td><td>배포 포맷과 수신기 구현이 함께 정의됨</td></tr>
+      </tbody>
+    </table></div>
+    <p>흔히 "HDR10"이라 부르는 것은 PQ + BT.2020 원색 + 10비트 + 정적 메타데이터(ST 2086, MaxCLL, MaxFALL)의 조합이다. MaxCLL과 MaxFALL은 CTA-861.3에서 정의되며, 둘 다 픽셀별 \(\max(R,G,B)\)를 <strong>선형 nit</strong>로 계산한다. 정적 메타데이터의 약점은 "가장 밝은 한 프레임"이 전체 영상의 톤 매핑을 지배한다는 점이다. 어두운 장면이 대부분이고 폭발 한 번이 4,000 nit라면, MaxCLL만 보는 수신기는 어두운 장면까지 과하게 압축한다. 동적 메타데이터가 이를 해결한다.</p>
+
+    <div class="sim" id="sim-cll">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>MaxCLL · MaxFALL 계산 (합성 클립 120 프레임)</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cll"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--accent)"></i>프레임 최대 광 레벨</span><span><i style="background:var(--ok)"></i>프레임 평균 광 레벨</span><span><i style="background:var(--warn)"></i>디스플레이 피크</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>배경 평균 휘도 <output id="m-bg-out"></output></span><input type="range" id="m-bg" min="5" max="300" value="60" step="5"></label>
+          <label class="ctrl"><span>폭발 피크 <output id="m-pk-out"></output></span><input type="range" id="m-pk" min="200" max="4000" value="2500" step="50"></label>
+          <label class="ctrl"><span>폭발 최대 면적 <output id="m-ar-out"></output></span><input type="range" id="m-ar" min="1" max="60" value="15" step="1"></label>
+          <label class="ctrl"><span>디스플레이 피크 <output id="m-ld-out"></output></span><input type="range" id="m-ld" min="200" max="2000" value="600" step="50"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">MaxCLL</span><span class="v" id="o-m-cll">—</span></div>
+        <div class="stat"><span class="k">MaxFALL</span><span class="v" id="o-m-fall">—</span></div>
+        <div class="stat"><span class="k">피크를 넘는 프레임</span><span class="v" id="o-m-over">—</span></div>
+        <div class="stat"><span class="k">PQ 코드 평균으로 잘못 구한 FALL</span><span class="v" id="o-m-bad">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 폭발 면적을 1%로 줄여도 MaxCLL은 그대로다 — 픽셀 하나의 최댓값이기 때문이다. MaxFALL만 줄어든다. ② 디스플레이 피크를 MaxCLL 위로 올리면 "피크를 넘는 프레임"이 0이 되어 톤 매핑이 필요 없다. ③ 마지막 값은 PQ 코드값을 평균한 뒤 nit로 바꾼 "틀린 FALL"이다. 광량 평균보다 크게 낮게 나온다. 각 프레임은 48×27 픽셀로 계산했으며, 배경 패닝·작은 반사 하이라이트·프레임 40–90의 폭발로 구성된다.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="sdr-hdr">
+    <h2>SDR↔HDR 변환과 기준 백색 203 nit</h2>
+    <p>HDR 프로그램에 SDR 소스(자막, 그래픽, 기존 영상)를 섞거나 HDR을 SDR로 내려보낼 때 가장 먼저 정할 것은 <strong>SDR의 백색을 HDR에서 몇 nit로 둘 것인가</strong>다. 100 nit로 두면 SDR 영상이 HDR 프로그램 안에서 어둡고 칙칙해 보이고, 너무 높이면 그래픽이 눈부시다. ITU-R BT.2408은 운영 지침으로 <strong>HDR 기준 백색</strong><span class="en">(HDR Reference White)</span>을 <strong>203 cd/m²</strong>로 권고한다. 이것은 PQ 신호 58%, 1,000 nit 화면 기준 HLG 신호 75%에 해당한다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="SDR 신호 레벨을 HDR 휘도로 매핑하는 그림">
+        <defs>
+          <marker id="h-ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <text x="150" y="24" text-anchor="middle" class="t" font-size="13">SDR (BT.1886, γ 2.4)</text>
+        <text x="620" y="24" text-anchor="middle" class="t" font-size="13">HDR PQ (절대 nit)</text>
+        <rect x="120" y="40" width="60" height="220" rx="4" class="f-surface"/>
+        <rect x="590" y="40" width="60" height="220" rx="4" class="f-surface"/>
+        <!-- PQ bar: y = 260 - 220*E' -->
+        <rect x="590" y="40" width="60" height="91" rx="4" class="f-acc-soft"/>
+        <g class="t-mono" font-size="11">
+          <text x="110" y="44" text-anchor="end">100%</text><text x="110" y="154" text-anchor="end">50%</text><text x="110" y="264" text-anchor="end">0%</text>
+          <text x="660" y="44">10,000 nit (1.000)</text>
+          <text x="660" y="99">1,000 nit (0.752)</text>
+          <text x="660" y="136" class="t-acc">203 nit (0.581)</text>
+          <text x="660" y="172">38.5 nit (0.416)</text>
+          <text x="660" y="227">1 nit (0.150)</text>
+        </g>
+        <line x1="180" y1="40" x2="586" y2="132" class="s-acc" marker-end="url(#h-ar4)"/>
+        <line x1="180" y1="150" x2="586" y2="168.5" class="s-line" marker-end="url(#h-ar4)"/>
+        <text x="380" y="70" text-anchor="middle" class="t-acc" font-size="12">SDR 100% → 203 nit</text>
+        <text x="380" y="180" text-anchor="middle" class="t-dim" font-size="12">SDR 50% → 203 × 0.5^2.4 = 38.5 nit</text>
+        <text x="620" y="88" text-anchor="middle" class="t-dim" font-size="11">하이라이트</text>
+        <text x="620" y="102" text-anchor="middle" class="t-dim" font-size="11">헤드룸</text>
+        <text x="380" y="238" text-anchor="middle" class="t-dim" font-size="11">기준 백색 위(PQ 0.58–1.0)는 반사광이 아닌 광원·정반사 하이라이트를 위한 여유</text>
+      </svg>
+      <figcaption><b>그림 14-5.</b> 디스플레이 기준 SDR→HDR 매핑. SDR의 100% 백색을 203 nit에 놓고, BT.1886 감마 2.4로 선형화한 비율을 그대로 유지한다. PQ 막대의 위치는 신호값 \(E'\)에 비례한다.</figcaption>
+    </figure>
+
+    <p>디스플레이 기준의 가장 단순한 SDR→HDR 변환은 \(L_{HDR} = 203 \cdot V_{SDR}^{2.4}\)(BT.2020 원색으로 행렬 변환 후)를 PQ로 부호화하는 것이다. SDR 50% 회색은 38.5 nit, PQ 0.416이 된다. SDR 영상이 원래 의도대로(=기준 백색 아래에서) 보이고, 그 위의 헤드룸은 비어 있다. 반대 방향 HDR→SDR은 203 nit를 SDR 100% 근처에 놓고 그 위를 톤 매핑으로 압축한 뒤 BT.709 가멋으로 매핑한다. 업컨버전에서 SDR 하이라이트를 "확장"해 헤드룸을 채우는 역 톤 매핑도 있지만, 원래 없던 정보를 만드는 것이므로 결과는 알고리즘에 따른 선택이다.</p>
+    <div class="callout">
+      <p><b>공학자 관점 — 203이라는 숫자.</b> BT.2408은 18% 반사 회색 카드를 HDR에서 26 nit 근처, 기준 백색을 203 nit로 두는 운영 관행을 기술한다. 그래픽 백색이 203 nit라면 PQ 10비트 풀 레인지 코드 594, 리미티드 레인지 573이다. OS의 HDR 모드에서 "SDR 콘텐츠 밝기" 슬라이더가 하는 일이 바로 이 SDR 백색 nit 값을 바꾸는 것이다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 10 -->
+  <section id="wcg">
+    <h2>광색역 렌더링: Rec.2020 컨테이너 안의 P3</h2>
+    <p>BT.2100 신호는 BT.2020 원색을 쓰지만, 현재 이 원색을 완전히 내는 소비자 디스플레이는 드물고, 마스터링 모니터도 대부분 DCI-P3 원색(D65 백색) 수준이다. 그래서 실무 HDR 콘텐츠의 대부분은 <strong>"Rec.2020 컨테이너 안의 P3 콘텐츠"</strong>다. 신호 좌표계는 2020이지만 실제 색은 P3 삼각형 안에 있고, ST 2086 메타데이터의 마스터링 원색이 그 사실을 알려 준다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 360" role="img" aria-label="CIE xy 색도도 위 sRGB, P3, Rec.2020 삼각형">
+        <rect x="50" y="16" width="288" height="324" class="f-surface"/>
+        <g stroke="var(--grid)" stroke-width="1"><line x1="86" y1="16" x2="86" y2="340"/><line x1="122" y1="16" x2="122" y2="340"/><line x1="158" y1="16" x2="158" y2="340"/><line x1="194" y1="16" x2="194" y2="340"/><line x1="230" y1="16" x2="230" y2="340"/><line x1="266" y1="16" x2="266" y2="340"/><line x1="302" y1="16" x2="302" y2="340"/><line x1="50" y1="304" x2="338" y2="304"/><line x1="50" y1="268" x2="338" y2="268"/><line x1="50" y1="232" x2="338" y2="232"/><line x1="50" y1="196" x2="338" y2="196"/><line x1="50" y1="160" x2="338" y2="160"/><line x1="50" y1="124" x2="338" y2="124"/><line x1="50" y1="88" x2="338" y2="88"/><line x1="50" y1="52" x2="338" y2="52"/></g>
+        <path d="M112.7 338.2L112.4 338.3L112.0 338.3L111.3 337.9L110.1 336.9L108.0 335.0L104.4 331.8L98.8 325.6L89.5 308.7L74.7 267.7L58.4 191.4L51.4 104.3L55.0 69.9L64.0 47.7L76.7 39.8L91.1 42.6L105.7 49.9L119.4 58.6L132.7 68.4L145.7 79.2L158.6 90.8L171.5 102.8L184.3 115.2L197.1 127.7L209.9 140.3L222.4 152.7L234.5 164.8L246.1 176.4L257.1 187.3L267.1 197.3L275.7 205.9L283.4 213.5L289.7 219.8L294.8 224.9L298.9 229.0L302.2 232.3L304.9 234.9L307.1 237.1L308.9 238.9L310.3 240.3L311.4 241.4L312.2 242.2L312.8 242.8L313.2 243.2L313.5 243.5L314.0 244.0L314.5 244.5Z" fill="none" stroke="var(--text)" stroke-width="1.4"/>
+        <polygon points="304.9,234.9 111.2,53.1 97.2,323.4" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        <polygon points="294.8,224.8 145.4,91.6 104.0,318.4" fill="var(--accent-2)" fill-opacity="0.12" stroke="var(--accent-2)" stroke-width="2"/>
+        <polygon points="280.4,221.2 158.0,124.0 104.0,318.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <circle cx="162.6" cy="221.6" r="3.5" fill="var(--text)"/>
+        <g font-size="11" class="t-mono"><text x="50" y="354" text-anchor="middle">0</text><text x="194" y="354" text-anchor="middle">0.4</text><text x="338" y="354" text-anchor="middle">0.8</text><text x="44" y="344" text-anchor="end">0</text><text x="44" y="200" text-anchor="end">0.4</text><text x="44" y="56" text-anchor="end">0.8</text></g>
+        <text x="168" y="236" class="t" font-size="11">D65</text>
+        <text x="116" y="48" class="t-acc" font-size="11">2020 G</text>
+        <text x="150" y="86" fill="var(--accent-2)" font-size="11">P3 G</text>
+        <g font-size="12">
+          <text x="380" y="50" class="t-acc">— Rec.2020 (컨테이너)</text>
+          <text x="380" y="72" fill="var(--accent-2)">— DCI-P3 D65 (실제 콘텐츠 범위)</text>
+          <text x="380" y="94" class="t-dim">- - sRGB / Rec.709</text>
+          <text x="380" y="134" class="t">xy 면적 비 (Rec.2020 = 100%)</text>
+          <text x="394" y="154" class="t-dim">P3 71.7% · sRGB 52.9%</text>
+          <text x="380" y="180" class="t">u′v′ 면적 비</text>
+          <text x="394" y="200" class="t-dim">P3 72.9% · sRGB 58.0%</text>
+          <text x="380" y="240" class="t">P3 → 2020 선형 행렬</text>
+          <text x="394" y="260" class="t-mono" font-size="11">[0.7538  0.1986  0.0476]</text>
+          <text x="394" y="278" class="t-mono" font-size="11">[0.0457  0.9418  0.0125]</text>
+          <text x="394" y="296" class="t-mono" font-size="11">[−0.0012  0.0176  0.9836]</text>
+          <text x="380" y="324" class="t-dim" font-size="11">P3 원색은 2020 안쪽(적색만 R–G 변에 극히 근접)</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 14-6.</b> CIE 1931 xy 위의 Rec.2020, DCI-P3(D65), sRGB 삼각형. 실무 HDR 콘텐츠는 2020 좌표로 부호화되지만 실제 색은 대부분 P3 삼각형 안에 있다. 면적 비는 이 장의 행렬 계산으로 구한 값이다.</figcaption>
+    </figure>
+
+    <p>P3 → 2020 변환은 같은 D65 백색을 쓰는 두 RGB 공간 사이의 3×3 행렬이다(<a href="rgb.html">5장</a>의 \(M_{2020}^{-1}M_{P3}\)). 계산해 보면 P3 적색 \((1,0,0)\)은 2020 선형 \((0.7538, 0.0457, -0.0012)\)이 된다. B 성분이 아주 작은 음수인 것은 P3 적색점(0.680, 0.320)이 2020의 R–G 변(그 x에서 y ≈ 0.318)보다 미세하게 바깥에 있기 때문이다. 실무에서는 무시해도 되는 크기지만, 0 미만 값을 허용하지 않는 정수 파이프라인에서는 클리핑된다는 점을 알아 둘 만하다.</p>
+    <p>반대로 2020 컨테이너 신호를 P3 디스플레이나 sRGB 디스플레이로 보낼 때는 <strong>가멋 매핑</strong>이 필요하다. 단순 클리핑은 톤 매핑의 채널별 클리핑과 같은 이유로 색상을 이동시킨다. 색상을 보존하며 채도를 줄이는 방법들은 <a href="rgb.html">5장</a>의 가멋 매핑과 <a href="management.html">16장</a>의 렌더링 인텐트에서 다룬다. HDR에서는 휘도 압축(톤 매핑)과 채도 압축(가멋 매핑)이 서로 영향을 주므로, ICtCp 같은 지각 균등 공간에서 함께 처리하는 것이 일반적인 방향이다.</p>
+    <div class="callout tip">
+      <p><b>공학자 관점 — 세 개의 "색역" 정보를 구분하라.</b> ① 신호 컨테이너 원색(BT.2020, VUI/SEI의 colour primaries), ② 마스터링 디스플레이 원색(ST 2086, 보통 P3-D65), ③ 수신 디스플레이의 실제 원색. ①만 보고 2020 전체를 매핑 대상으로 잡으면 P3 콘텐츠를 불필요하게 압축한다. ②를 활용하면 매핑 범위를 실제 콘텐츠 범위로 좁힐 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ summary -->
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>SDR(BT.1886)은 화면 백색에 대한 상대 휘도를, HDR PQ는 0–10,000 cd/m²의 절대 휘도를 부호화한다. HLG는 장면광의 상대값을 보내고 화면이 OOTF로 휘도를 정한다.</li>
+      <li>PQ EOTF: \(F_D = 10000\,[\max(E'^{1/m_2}-c_1,0)/(c_2-c_3E'^{1/m_2})]^{1/m_1}\), \(m_1 = 2610/16384\), \(m_2 = 78.84375\), \(c_1 = 0.8359375\), \(c_2 = 18.8515625\), \(c_3 = 18.6875\). 100 nit = 0.508, 203 nit = 0.581, 1,000 nit = 0.752.</li>
+      <li>PQ는 Barten 대비 임계에 맞춰 설계되었다. 12비트에서 임계 아래, 10비트는 임계 근처(100 nit에서 ΔL/L ≈ 0.98%)이며 실제 배포에는 충분하다. 감마 2.4를 10,000 nit로 늘린 곡선은 어두운 쪽이 수 배 성기다.</li>
+      <li>HLG OETF는 \(E \le 1/12\)에서 \(\sqrt{3E}\), 위에서 \(a\ln(12E-b)+c\). 시스템 감마 \(\gamma = 1.2 + 0.42\log_{10}(L_W/1000)\). 신호 75%는 1,000 nit 화면에서 203 nit다.</li>
+      <li>ICtCp = BT.2020 RGB → LMS(/4096 행렬) → PQ → 반대색 회전. ΔE<sub>ITP</sub> = 720√(ΔI² + ΔT² + ΔP²), T = 0.5C<sub>T</sub>. 무채색에서 10비트 PQ 1코드는 ΔE<sub>ITP</sub> 0.704다.</li>
+      <li>톤 매핑은 중간톤 보존과 하이라이트 계조 사이의 절충이다. BT.2390 EETF는 PQ 영역에서 knee \(KS = 1.5m_L - 0.5\) 위만 에르미트 스플라인으로 압축한다.</li>
+      <li>채널별 톤 매핑은 색상을 이동시킨다(밝은 파랑 → 하늘색·흰색). 휘도·maxRGB·ICtCp 기반 방식은 색도를 보존하되 각각 클리핑, 채도 색 어두워짐, 가멋 이탈의 대가가 있다.</li>
+      <li>정적 메타데이터(ST 2086, MaxCLL, MaxFALL)는 선형 nit의 max(R,G,B)로 계산한다. 동적 메타데이터(ST 2094 계열)는 장면별 톤 매핑을 가능하게 한다.</li>
+      <li>SDR 백색은 HDR에서 203 cd/m²(BT.2408)에 둔다. 실무 HDR은 대부분 Rec.2020 컨테이너 안의 P3 콘텐츠이며, 마스터링 원색 메타데이터로 가멋 매핑 범위를 좁힐 수 있다.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ quiz -->
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>SDR 영상 신호 V = 1과 PQ 신호 E′ = 0.7518의 의미 차이로 옳은 것은?</p><div class="opts">
+        <button class="opt">둘 다 100 cd/m²를 뜻한다</button>
+        <button class="opt" data-correct>V = 1은 "그 화면의 백색", E′ = 0.7518은 어느 화면에서든 1,000 cd/m²를 뜻한다</button>
+        <button class="opt">V = 1은 10,000 cd/m², E′ = 0.7518은 화면 백색의 75%다</button>
+        <button class="opt">둘 다 장면광의 상대값이다</button>
+      </div><div class="quiz-exp">BT.1886은 디스플레이의 L<sub>W</sub>, L<sub>B</sub>로 계수가 정해지는 상대 EOTF다. PQ는 절대 EOTF이므로 E′ = 0.7518 → 1,000 cd/m²로 고정된다.</div></div>
+
+      <div class="quiz-q"><p>PQ 상수에서 \(c_1 = c_3 - c_2 + 1\)이 갖는 의미는?</p><div class="opts">
+        <button class="opt">E′ = 0에서 휘도가 정확히 1 nit가 되게 한다</button>
+        <button class="opt">곡선의 기울기를 Weber 비율과 같게 한다</button>
+        <button class="opt" data-correct>Y = 1(10,000 nit)에서 분수가 1이 되어 E′ = 1이 되게 한다</button>
+        <button class="opt">10비트와 12비트에서 같은 곡선을 쓰게 한다</button>
+      </div><div class="quiz-exp">\(Y^{m_1}=1\)이면 \((c_1+c_2)/(1+c_3) = 1\)이 되려면 \(c_1 = 1 + c_3 - c_2 = 0.8359375\)이어야 한다. 코드 전 범위가 0–10,000 nit에 정확히 대응한다.</div></div>
+
+      <div class="quiz-q"><p>10비트에서 0.001–10,000 cd/m²를 순수 로그로 부호화할 때 코드 간격 ΔL/L은 약 얼마이며, 이것이 PQ보다 불리한 곳은?</p><div class="opts">
+        <button class="opt">0.1%, 어두운 영역</button>
+        <button class="opt" data-correct>1.6%, 밝은 영역(PQ는 100 nit 이상에서 약 0.9–1%)</button>
+        <button class="opt">16%, 모든 영역</button>
+        <button class="opt">1.6%, 어두운 영역(PQ는 0.01 nit에서 0.1%)</button>
+      </div><div class="quiz-exp">\(10^{7/1023}-1 \approx 1.59\%\)로 일정하다. 사람의 임계는 밝은 곳에서 낮으므로 로그는 밝은 영역에서 PQ보다 성기고, 어두운 영역(임계가 높은 곳)에서는 필요 이상으로 촘촘하다.</div></div>
+
+      <div class="quiz-q"><p>HLG 신호 75%를 2,000 cd/m² 디스플레이에 표시할 때 휘도는? (OETF⁻¹(0.75) = 0.26497)</p><div class="opts">
+        <button class="opt">203 cd/m²</button>
+        <button class="opt">530 cd/m²</button>
+        <button class="opt" data-correct>약 343 cd/m²</button>
+        <button class="opt">1,500 cd/m²</button>
+      </div><div class="quiz-exp">\(\gamma = 1.2 + 0.42\log_{10}2 = 1.326\). \(2000 \times 0.26497^{1.326} \approx 343\) cd/m². HLG는 화면 피크에 따라 기준 백색 휘도도 함께 움직인다.</div></div>
+
+      <div class="quiz-q"><p>HLG의 OOTF가 R, G, B 각각에 감마를 걸지 않고 \(Y_S^{\gamma-1}\)을 공통으로 곱하는 이유는?</p><div class="opts">
+        <button class="opt">계산량을 줄이기 위해</button>
+        <button class="opt" data-correct>채널 비율을 유지해 색도(색상·채도)를 보존하기 위해</button>
+        <button class="opt">SDR 화면에서 감마 2.4를 흉내 내기 위해</button>
+        <button class="opt">PQ와 같은 절대 휘도를 얻기 위해</button>
+      </div><div class="quiz-exp">공통 스케일 \(\alpha Y_S^{\gamma-1}\)은 세 채널에 같은 배율이므로 xy가 변하지 않는다. 채널별 감마는 톤 매핑의 채널별 처리처럼 고채도 색의 색상·채도를 바꾼다.</div></div>
+
+      <div class="quiz-q"><p>ICtCp 변환에서 무채색(R = G = B)이 정확히 C<sub>T</sub> = C<sub>P</sub> = 0으로 가는 근거는?</p><div class="opts">
+        <button class="opt">PQ가 선형 함수이기 때문</button>
+        <button class="opt">LMS 행렬이 단위행렬이기 때문</button>
+        <button class="opt" data-correct>RGB→LMS 행렬의 각 행 합이 4096(→ L = M = S)이고, C<sub>T</sub>·C<sub>P</sub> 행의 합이 0이기 때문</button>
+        <button class="opt">I 행의 계수가 2048, 2048, 0이기 때문</button>
+      </div><div class="quiz-exp">1688+2146+262 = 683+2951+462 = 99+309+3688 = 4096이므로 L = M = S, 따라서 L′ = M′ = S′. 6610−13613+7003 = 0, 17933−17390−543 = 0이므로 색차 성분은 0이다.</div></div>
+
+      <div class="quiz-q"><p>무채색에서 10비트 PQ 코드 1단계의 ΔE<sub>ITP</sub>는?</p><div class="opts">
+        <button class="opt">휘도에 따라 0.1–10으로 크게 변한다</button>
+        <button class="opt" data-correct>약 0.70으로 휘도와 무관하다</button>
+        <button class="opt">정확히 1.0</button>
+        <button class="opt">약 0.18</button>
+      </div><div class="quiz-exp">무채색이면 I = PQ 신호값이므로 ΔI = 1/1023, ΔE<sub>ITP</sub> = 720/1023 = 0.704. 0.18은 12비트(720/4095)의 값이다.</div></div>
+
+      <div class="quiz-q"><p>4,000 nit로 마스터링된 밝은 파랑 하이라이트를 600 nit TV에 채널별(R, G, B 각각) 톤 매핑하면 일반적으로 어떻게 보이는가?</p><div class="opts">
+        <button class="opt">더 짙은 남색이 된다</button>
+        <button class="opt">색은 그대로이고 밝기만 줄어든다</button>
+        <button class="opt" data-correct>B가 먼저 포화되고 G·R이 따라 올라와 하늘색·청록을 거쳐 흰색 쪽으로 바랜다</button>
+        <button class="opt">보라색으로 이동한다</button>
+      </div><div class="quiz-exp">압축 커브는 큰 값을 더 많이 누른다. 가장 큰 B 채널이 가장 많이 눌리고 상대적으로 G가 커지므로 청록·흰색 방향으로 색도가 이동한다. maxRGB나 Y 기반 스케일은 이 이동을 피한다.</div></div>
+
+      <div class="quiz-q"><p>MaxFALL 계산으로 옳은 것은?</p><div class="opts">
+        <button class="opt">각 프레임 PQ 코드값의 평균 중 최댓값</button>
+        <button class="opt">전체 클립에서 가장 밝은 픽셀의 휘도</button>
+        <button class="opt" data-correct>각 프레임에서 픽셀별 max(R,G,B)(선형 nit)의 평균을 구하고, 그 프레임 평균들의 최댓값</button>
+        <button class="opt">마스터링 디스플레이의 최대 휘도</button>
+      </div><div class="quiz-exp">MaxFALL은 선형 광 레벨의 프레임 평균의 최댓값이다. 두 번째 보기는 MaxCLL, 네 번째는 ST 2086 정보다. PQ 코드 평균은 비선형 평균이라 크게 틀린다.</div></div>
+
+      <div class="quiz-q"><p>BT.2408 운영 지침에서 SDR 백색(그래픽 백색)을 HDR PQ로 옮길 때 권고하는 휘도와 대략의 PQ 신호값은?</p><div class="opts">
+        <button class="opt">100 cd/m², 0.51</button>
+        <button class="opt" data-correct>203 cd/m², 0.58</button>
+        <button class="opt">1,000 cd/m², 0.75</button>
+        <button class="opt">10,000 cd/m², 1.0</button>
+      </div><div class="quiz-exp">HDR 기준 백색은 203 cd/m² = PQ 0.5807(10비트 풀 594, 리미티드 573), 1,000 nit HLG 신호 75%다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  /* ---------- 장 고유 모델: PQ, HLG, BT.1886, ICtCp, 톤 매핑 ---------- */
+  const PQ = { m1: 2610 / 16384, m2: (2523 / 4096) * 128, c1: 3424 / 4096, c2: (2413 / 4096) * 32, c3: (2392 / 4096) * 32 };
+  function pqEOTF(E) {
+    const p = Math.pow(Math.max(E, 0), 1 / PQ.m2);
+    return 10000 * Math.pow(Math.max(p - PQ.c1, 0) / (PQ.c2 - PQ.c3 * p), 1 / PQ.m1);
+  }
+  function pqInv(L) {
+    const y = Math.pow(Math.max(L, 0) / 10000, PQ.m1);
+    return Math.pow((PQ.c1 + PQ.c2 * y) / (1 + PQ.c3 * y), PQ.m2);
+  }
+  const HLG = { a: 0.17883277, b: 0.28466892, c: 0.55991073 };
+  const hlgOETF = (E) => (E <= 1 / 12 ? Math.sqrt(3 * Math.max(E, 0)) : HLG.a * Math.log(12 * E - HLG.b) + HLG.c);
+  const hlgInvOETF = (V) => (V <= 0.5 ? (V * V) / 3 : (Math.exp((V - HLG.c) / HLG.a) + HLG.b) / 12);
+  const hlgGamma = (Lw) => 1.2 + 0.42 * Math.log10(Lw / 1000);
+  function hlgEOTF(V, Lw, Lb) {
+    const g = hlgGamma(Lw), beta = Math.sqrt(3 * Math.pow((Lb || 0) / Lw, 1 / g));
+    const E = hlgInvOETF(Math.max(0, (1 - beta) * V + beta));
+    return Lw * Math.pow(E, g);
+  }
+  function hlgFromNits(L, Lw) {
+    const g = hlgGamma(Lw);
+    return hlgOETF(Math.pow(Math.max(L, 0) / Lw, 1 / g));
+  }
+  function bt1886(V, Lw, Lb) {
+    const g = 2.4, A = Math.pow(Lw, 1 / g) - Math.pow(Lb, 1 / g);
+    return Math.pow(A, g) * Math.pow(Math.max(V + Math.pow(Lb, 1 / g) / A, 0), g);
+  }
+  const M2020 = CB.rgb2xyzMatrix(CB.SPACES.rec2020);
+  const M2020_INV = CB.mat.inv(M2020);
+  const M2020_TO_709 = CB.mat.mul(CB.M_SRGB_INV, M2020);
+  const M709_TO_2020 = CB.mat.inv(M2020_TO_709);
+  const lum2020 = (rgb) => M2020[1][0] * rgb[0] + M2020[1][1] * rgb[1] + M2020[1][2] * rgb[2];
+  const RGB2LMS = [[1688, 2146, 262], [683, 2951, 462], [99, 309, 3688]].map((r) => r.map((v) => v / 4096));
+  const LMS2ICTCP = [[2048, 2048, 0], [6610, -13613, 7003], [17933, -17390, -543]].map((r) => r.map((v) => v / 4096));
+  const LMS2RGB = CB.mat.inv(RGB2LMS), ICTCP2LMS = CB.mat.inv(LMS2ICTCP);
+  function rgb2ictcp(rgbNits) { return CB.mat.vec(LMS2ICTCP, CB.mat.vec(RGB2LMS, rgbNits).map(pqInv)); }
+  function ictcp2rgb(itp) { return CB.mat.vec(LMS2RGB, CB.mat.vec(ICTCP2LMS, itp).map(pqEOTF)); }
+  function dEITP(a, b) {
+    const p = rgb2ictcp(a), q = rgb2ictcp(b);
+    return 720 * Math.hypot(p[0] - q[0], 0.5 * (p[1] - q[1]), p[2] - q[2]);
+  }
+  /* 톤 커브: 입력·출력 모두 cd/m². Lm = 마스터링 피크, Ld = 디스플레이 피크 */
+  const HB = { A: 0.15, B: 0.5, C: 0.1, D: 0.2, E: 0.02, F: 0.3, W: 11.2 };
+  const hable = (t) => (t * (HB.A * t + HB.C * HB.B) + HB.D * HB.E) / (t * (HB.A * t + HB.B) + HB.D * HB.F) - HB.E / HB.F;
+  function bt2390(L, Lm, Ld) {
+    const top = pqInv(Lm), E1 = Math.min(pqInv(L) / top, 1), maxLum = pqInv(Ld) / top, KS = 1.5 * maxLum - 0.5;
+    if (E1 < KS) return pqEOTF(E1 * top);
+    const T = (E1 - KS) / (1 - KS), T2 = T * T, T3 = T2 * T;
+    const P = (2 * T3 - 3 * T2 + 1) * KS + (T3 - 2 * T2 + T) * (1 - KS) + (-2 * T3 + 3 * T2) * maxLum;
+    return pqEOTF(P * top);
+  }
+  function toneCurve(L, kind, Lm, Ld) {
+    if (!(L > 0)) return 0;
+    if (kind === "clip" || Lm <= Ld) return Math.min(L, Ld);
+    L = Math.min(L, Lm);
+    const x = L / Ld, w = Lm / Ld;
+    if (kind === "reinhard") return (Ld * x) / (1 + x);
+    if (kind === "ext") return (Ld * x * (1 + x / (w * w))) / (1 + x);
+    if (kind === "hable") return (Ld * hable((HB.W * L) / Lm)) / hable(HB.W);
+    return bt2390(L, Lm, Ld);
+  }
+  /* 색 처리 방식: 2020 선형 RGB(nit) → 디스플레이 RGB(nit, 0..Ld) */
+  function toneMapRGB(rgb, kind, Lm, Ld, mode) {
+    const f = (v) => toneCurve(v, kind, Lm, Ld);
+    let out;
+    if (mode === "rgb") out = rgb.map(f);
+    else if (mode === "max") { const M = Math.max(rgb[0], rgb[1], rgb[2]); const k = M > 0 ? f(M) / M : 0; out = rgb.map((v) => v * k); }
+    else if (mode === "lum") { const Y = lum2020(rgb); const k = Y > 0 ? f(Y) / Y : 0; out = rgb.map((v) => v * k); }
+    else {
+      const itp = rgb2ictcp(rgb.map((v) => Math.max(v, 0)));
+      const Lin = pqEOTF(itp[0]), I2 = pqInv(f(Lin));
+      const s = itp[0] > 0 ? Math.min(itp[0] / I2, I2 / itp[0]) : 1;
+      out = ictcp2rgb([I2, itp[1] * s, itp[2] * s]);
+    }
+    return out.map((v) => CB.clamp(v, 0, Ld));
+  }
+
+  /* ---------- 공통 UI 헬퍼 ---------- */
+  const $ = (id) => document.getElementById(id);
+  const nitsOf = (v) => Math.pow(10, -3 + (7 * v) / 1000);
+  const fmtN = (L) => (L < 0.1 ? L.toPrecision(2) : L < 10 ? L.toFixed(2) : L < 100 ? L.toFixed(1) : Math.round(L).toLocaleString("en-US"));
+  const pct = (v) => (!isFinite(v) ? "—" : v >= 10 ? v.toFixed(1) + "%" : v >= 1 ? v.toFixed(2) + "%" : v.toFixed(3) + "%");
+  const P3_TO_2020 = CB.mat.mul(M2020_INV, CB.rgb2xyzMatrix(CB.SPACES.p3));
+  const SRGB_LUT = (() => { const t = new Uint8ClampedArray(4097); for (let i = 0; i <= 4096; i++) t[i] = Math.round(255 * CB.srgbEncode(i / 4096)); return t; })();
+  const enc8 = (v) => (!(v > 0) ? 0 : v >= 1 ? 255 : SRGB_LUT[(v * 4096 + 0.5) | 0]);
+  /* 디스플레이 nit(BT.2020) → 이 화면의 sRGB 8비트 (Ld = 화면 백색) */
+  function disp8(rgb, Ld) {
+    const l = CB.mat.vec(M2020_TO_709, rgb.map((v) => v / Ld));
+    return [enc8(l[0]), enc8(l[1]), enc8(l[2])];
+  }
+  const xyOf = (rgb) => CB.XYZ2xy(CB.mat.vec(M2020, rgb));
+
+  /* ============ 1. 양자화 분석 ============ */
+  (function () {
+    const thr = (L) => 0.25 * (1 + Math.pow(1.2 / L, 0.45));
+    const C = {
+      pq: { fwd: pqEOTF, inv: pqInv, hi: 10000 },
+      g24: { fwd: (E) => 10000 * Math.pow(E, 2.4), inv: (L) => Math.pow(L / 10000, 1 / 2.4), hi: 10000 },
+      log: { fwd: (E) => Math.pow(10, -3 + 7 * E), inv: (L) => (Math.log10(L) + 3) / 7, hi: 10000 },
+      sdr: { fwd: (E) => 100 * Math.pow(E, 2.4), inv: (L) => Math.pow(L / 100, 1 / 2.4), hi: 100 },
+    };
+    const ratio = (c, L, N) => (L > c.hi ? NaN : (100 * (c.fwd(c.inv(L) + 1 / N) - L)) / L);
+    const bits = CB.seg("q-bits", () => cv.redraw());
+    const lq = CB.range("q-l", (v) => fmtN(nitsOf(v)) + " nit", () => cv.redraw());
+    ["q-pq", "q-g24", "q-log", "q-sdr"].forEach((id) => $(id).addEventListener("change", () => cv.redraw()));
+    const cv = CB.canvas($("cv-quant"), (ctx, w, h) => {
+      const P = CB.palette(), N = Math.pow(2, Number(bits())) - 1, L0 = nitsOf(lq());
+      const pts = (c) => { const d = []; for (let i = 0; i <= 240; i++) { const L = Math.pow(10, -3 + (7 * i) / 240); if (L <= c.hi * 1.0001) d.push([L, ratio(c, L, N)]); } return d; };
+      const series = [];
+      const th = []; for (let i = 0; i <= 140; i++) { const L = Math.pow(10, -3 + (7 * i) / 140); th.push([L, thr(L)]); }
+      series.push({ data: th, color: P.dim, width: 1.6, dash: [6, 4] });
+      if ($("q-sdr").checked) series.push({ data: pts(C.sdr), color: P.accent2, width: 2 });
+      if ($("q-log").checked) series.push({ data: pts(C.log), color: P.ok, width: 2 });
+      if ($("q-g24").checked) series.push({ data: pts(C.g24), color: P.warn, width: 2 });
+      if ($("q-pq").checked) series.push({ data: pts(C.pq), color: P.accent, width: 2.6 });
+      CB.chart(ctx, null, { x: [0.001, 10000], y: [0.01, 100], logX: true, logY: true, xLabel: "휘도 L (cd/m²)", yLabel: "ΔL/L (%)", series,
+        vlines: [{ x: L0, color: P.text, label: fmtN(L0) + " nit" }], yFmt: (v) => (v < 1 ? String(v) : v.toFixed(0)) });
+      const at = ["pq", "g24", "log"].map((k) => pct(ratio(C[k], L0, N)));
+      CB.stat("o-q-at", at.join(" · "));
+      CB.stat("o-q-th", pct(thr(L0)));
+      const ok = ["pq", "g24", "log"].map((k) => { let n = 0, t = 0; for (let i = 0; i <= 300; i++) { const L = Math.pow(10, -2 + (5 * i) / 300); t++; if (ratio(C[k], L, N) <= thr(L)) n++; } return Math.round((100 * n) / t) + "%"; });
+      CB.stat("o-q-ok", ok.join(" · "));
+      const codes = ["pq", "g24", "log"].map((k) => Math.floor(N * C[k].inv(100)) + 1);
+      CB.stat("o-q-codes", codes.join(" · ") + " / " + (N + 1));
+    }, { aspect: 0.62, minHeight: 280, maxHeight: 420 });
+  })();
+
+  /* ============ 2. EOTF 비교 ============ */
+  (function () {
+    const gv = CB.range("e-v", (v) => v.toFixed(3), () => cv.redraw());
+    const ghw = CB.range("e-hw", (v) => v + " nit", () => cv.redraw());
+    const gsw = CB.range("e-sw", (v) => v + " nit", () => cv.redraw());
+    const glb = CB.seg("e-lb", () => cv.redraw());
+    const cv = CB.canvas($("cv-eotf"), (ctx, w, h) => {
+      const P = CB.palette(), V = gv(), Lw = ghw(), Ls = gsw(), Lb = Number(glb());
+      const pq = [], hl = [], sd = [];
+      for (let i = 0; i <= 300; i++) { const E = i / 300; pq.push([E, pqEOTF(E)]); hl.push([E, hlgEOTF(E, Lw, Lb)]); sd.push([E, bt1886(E, Ls, Lb)]); }
+      const vp = pqEOTF(V), vh = hlgEOTF(V, Lw, Lb), vs = bt1886(V, Ls, Lb);
+      CB.chart(ctx, null, { x: [0, 1], y: [0.001, 10000], logY: true, xLabel: "정규화 신호 E′", yLabel: "디스플레이 휘도 (cd/m²)",
+        series: [{ data: sd, color: P.ok, width: 2 }, { data: hl, color: P.warn, width: 2.2 }, { data: pq, color: P.accent, width: 2.6 }],
+        hlines: [{ y: 203, color: P.dim, label: "203 nit 기준 백색" }], vlines: [{ x: V, color: P.text }],
+        points: [{ x: V, y: Math.max(vp, 0.001), color: P.accent }, { x: V, y: Math.max(vh, 0.001), color: P.warn }, { x: V, y: Math.max(vs, 0.001), color: P.ok }] });
+      CB.stat("o-e-pq", fmtN(vp) + " cd/m²");
+      CB.stat("o-e-hlg", fmtN(vh) + " cd/m²");
+      CB.stat("o-e-g", hlgGamma(Lw).toFixed(3));
+      CB.stat("o-e-sdr", fmtN(vs) + " cd/m²");
+    }, { aspect: 0.62, minHeight: 280, maxHeight: 420 });
+  })();
+
+  /* ============ 3. 신호 계산기 · ICtCp ============ */
+  const HUES = {
+    white: [1, 1, 1], red: [1, 0, 0],
+    green: [P3_TO_2020[0][1], P3_TO_2020[1][1], P3_TO_2020[2][1]],
+    blue: [M709_TO_2020[0][2], M709_TO_2020[1][2], M709_TO_2020[2][2]],
+    skin: CB.mat.vec(M709_TO_2020, [0.45, 0.3, 0.22]),
+  };
+  (function () {
+    const gl = CB.range("c-l", (v) => fmtN(nitsOf(v)) + " cd/m²", () => cv.redraw());
+    const gd = CB.range("c-d", (v) => v.toFixed(1) + "%", () => cv.redraw());
+    const ghw = CB.range("c-hw", (v) => v + " nit", () => cv.redraw());
+    const gh = CB.seg("c-hue", () => cv.redraw());
+    const colorAt = (base, L) => { const y = lum2020(base); return base.map((v) => (v * L) / y); };
+    const cv = CB.canvas($("cv-calc"), (ctx, w, h) => {
+      const P = CB.palette(), L = nitsOf(gl()), d = gd() / 100, Lw = ghw(), base = HUES[gh()];
+      const s1 = [], s2 = [], s3 = [];
+      for (let i = 0; i <= 160; i++) {
+        const x = Math.pow(10, -2 + (6 * i) / 160), c = colorAt(base, x);
+        s1.push([x, dEITP(c, c.map((v) => v * (1 + d)))]);
+        const e = pqInv(x), n10 = pqEOTF(e + 1 / 1023), n12 = pqEOTF(e + 1 / 4095);
+        s2.push([x, dEITP([x, x, x], [n10, n10, n10])]); s3.push([x, dEITP([x, x, x], [n12, n12, n12])]);
+      }
+      const c = colorAt(base, L), de = dEITP(c, c.map((v) => v * (1 + d)));
+      CB.chart(ctx, null, { x: [0.01, 10000], y: [0.01, 10], logX: true, logY: true, xLabel: "휘도 Y (cd/m²)", yLabel: "ΔE_ITP",
+        series: [{ data: s3, color: P.ok, width: 2 }, { data: s2, color: P.warn, width: 2 }, { data: s1, color: P.accent, width: 2.6 }],
+        hlines: [{ y: 1, color: P.dim, label: "ΔE_ITP = 1 (≈ JND)" }], vlines: [{ x: L, color: P.text }], points: [{ x: L, y: de, color: P.accent, label: de.toFixed(3) }] });
+      const e = pqInv(L);
+      CB.stat("o-c-pq", e.toFixed(4) + " (" + Math.round(1023 * e) + " / " + Math.round(64 + 876 * e) + " · " + Math.round(4095 * e) + ")");
+      CB.stat("o-c-hlg", L > Lw ? "피크 " + Lw + " nit 초과" : (() => { const v = hlgFromNits(L, Lw); return v.toFixed(4) + " (10비트 " + Math.round(1023 * v) + ")"; })());
+      CB.stat("o-c-sdr", L > 100 ? "범위 밖 (100 nit 초과)" : (() => { const v = Math.pow(L / 100, 1 / 2.4); return v.toFixed(4) + " (8비트 " + Math.round(255 * v) + ")"; })());
+      CB.stat("o-c-rgb", c.map((v) => fmtN(Math.max(v, 0))).join(", ") + (c.some((v) => v < -1e-6) ? " (음수 포함)" : ""));
+      const itp = rgb2ictcp(c.map((v) => Math.max(v, 0)));
+      CB.stat("o-c-itp", itp.map((v) => v.toFixed(4)).join(", "));
+      CB.stat("o-c-de", de.toFixed(3));
+    }, { aspect: 0.6, minHeight: 280, maxHeight: 400 });
+  })();
+
+  /* ============ 4. 톤 매핑 커브와 장면 ============ */
+  (function () {
+    const glm = CB.range("t-lm", (v) => v.toLocaleString("en-US") + " nit", () => update());
+    const gld = CB.range("t-ld", (v) => v + " nit", () => update());
+    const gcv = CB.seg("t-curve", () => update());
+    const gmd = CB.seg("t-mode", () => update());
+    $("t-split").addEventListener("change", () => update());
+    const SW = 320, SH = 160;
+    const PATCH = [[1, 0.04, 0.02], [1, 0.45, 0.05], [1, 0.9, 0.1], [0.15, 1, 0.1], [0.05, 0.75, 1], [0.1, 0.25, 1], [0.85, 0.1, 1], [1, 0.62, 0.45]];
+    let scene = null, sceneLm = 0, img = null;
+    function buildScene(Lm) {
+      const a = new Float32Array(SW * SH * 3);
+      const put = (x, y, r) => { const i = (y * SW + x) * 3; a[i] = r[0]; a[i + 1] = r[1]; a[i + 2] = r[2]; };
+      const l0 = Math.log10(0.05), l1 = Math.log10(Lm);
+      for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) put(x, y, [0.5, 0.5, 0.5]);
+      for (let y = 0; y < 34; y++) for (let x = 0; x < SW; x++) { const L = Math.pow(10, l0 + ((l1 - l0) * x) / (SW - 1)); put(x, y, [L, L, L]); }
+      const levels = [100, 0.3 * Lm, Lm];
+      for (let r = 0; r < 3; r++) for (let k = 0; k < 8; k++) {
+        const x0 = 24 + k * 37 + 3, y0 = 40 + r * 26;
+        for (let y = y0; y < y0 + 22; y++) for (let x = x0; x < x0 + 31; x++) put(x, y, PATCH[k].map((v) => v * levels[r]));
+      }
+      for (let y = 120; y < SH; y++) for (let x = 0; x < SW; x++) {
+        const t = (y - 120) / 40, dx = x - 250, dy = y - 136, r = Math.hypot(dx, dy);
+        let c = [0.45, 0.6, 1].map((v) => v * 160 * (1 - 0.5 * t));
+        if (y >= 152) c = [0.3, 0.35, 0.18].map((v) => v * 12);
+        const g = Lm * Math.exp(-Math.pow(r / 5, 2)) + 0.12 * Lm * Math.exp(-Math.pow(r / 24, 2));
+        put(x, y, [c[0] + g, c[1] + 0.9 * g, c[2] + 0.72 * g]);
+      }
+      return a;
+    }
+    function renderScene() {
+      const Lm = glm(), Ld = gld(), kind = gcv(), mode = gmd(), split = $("t-split").checked;
+      if (sceneLm !== Lm) { scene = buildScene(Lm); sceneLm = Lm; }
+      if (!img) { img = document.createElement("canvas"); img.width = SW; img.height = SH; }
+      const ic = img.getContext("2d"), id = ic.createImageData(SW, SH), D = id.data;
+      for (let p = 0, q = 0; p < SW * SH; p++, q += 3) {
+        const x = p % SW, rgb = [scene[q], scene[q + 1], scene[q + 2]];
+        const out = split && x < SW / 2 ? toneMapRGB(rgb, "clip", Lm, Ld, "rgb") : toneMapRGB(rgb, kind, Lm, Ld, mode);
+        const c = disp8(out, Ld);
+        D[p * 4] = c[0]; D[p * 4 + 1] = c[1]; D[p * 4 + 2] = c[2]; D[p * 4 + 3] = 255;
+      }
+      ic.putImageData(id, 0, 0);
+    }
+    const cvC = CB.canvas($("cv-tm"), (ctx, w, h) => {
+      const P = CB.palette(), Lm = glm(), Ld = gld(), kind = gcv();
+      const names = ["clip", "reinhard", "ext", "hable", "bt2390"], series = [];
+      const id = []; for (let i = 0; i <= 60; i++) { const L = Math.pow(10, -1 + (5 * i) / 60); id.push([L, L]); }
+      series.push({ data: id, color: P.faint, width: 1.2, dash: [4, 4] });
+      names.forEach((k) => {
+        const d = []; for (let i = 0; i <= 200; i++) { const L = Math.pow(10, -1 + (Math.log10(Lm) + 1) * i / 200); d.push([L, toneCurve(L, k, Lm, Ld)]); }
+        series.push(k === kind ? { data: d, color: P.accent, width: 3 } : { data: d, color: P.faint, width: 1.2 });
+      });
+      series.push(series.splice(1 + names.indexOf(kind), 1)[0]);
+      CB.chart(ctx, null, { x: [0.1, 10000], y: [0.1, 10000], logX: true, logY: true, xLabel: "입력(마스터링) 휘도 (cd/m²)", yLabel: "출력 휘도 (cd/m²)", series,
+        hlines: [{ y: Ld, color: P.warn, label: "L_d = " + Ld }], vlines: [{ x: Lm, color: P.warn, label: "L_m" }, { x: 203, color: P.dim, label: "203" }] });
+      let knee = null;
+      for (let i = 0; i <= 400; i++) { const L = Math.pow(10, -1 + (Math.log10(Lm) + 1) * i / 400); if (Math.abs(toneCurve(L, kind, Lm, Ld) / L - 1) > 0.02) { knee = L; break; } }
+      CB.stat("o-t-203", fmtN(toneCurve(203, kind, Lm, Ld)) + " nit");
+      CB.stat("o-t-1000", fmtN(toneCurve(1000, kind, Lm, Ld)) + " nit");
+      CB.stat("o-t-knee", knee ? "≈ " + fmtN(knee) + " nit" : "없음(항등)");
+      CB.stat("o-t-top", fmtN(toneCurve(Lm, kind, Lm, Ld)) + " nit");
+    }, { aspect: 0.6, minHeight: 260, maxHeight: 400 });
+    const cvS = CB.canvas($("cv-scene"), (ctx, w, h) => {
+      if (!img) renderScene();
+      const s = Math.min(w / SW, h / SH), dw = SW * s, dh = SH * s, ox = (w - dw) / 2, oy = (h - dh) / 2;
+      ctx.imageSmoothingEnabled = true; ctx.drawImage(img, ox, oy, dw, dh);
+      ctx.font = Math.max(9, Math.round(10 * s / 1.6)) + "px " + getComputedStyle(document.body).getPropertyValue("--mono");
+      ctx.fillStyle = "#e8e8e8"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      const Lm = glm();
+      ["100", "0.3Lm", "Lm"].forEach((t, r) => ctx.fillText(t, ox + 1 * s, oy + (51 + r * 26) * s));
+      ctx.fillStyle = "#e8e8e8"; ctx.fillText("0.05 → " + Lm + " nit", ox + 4 * s, oy + 17 * s);
+      if ($("t-split").checked) {
+        ctx.strokeStyle = "#e8e8e8"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(ox + dw / 2, oy); ctx.lineTo(ox + dw / 2, oy + dh); ctx.stroke();
+        ctx.fillStyle = "#e8e8e8"; ctx.textAlign = "right"; ctx.fillText("클리핑", ox + dw / 2 - 4, oy + 126 * s); ctx.textAlign = "left"; ctx.fillText("선택 커브", ox + dw / 2 + 4, oy + 126 * s);
+      }
+    }, { aspect: 0.5, maxHeight: 400 });
+    function update() { renderScene(); cvC.redraw(); cvS.redraw(); }
+  })();
+
+  /* ============ 5. 색상 보존 궤적 ============ */
+  (function () {
+    const BASE = { blue: [0.1, 0.25, 1], red: [1, 0.08, 0.04], green: [0.15, 1, 0.1], magenta: [0.85, 0.1, 1], skin: [1, 0.62, 0.45] };
+    const MODES = ["rgb", "lum", "max", "ictcp"], LABEL = ["채널별", "휘도 Y", "maxRGB", "ICtCp I"];
+    const gc = CB.seg("h-col", () => cv.redraw());
+    const gk = CB.seg("h-curve", () => cv.redraw());
+    const glm = CB.range("h-lm", (v) => v.toLocaleString("en-US") + " nit", () => cv.redraw());
+    const gld = CB.range("h-ld", (v) => v + " nit", () => cv.redraw());
+    const range = { x: [0, 0.75], y: [0, 0.85] };
+    let bg = null, bgKey = "", D = null;
+    const hueTP = (rgb) => { const t = rgb2ictcp(rgb.map((v) => Math.max(v, 0))); return (Math.atan2(t[2], 0.5 * t[1]) * 180) / Math.PI; };
+    const cv = CB.canvas($("cv-hue"), (ctx, w, h) => {
+      const P = CB.palette(), base = BASE[gc()], kind = gk(), Lm = glm(), Ld = gld();
+      const cols = [P.bad, P.warn, P.ok, P.accent];
+      const wide = w >= 560;
+      let box, strip;
+      if (wide) { const bh = h - 44, bw = (bh * 0.75) / 0.85; box = { x: 46, y: 12, w: bw, h: bh }; strip = { x: box.x + bw + 34, y: 16, w: w - (box.x + bw + 34) - 10, h: h - 40 }; }
+      else { const bw = w - 60, bh = (bw * 0.85) / 0.75; box = { x: 46, y: 12, w: bw, h: bh }; strip = { x: 10, y: box.y + bh + 36, w: w - 20, h: h - (box.y + bh + 36) - 8 }; }
+      const key = w + "x" + h + (CB.isDark() ? "d" : "l");
+      if (key !== bgKey) {
+        const dpr = ctx.getTransform().a || 1;
+        bg = document.createElement("canvas"); bg.width = Math.round(w * dpr); bg.height = Math.round(h * dpr);
+        const b = bg.getContext("2d"); b.setTransform(dpr, 0, 0, dpr, 0, 0);
+        D = CB.chromaticity(b, box, { range, labels: true, fillAlpha: 0.5, gamuts: [
+          Object.assign({}, CB.SPACES.srgb, { color: P.faint, dash: [4, 4] }), Object.assign({}, CB.SPACES.p3, { color: P.dim }), Object.assign({}, CB.SPACES.rec2020, { color: P.text })] });
+        bgKey = key;
+      }
+      ctx.drawImage(bg, 0, 0, w, h);
+      const steps = 48, res = MODES.map(() => []);
+      for (let i = 0; i <= steps; i++) {
+        const s = Math.pow(10, 1 + (Math.log10(Lm) - 1) * i / steps), rgb = base.map((v) => v * s);
+        MODES.forEach((m, j) => res[j].push(toneMapRGB(rgb, kind, Lm, Ld, m)));
+      }
+      const xy0 = xyOf(base);
+      MODES.forEach((m, j) => {
+        ctx.strokeStyle = cols[j]; ctx.lineWidth = j === 2 ? 3 : 2.2; ctx.beginPath();
+        res[j].forEach((o, i) => { const p = D.P(xyOf(o)); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); });
+        ctx.stroke();
+        const pe = D.P(xyOf(res[j][steps])); ctx.fillStyle = cols[j]; ctx.beginPath(); ctx.arc(pe[0], pe[1], 4.5, 0, Math.PI * 2); ctx.fill();
+      });
+      const p0 = D.P(xy0); ctx.strokeStyle = P.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p0[0], p0[1], 7, 0, Math.PI * 2); ctx.stroke();
+      // strip
+      const font = getComputedStyle(document.body).getPropertyValue("--font");
+      ctx.font = "11px " + font; ctx.textBaseline = "bottom"; ctx.textAlign = "left";
+      const rowH = Math.min(38, (strip.h - 20) / 4 - 14), cw = strip.w / (steps + 1);
+      MODES.forEach((m, j) => {
+        const y = strip.y + j * (rowH + 16) + 14;
+        ctx.fillStyle = cols[j]; ctx.fillText(LABEL[j], strip.x, y - 2);
+        res[j].forEach((o, i) => { ctx.fillStyle = CB.rgb8css(disp8(o, Ld)); ctx.fillRect(strip.x + i * cw, y, cw + 0.6, rowH); });
+      });
+      ctx.fillStyle = P.dim; ctx.textBaseline = "top";
+      ctx.fillText("세기 10 nit → " + Lm.toLocaleString("en-US") + " nit (최대 채널)", strip.x, strip.y + 4 * (rowH + 16) + 16);
+      const h0 = hueTP(base);
+      const dh = res.map((r) => { let d = hueTP(r[steps]) - h0; d = ((d + 540) % 360) - 180; return (d >= 0 ? "+" : "") + d.toFixed(1) + "°"; });
+      const uv0 = CB.xy2uv(xy0);
+      const duv = res.map((r) => { const u = CB.xy2uv(xyOf(r[steps])); return Math.hypot(u[0] - uv0[0], u[1] - uv0[1]).toFixed(4); });
+      CB.stat("o-h-xy", xy0.map((v) => v.toFixed(4)).join(", "));
+      CB.stat("o-h-dh", dh.join(" · "));
+      CB.stat("o-h-duv", duv.join(" · "));
+    }, { aspect: 0.56, minHeight: 470, maxHeight: 540 });
+  })();
+
+  /* ============ 6. MaxCLL / MaxFALL ============ */
+  (function () {
+    const gbg = CB.range("m-bg", (v) => v + " nit", () => cv.redraw());
+    const gpk = CB.range("m-pk", (v) => v.toLocaleString("en-US") + " nit", () => cv.redraw());
+    const gar = CB.range("m-ar", (v) => v + "%", () => cv.redraw());
+    const gld = CB.range("m-ld", (v) => v + " nit", () => cv.redraw());
+    const W = 48, H = 27, F = 120;
+    function analyze(bgL, pk, ar) {
+      const mx = [], av = [], avPQ = [];
+      for (let f = 0; f < F; f++) {
+        const t = (f - 40) / 50, on = t >= 0 && t <= 1;
+        const I = on ? pk * Math.exp(-Math.pow((t - 0.2) / 0.35, 2)) : 0;
+        const R = on ? Math.sqrt(((ar / 100) * W * H * Math.pow(Math.sin(Math.PI * t), 0.7)) / Math.PI) : 0;
+        let m = 0, s = 0, sq = 0;
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          let v = bgL * (0.4 + 1.2 * (1 - y / (H - 1))) * (0.85 + 0.15 * Math.sin(2 * Math.PI * (x / W + f / F)));
+          if ((x === 6 + (f % 36) && y === 5) || (x === 30 && y === 19)) v = Math.max(v, 0.35 * pk);
+          if (R > 0) { const r = Math.hypot(x - 24, y - 15); if (r < R) v = Math.max(v, I * Math.sqrt(1 - (r / R) * (r / R))); }
+          v = Math.min(v, 10000);
+          m = Math.max(m, v); s += v; sq += pqInv(v);
+        }
+        mx.push(m); av.push(s / (W * H)); avPQ.push(pqEOTF(sq / (W * H)));
+      }
+      return { mx, av, avPQ };
+    }
+    const cv = CB.canvas($("cv-cll"), (ctx, w, h) => {
+      const P = CB.palette(), Ld = gld(), A = analyze(gbg(), gpk(), gar());
+      const cll = Math.max(...A.mx), fall = Math.max(...A.av), bad = Math.max(...A.avPQ), over = A.mx.filter((v) => v > Ld).length;
+      CB.chart(ctx, null, { x: [0, F - 1], y: [1, 10000], logY: true, xLabel: "프레임", yLabel: "광 레벨 max(R,G,B) (cd/m²)",
+        series: [{ data: A.av.map((v, i) => [i, v]), color: P.ok, width: 2.2 }, { data: A.mx.map((v, i) => [i, v]), color: P.accent, width: 2.2 }],
+        hlines: [{ y: Ld, color: P.warn, label: "디스플레이 " + Ld }, { y: cll, color: P.accent, label: "MaxCLL" }, { y: fall, color: P.ok, label: "MaxFALL" }] });
+      CB.stat("o-m-cll", Math.round(cll).toLocaleString("en-US") + " cd/m²");
+      CB.stat("o-m-fall", Math.round(fall).toLocaleString("en-US") + " cd/m²");
+      CB.stat("o-m-over", over + " / " + F + " 프레임");
+      CB.stat("o-m-bad", Math.round(bad) + " cd/m² (실제 " + Math.round(fall) + ")");
+    }, { aspect: 0.55, minHeight: 260, maxHeight: 380 });
+  })();
+})();
+</script>
+</body>
+</html>

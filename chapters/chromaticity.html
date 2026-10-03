@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>색도도 · ColorBook</title>
+<meta name="description" content="3자극치에서 밝기를 떼어 낸 xy 색도도: 스펙트럼 궤적과 보라선, 가산 혼합의 직선성(X+Y+Z 가중), 주파장·순도 계산, 맥아담 타원과 u′v′ 균등 색도, Δu′v′ 사양을 시뮬레이터로 다룬다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/chromaticity.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="색도도 · ColorBook">
+<meta property="og:description" content="3자극치에서 밝기를 떼어 낸 xy 색도도: 스펙트럼 궤적과 보라선, 가산 혼합의 직선성(X+Y+Z 가중), 주파장·순도 계산, 맥아담 타원과 u′v′ 균등 색도, Δu′v′ 사양을 시뮬레이터로 다룬다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/chromaticity.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"색도도","name":"색도도 · ColorBook","url":"https://colorbook.euiyun.com/chapters/chromaticity.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/chromaticity.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":4,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"3자극치에서 밝기를 떼어 낸 xy 색도도: 스펙트럼 궤적과 보라선, 가산 혼합의 직선성(X+Y+Z 가중), 주파장·순도 계산, 맥아담 타원과 u′v′ 균등 색도, Δu′v′ 사양을 시뮬레이터로 다룬다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"04 색도도","item":"https://colorbook.euiyun.com/chapters/chromaticity.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sim-view canvas.pan { touch-action: pan-y; cursor: crosshair; }
+  .sim-view canvas.drag { touch-action: none; cursor: grab; }
+  .sw { display:inline-block; width:1.1em; height:1.1em; border-radius:3px; vertical-align:-.18em; border:1px solid var(--border); margin-right:.35em; }
+</style>
+</head>
+<body data-chapter="chromaticity">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 04</div>
+    <h1>색도도</h1>
+    <p class="lead">3장에서 색은 세 숫자 \((X, Y, Z)\)가 되었다. 그런데 같은 전구를 두 배로 밝게 켜도 우리는 "같은 색"이라고 말한다. 3자극치 벡터의 <strong>길이</strong>는 밝기이고 <strong>방향</strong>은 색의 질이다. 방향만 남겨 평면에 그린 것이 색도도다. 이 한 장의 그림 위에서 가산 혼합은 직선이 되고, 디스플레이의 가멋은 삼각형이 되며, LED의 주파장과 순도를 자로 잴 수 있다. 동시에 색도도는 밝기를 버렸고 지각적으로 균일하지도 않다. 이 장은 그 쓰임과 한계를 숫자로 정리한다.</p>
+    <ul class="objectives">
+      <li>XYZ에서 \(x, y\)를 얻는 중심 사영의 의미를 이해하고 xyY ↔ XYZ를 자유롭게 오간다.</li>
+      <li>스펙트럼 궤적과 순수 보라선이 실재 색의 경계가 되는 이유를 볼록 결합으로 설명한다.</li>
+      <li>가산 혼합점이 직선 위에 놓이며 그 무게가 \(Y\)가 아니라 \(X+Y+Z\)에 비례함을 유도하고 계산한다.</li>
+      <li>주파장·보색 파장·여기 순도·색도 순도를 작도와 수식으로 구한다.</li>
+      <li>맥아담 타원이 보여 주는 xy의 비균일성과 CIE 1960 (u, v), 1976 (u′, v′)의 동기, Δu′v′ 사양의 쓰임을 안다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="xyy">
+    <h2>3자극치에서 밝기를 떼어 내기: xyY</h2>
+    <p>어떤 광원의 분광 분포 \(S(\lambda)\)에 상수 \(k\)를 곱하면 3자극치도 그대로 \(k\)배가 된다(\(X=\int S\bar x\,d\lambda\)가 선형이므로). 따라서 XYZ 공간에서 원점을 지나는 한 직선 위의 모든 점 \(k(X,Y,Z)\), \(k&gt;0\)은 <em>밝기만 다르고 색의 질은 같은</em> 자극이다. 이 직선(광선)을 하나의 점으로 대표시키려면, 모든 광선이 한 번씩만 지나는 평면을 하나 골라 교점을 쓰면 된다. CIE는 그 평면으로 \(X+Y+Z=1\)을 택했다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 365" role="img" aria-label="XYZ 공간에서 원점을 지나는 직선과 X+Y+Z=1 평면의 교점이 색도 좌표가 되는 그림"><defs><marker id="a41" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs><path class="f-acc-soft" d="M390 355L200 90L70 380Z" fill-opacity="0.6"/><line class="s-axis" x1="200" y1="300" x2="438" y2="369" marker-end="url(#a41)"/><text class="t" x="446" y="381">X</text><line class="s-axis" x1="200" y1="300" x2="200" y2="38" marker-end="url(#a41)"/><text class="t" x="206" y="34">Y</text><line class="s-axis" x1="200" y1="300" x2="31" y2="404" marker-end="url(#a41)"/><text class="t" x="15" y="416">Z</text><line x1="200" y1="300" x2="312" y2="220" stroke="var(--accent)" stroke-width="2"/><circle cx="312" cy="220" r="5" class="f-acc"/><text class="t" x="320" y="214">(X, Y, Z)</text><circle cx="240" cy="272" r="4" fill="var(--text-dim)"/><text class="t-dim" x="250" y="288">k·(X,Y,Z), k&lt;1</text><line x1="266" y1="253" x2="286" y2="241" class="s-line" stroke-dasharray="4 4"/><circle cx="286" cy="241" r="3.5" fill="var(--text-dim)"/><circle cx="266" cy="253" r="5.5" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2.5"/><text class="t-acc" x="254" y="243" text-anchor="end">(x, y, z)</text><text class="t-mono" x="394" y="371">1</text><text class="t-mono" x="208" y="94">1</text><text class="t-mono" x="58" y="394">1</text><text class="t-dim" x="40" y="352">평면 X+Y+Z = 1 (색칠한 삼각형)</text><line x1="520" y1="300" x2="520" y2="52" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="520" y="316" text-anchor="middle">0.0</text><line x1="635" y1="300" x2="635" y2="52" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="635" y="316" text-anchor="middle">0.5</text><line x1="750" y1="300" x2="750" y2="52" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="750" y="316" text-anchor="middle">1.0</text><line x1="520" y1="300" x2="768" y2="300" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="514" y="304" text-anchor="end">0.0</text><line x1="520" y1="185" x2="768" y2="185" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="514" y="189" text-anchor="end">0.5</text><line x1="520" y1="70" x2="768" y2="70" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="514" y="74" text-anchor="end">1.0</text><path class="s-axis" d="M520 52L520 300L768 300"/><path d="M750 300L520 70L520 300Z" class="f-acc-soft" fill-opacity="0.5"/><circle cx="624" cy="208" r="5.5" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2.5"/><text class="t-acc" x="634" y="200">(x, y)</text><text class="t" x="774" y="304">x</text><text class="t" x="520" y="44" text-anchor="middle">y</text><text class="t-dim" x="603" y="102">z = 1 − x − y 는</text><text class="t-dim" x="603" y="119">적지 않아도 된다</text><path d="M405 150 Q445 128 485 150" class="s-line" marker-end="url(#a41)"/><text class="t-dim" x="445" y="118" text-anchor="middle">Z축 쪽에서 내려다봄</text></svg>
+      <figcaption><b>그림 4-1.</b> 색도는 XYZ 벡터를 원점에서 평면 \(X+Y+Z=1\)로 <strong>중심 사영</strong><span class="en">(central projection)</span>한 점이다. 같은 광선 위의 \(k(X,Y,Z)\)는 모두 같은 \((x,y,z)\)로 간다. 평면 위의 점은 \(x+y+z=1\)이므로 두 좌표 \((x,y)\)만 남기고, 이것을 \(z\)축 방향에서 내려다본 것이 xy 색도도다.</figcaption>
+    </figure>
+    <div class="formula">$$x=\frac{X}{X+Y+Z},\qquad y=\frac{Y}{X+Y+Z},\qquad z=\frac{Z}{X+Y+Z}=1-x-y$$
+      <div class="where">\(x, y\): 색도 좌표<span class="en">(chromaticity coordinates)</span>. 밝기에 대한 정보는 분모에서 상쇄되어 사라진다.</div>
+    </div>
+    <p>색도 좌표 두 개에 휘도 \(Y\)를 붙이면 정보가 다시 셋이 되어 원래 3자극치를 복원할 수 있다. 이것이 <span class="term">xyY</span> 표현이다. 측정기, 디스플레이 사양서, 조명 데이터시트가 "\(Y\) = 250 cd/m², \((x,y)\) = (0.3127, 0.3290)"처럼 쓰는 이유다. 밝기 축으로 \(X+Y+Z\)가 아니라 \(Y\)를 남기는 까닭은 \(Y\)만이 측광량(휘도·조도)과 직접 연결되기 때문이다(\(\bar y = V(\lambda)\), <a href="light.html">1장</a>).</p>
+    <div class="formula">$$X=\frac{x}{y}\,Y,\qquad Z=\frac{1-x-y}{y}\,Y,\qquad X+Y+Z=\frac{Y}{y}$$
+      <div class="where">마지막 식 \(S \equiv X+Y+Z = Y/y\)는 다음 절의 혼합 법칙에서 핵심 역할을 한다.</div>
+    </div>
+    <p><strong>수치 예.</strong> sRGB의 선형 빨강 원색 \((R,G,B)=(1,0,0)\)은 IEC 61966-2-1 행렬로 \((X,Y,Z)=(0.4124, 0.2126, 0.0193)\)이다. 합은 0.6444이고 \(x = 0.4124/0.6444 = 0.6400\), \(y = 0.2126/0.6444 = 0.3300\)으로 사양서의 원색 좌표가 그대로 나온다. 거꾸로 \((x,y,Y) = (0.64, 0.33, 0.2126)\)에서 \(X = 0.64/0.33 \times 0.2126 = 0.4123\), \(Z = 0.03/0.33\times0.2126 = 0.0193\)이 복원된다.</p>
+    <p>중심 사영은 직교 투영과 달리 <span class="term">사영 변환</span><span class="en">(projective transformation)</span>이다. 사영 변환은 직선을 직선으로 보낸다. 원점을 지나는 평면(두 광선이 펼치는 면)이 \(X+Y+Z=1\)과 만나는 곳이 직선이기 때문이다. 이 성질 하나에서 3절의 "혼합은 직선" 법칙과 5절의 주파장 작도가 모두 나온다.</p>
+    <div class="callout warn"><strong>흔한 실수: xyY로 평균·보간하기</strong>
+      <p>두 색의 "중간"을 \((x,y)\) 평균으로 잡거나 xyY 공간에서 선형 보간하면 실제 빛의 혼합과 다른 점이 나온다. 색도는 XYZ의 <em>비율</em>이라 선형이 아니다. 물리적 혼합, 적분, 평균은 항상 XYZ(또는 선형 RGB)에서 하고, 결과만 xy로 바꿔 표시하라. 또한 \(y \to 0\)인 짙은 청·보라에서는 \(Y/y\)가 수치적으로 불안정하므로, 데이터 교환에는 XYZ를 그대로 저장하는 편이 안전하다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="locus">
+    <h2>스펙트럼 궤적과 순수 보라선</h2>
+    <p>파장 \(\lambda\) 하나만 가진 단색광의 3자극치는 \((\bar x(\lambda), \bar y(\lambda), \bar z(\lambda))\)에 비례하므로, 그 색도는 등색 함수만으로 정해진다.</p>
+    <div class="formula">$$x(\lambda)=\frac{\bar x(\lambda)}{\bar x(\lambda)+\bar y(\lambda)+\bar z(\lambda)},\qquad y(\lambda)=\frac{\bar y(\lambda)}{\bar x(\lambda)+\bar y(\lambda)+\bar z(\lambda)}$$</div>
+    <p>\(\lambda\)를 380 nm에서 700 nm까지 움직이면 이 점은 말발굽 모양 곡선, <span class="term">스펙트럼 궤적</span><span class="en">(spectrum locus)</span>을 그린다. CIE 1931 2° 관측자 기준으로 380 nm에서 (0.1741, 0.0050)에서 출발해, 505 nm 부근에서 \(x\)가 최소(0.0039), 520 nm에서 \(y\)가 최대(0.8338)가 되고, 700 nm에서 (0.7347, 0.2653)에 이른다. 700 nm 위로는 \(\bar x:\bar y:\bar z\) 비율이 거의 변하지 않아 점이 한자리에 머문다. 장파장 끝에서는 L·M 원추세포 응답의 비율만 남고 그 비율이 일정해지기 때문이다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 500 515" role="img" aria-label="CIE 1931 xy 색도도의 스펙트럼 궤적과 순수 보라선"><line x1="60" y1="480" x2="60" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="60" y="496" text-anchor="middle">0.0</text><line x1="110" y1="480" x2="110" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="110" y="496" text-anchor="middle">0.1</text><line x1="160" y1="480" x2="160" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="160" y="496" text-anchor="middle">0.2</text><line x1="210" y1="480" x2="210" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="210" y="496" text-anchor="middle">0.3</text><line x1="260" y1="480" x2="260" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="260" y="496" text-anchor="middle">0.4</text><line x1="310" y1="480" x2="310" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="310" y="496" text-anchor="middle">0.5</text><line x1="360" y1="480" x2="360" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="360" y="496" text-anchor="middle">0.6</text><line x1="410" y1="480" x2="410" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="410" y="496" text-anchor="middle">0.7</text><line x1="460" y1="480" x2="460" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="460" y="496" text-anchor="middle">0.8</text><line x1="60" y1="480" x2="460" y2="480" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="484" text-anchor="end">0.0</text><line x1="60" y1="430" x2="460" y2="430" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="434" text-anchor="end">0.1</text><line x1="60" y1="380" x2="460" y2="380" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="384" text-anchor="end">0.2</text><line x1="60" y1="330" x2="460" y2="330" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="334" text-anchor="end">0.3</text><line x1="60" y1="280" x2="460" y2="280" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="284" text-anchor="end">0.4</text><line x1="60" y1="230" x2="460" y2="230" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="234" text-anchor="end">0.5</text><line x1="60" y1="180" x2="460" y2="180" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="184" text-anchor="end">0.6</text><line x1="60" y1="130" x2="460" y2="130" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="134" text-anchor="end">0.7</text><line x1="60" y1="80" x2="460" y2="80" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="84" text-anchor="end">0.8</text><line x1="60" y1="30" x2="460" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="34" text-anchor="end">0.9</text><path class="s-axis" d="M60 30L60 480L460 480"/><path class="f-acc-soft" fill-opacity="0.35" stroke="none" d="M147 478L147 478L147 478L147 478L147 478L147 478L147 478L146 478L146 478L146 478L146 477L145 477L145 477L144 476L143 475L142 475L141 473L139 472L137 470L135 468L132 465L129 461L125 455L119 446L113 433L106 414L97 388L88 353L79 311L70 262L64 211L62 164L65 123L72 92L83 72L97 63L113 66L130 73L145 82L160 92L175 103L189 115L204 128L218 141L232 154L247 168L261 182L275 196L289 210L303 223L316 237L329 250L341 262L353 273L364 284L374 294L382 302L389 309L396 316L401 321L406 326L409 329L412 332L415 335L417 337L420 340L421 341L422 342L423 343L424 344L425 345L425 345L426 346L426 346L426 346L427 347L427 347L427 347L427 347L427 347L427 347Z"/><path d="M147 478L147 478L147 478L147 478L147 478L147 478L147 478L146 478L146 478L146 478L146 477L145 477L145 477L144 476L143 475L142 475L141 473L139 472L137 470L135 468L132 465L129 461L125 455L119 446L113 433L106 414L97 388L88 353L79 311L70 262L64 211L62 164L65 123L72 92L83 72L97 63L113 66L130 73L145 82L160 92L175 103L189 115L204 128L218 141L232 154L247 168L261 182L275 196L289 210L303 223L316 237L329 250L341 262L353 273L364 284L374 294L382 302L389 309L396 316L401 321L406 326L409 329L412 332L415 335L417 337L420 340L421 341L422 342L423 343L424 344L425 345L425 345L426 346L426 346L426 346L427 347L427 347L427 347L427 347L427 347L427 347" fill="none" stroke="var(--text)" stroke-width="2"/><line x1="147" y1="478" x2="427" y2="347" stroke="var(--text)" stroke-width="2" stroke-dasharray="6 5"/><circle cx="147" cy="478" r="3.2" fill="rgb(97,0,97)"/><text class="t-mono" x="150" y="464" text-anchor="start">380</text><circle cx="132" cy="465" r="3.2" fill="rgb(0,123,255)"/><text class="t-mono" x="146" y="457" text-anchor="start">460</text><circle cx="122" cy="451" r="3.2" fill="rgb(0,169,255)"/><text class="t-mono" x="138" y="447" text-anchor="start">470</text><circle cx="106" cy="414" r="3.2" fill="rgb(0,213,255)"/><text class="t-mono" x="123" y="412" text-anchor="start">480</text><circle cx="83" cy="333" r="3.2" fill="rgb(0,255,255)"/><text class="t-mono" x="101" y="334" text-anchor="start">490</text><circle cx="64" cy="211" r="3.2" fill="rgb(0,255,146)"/><text class="t-mono" x="82" y="214" text-anchor="start">500</text><circle cx="67" cy="105" r="3.2" fill="rgb(0,255,0)"/><text class="t-mono" x="84" y="116" text-anchor="start">510</text><circle cx="97" cy="63" r="3.2" fill="rgb(54,255,0)"/><text class="t-mono" x="94" y="85" text-anchor="end">520</text><circle cx="175" cy="103" r="3.2" fill="rgb(129,255,0)"/><text class="t-mono" x="164" y="121" text-anchor="end">540</text><circle cx="247" cy="168" r="3.2" fill="rgb(195,255,0)"/><text class="t-mono" x="234" y="185" text-anchor="end">560</text><circle cx="316" cy="237" r="3.2" fill="rgb(255,255,0)"/><text class="t-mono" x="303" y="254" text-anchor="end">580</text><circle cx="374" cy="294" r="3.2" fill="rgb(255,190,0)"/><text class="t-mono" x="361" y="311" text-anchor="end">600</text><circle cx="406" cy="326" r="3.2" fill="rgb(255,119,0)"/><text class="t-mono" x="393" y="343" text-anchor="end">620</text><circle cx="427" cy="347" r="3.2" fill="rgb(255,0,0)"/><text class="t-mono" x="440" y="338" text-anchor="start">700</text><circle cx="227" cy="313" r="4" fill="var(--text)"/><text class="t-mono" x="234" y="327">E (1/3, 1/3)</text><text class="t-dim" x="310" y="415" text-anchor="middle">순수 보라선</text><text class="t-dim" x="310" y="431" text-anchor="middle">(line of purples)</text><text class="t-acc" x="210" y="255" text-anchor="middle">실재하는 모든 색</text><text class="t-dim" x="210" y="272" text-anchor="middle">= 궤적의 볼록 껍질</text><text class="t-dim" x="350" y="90" text-anchor="middle">궤적 밖: 어떤 실제 스펙트럼으로도</text><text class="t-dim" x="350" y="106" text-anchor="middle">만들 수 없는 색도</text><text class="t-mono" x="468" y="484">x</text><text class="t-mono" x="60" y="20" text-anchor="middle">y</text></svg>
+      <figcaption><b>그림 4-2.</b> CIE 1931 xy 색도도. 실선은 380–700 nm 스펙트럼 궤적, 점선은 양 끝을 잇는 순수 보라선이다. 색칠한 영역(궤적의 볼록 껍질)이 물리적으로 존재하는 모든 색도다. E는 등에너지 백색.</figcaption>
+    </figure>
+    <h3>왜 모든 실제 색은 궤적 안에 있는가</h3>
+    <p>임의의 광원 스펙트럼 \(S(\lambda)\ge 0\)은 단색광들의 <strong>음이 아닌</strong> 가중 합이다. 3자극치는 적분(=합)이므로</p>
+    <div class="formula">$$\mathbf{X}_S=\int S(\lambda)\,\bar{\mathbf{x}}(\lambda)\,d\lambda \;\in\; \Bigl\{\textstyle\sum_i a_i\,\bar{\mathbf{x}}(\lambda_i)\;:\;a_i\ge 0\Bigr\}$$
+      <div class="where">\(\bar{\mathbf x}(\lambda) = (\bar x,\bar y,\bar z)\). XYZ 공간에서 실재 색은 단색광 벡터들이 펼치는 볼록 원뿔<span class="en">(convex cone)</span> 안에 있다.</div>
+    </div>
+    <p>볼록 원뿔을 평면 \(X+Y+Z=1\)로 자르면 단면은 단색광 점들의 <strong>볼록 껍질</strong><span class="en">(convex hull)</span>이 된다(다음 절에서 보듯 혼합은 색도에서 볼록 결합이다). 스펙트럼 궤적은 양 끝의 미세한 요동을 빼면 볼록 곡선이므로, 볼록 껍질은 궤적과 그 두 끝을 잇는 선분으로 둘러싸인 영역이다. 그 선분이 <span class="term">순수 보라선</span><span class="en">(line of purples)</span>이다. 보라선 위의 색(마젠타, 자주)은 스펙트럼의 어떤 한 파장으로도 만들 수 없고, 단파장 끝과 장파장 끝 빛을 섞어야만 얻는다. 궤적 바깥의 색도는 어떤 스펙트럼으로도 만들 수 없다. 그것을 얻으려면 어느 파장에 음의 파워가 필요하다.</p>
+    <p>스펙트럼이 넓어질수록 색도는 궤적에서 안쪽으로, 즉 백색 쪽으로 들어온다. 넓은 스펙트럼은 여러 단색광 점의 무게중심이기 때문이다. 아래 시뮬레이터는 가우시안 스펙트럼을 CIE 등색 함수로 실제 적분해서 이 효과를 보여 준다.</p>
+
+    <div class="sim" id="sim-gauss">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>가우시안 스펙트럼 → xy: 폭이 넓어지면 순도가 떨어진다</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-gs-spec"></canvas><canvas id="cv-gs-xy" class="pan"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>중심 파장 <output id="gs-c-out"></output></span><input type="range" id="gs-c" min="390" max="700" value="550" step="1"></label>
+          <label class="ctrl"><span>반치폭 FWHM <output id="gs-w-out"></output></span><input type="range" id="gs-w" min="2" max="300" value="30" step="1"></label>
+          <label class="check"><input type="checkbox" id="gs-trace" checked> 현재 폭으로 중심을 380→720 nm 훑은 궤적</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">색도 (x, y)</span><span class="v" id="o-gs-xy">—</span></div>
+        <div class="stat"><span class="k">주파장 (D65 기준)</span><span class="v" id="o-gs-dom">—</span></div>
+        <div class="stat"><span class="k">여기 순도 pₑ</span><span class="v" id="o-gs-pe">—</span></div>
+        <div class="stat"><span class="k">표시 색 (sRGB)</span><span class="v" id="o-gs-sw">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① FWHM 2 nm에서는 점이 궤적에 붙는다(레이저). ② 550 nm에서 폭을 10 → 100 → 200 nm로 늘리면 pₑ가 0.998 → 0.732 → 0.323으로 떨어지고 주파장도 560 nm 쪽으로 움직인다. ③ 폭을 크게 둔 채 중심을 훑으면 궤적(점선)이 백색점 둘레로 줄어든다. 중심 400 nm나 690 nm에서는 스펙트럼 일부가 380–780 nm 표 범위 밖으로 잘린다. 위 그림의 점선은 x̄ȳz̄(축척 조정).</div>
+    </div>
+
+    <div class="callout"><strong>공학자 관점: 원색의 순도는 스펙트럼 폭이 정한다</strong>
+      <p>Rec.2020(ITU-R BT.2020)의 세 원색은 630, 532, 467 nm 단색광의 색도로 정의되어 궤적 바로 위에 있다(이 장의 계산으로 pₑ = 1.000). 이 가멋을 실제로 채우려면 레이저급의 좁은 스펙트럼이 필요하다. LED나 양자점의 반치폭은 대략 수십 nm라서 원색이 궤적에서 조금 안쪽에 놓이고, 넓은 형광체 백색 LED와 컬러 필터 조합의 원색은 더 안쪽에 놓인다. 디스플레이 원색 설계는 결국 "피크 위치 + 폭"으로 xy를 정하는 문제다(<a href="display.html">13장</a>).</p>
+    </div>
+    <div class="callout deep"><strong>관측자와 파장 범위</strong>
+      <p>궤적의 정확한 모양은 관측자에 따라 다르다. CIE 1964 10° 관측자의 궤적은 1931 2°와 녹색·청록 부근에서 눈에 띄게 다르므로 xy 값을 주고받을 때는 관측자를 반드시 밝혀야 한다. CIE 표는 360–830 nm까지 주어지지만 이 교재의 내장 데이터와 그림은 380–780 nm(궤적은 380–700 nm)를 쓴다. 양 끝에서의 차이는 색도도 그림에서 보이지 않을 만큼 작다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="mixing">
+    <h2>가산 혼합은 직선이다: 무게중심 법칙</h2>
+    <p>두 빛 \(C_1, C_2\)를 같은 곳에 비추면 그라스만 법칙(<a href="colorimetry.html">3장</a>)에 따라 3자극치가 더해진다: \(\mathbf X_M=\mathbf X_1+\mathbf X_2\). 각 빛의 합 \(S_i = X_i+Y_i+Z_i\)를 쓰면 \(X_i = x_i S_i\)이므로</p>
+    <div class="formula">$$x_M=\frac{X_1+X_2}{S_1+S_2}=\frac{S_1\,x_1+S_2\,x_2}{S_1+S_2},\qquad y_M=\frac{S_1\,y_1+S_2\,y_2}{S_1+S_2},\qquad S_i = X_i+Y_i+Z_i=\frac{Y_i}{y_i}$$
+      <div class="where">혼합 색도는 두 색도의 <strong>볼록 결합</strong>이다. 혼합점은 \(C_1C_2\) 선분 위에 있고, 무게는 \(S_i\)에 비례한다. 지렛대로 쓰면 \(|C_1M| : |MC_2| = S_2 : S_1\).</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 240" role="img" aria-label="두 색의 가산 혼합이 xy에서 두 점을 잇는 선분 위에 X+Y+Z 비례 무게로 놓이는 지렛대 그림">
+<line x1="90" y1="180" x2="560" y2="50" class="s-line" stroke-width="2"/>
+<circle cx="90" cy="180" r="9" fill="rgb(255,155,0)" stroke="var(--text)"/><text class="t" x="90" y="210" text-anchor="middle">C₁ = 610 nm</text><text class="t-mono" x="90" y="226" text-anchor="middle">S₁ = 1.506, Y₁ = 0.503</text>
+<circle cx="560" cy="50" r="9" fill="rgb(129,255,0)" stroke="var(--text)"/><text class="t" x="546" y="34" text-anchor="end">C₂ = 540 nm</text><text class="t-mono" x="574" y="54">S₂ = 1.265, Y₂ = 0.954</text>
+<circle cx="304.5" cy="120.7" r="8" class="f-acc"/><text class="t-acc" x="308.5" y="148.7">혼합 M (0.4667, 0.5259)</text>
+<circle cx="397.7" cy="94.9" r="7" fill="none" stroke="var(--bad)" stroke-width="2.5"/><text x="387.7" y="78.9" text-anchor="end" class="t" style="fill:var(--bad)">Y로 가중(틀림)</text>
+<text class="t-dim" x="191" y="140" text-anchor="middle">∝ S₂</text>
+<text class="t-dim" x="454" y="107" text-anchor="middle">∝ S₁</text>
+<g transform="translate(600,120)"><rect class="f-elev" width="190" height="104" rx="8"/><text class="t" x="12" y="26">|C₁M| : |MC₂| = S₂ : S₁</text><text class="t-dim" x="12" y="50">S = X+Y+Z = Y / y</text><text class="t-dim" x="12" y="72">같은 복사 파워 1:1 혼합</text><text class="t-mono" x="12" y="92">Δu′v′(오류) = 0.064</text></g>
+</svg>
+      <figcaption><b>그림 4-3.</b> 610 nm와 540 nm 단색광을 같은 복사 파워로 섞은 경우. 혼합점 M은 선분 위에서 \(S = X+Y+Z\)에 비례한 무게로 정해진다. 휘도 \(Y\)로 가중하면 녹색 쪽으로 크게 치우친 엉뚱한 점(빨간 원)이 나온다. 수치는 CIE 1931 2° 등색 함수 값 그대로다(상대 단위).</figcaption>
+    </figure>
+    <div class="callout warn"><strong>흔한 실수: 휘도 \(Y\)로 가중 평균하기</strong>
+      <p>"밝은 쪽으로 더 끌려간다"는 직관 때문에 \(x_M = (Y_1x_1+Y_2x_2)/(Y_1+Y_2)\)로 계산하는 실수가 매우 흔하다. 올바른 무게는 \(Y_i/y_i\)다. \(y\)가 작은 청색은 휘도가 작아도 \(S\)가 크다. 450 nm와 580 nm를 같은 복사 파워로 섞으면 450 nm의 휘도 몫은 4%(\(Y_1 = 0.038\), \(Y_2 = 0.870\))에 불과하지만, 올바른 혼합 색도는 (0.3184, 0.2308)로 청색 쪽에 깊이 들어간 보랏빛 분홍이다. \(Y\) 가중으로는 (0.4976, 0.4670), 거의 노랑이 나온다. 그림 4-3의 610 + 540 nm 예에서도 두 점의 차이는 Δu′v′ = 0.064로, 아래에서 보듯 눈에 띄는 차이 기준의 열 배가 넘는다.</p>
+    </div>
+    <p>같은 논리로 혼합은 몇 개든 가능하다. \(n\)개의 빛의 혼합 색도는 \(\sum S_i\,\mathbf c_i / \sum S_i\)로 각 색도의 무게중심이고, 이것이 1절에서 말한 "실재 색 = 단색광의 볼록 껍질"의 근거다. 혼합 결과의 휘도는 \(Y_M = Y_1 + Y_2\)로 단순히 더해진다. 무게중심 계산에 쓰는 \(S\)와 결과로 나오는 \(Y\)를 구분하라.</p>
+
+    <div class="sim" id="sim-mix">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>두 단색광 혼합: S 가중 vs Y 가중</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-mx" class="pan"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>광원 1 파장 <output id="mx-l1-out"></output></span><input type="range" id="mx-l1" min="380" max="700" value="610" step="1"></label>
+          <label class="ctrl"><span>광원 1 복사 파워 <output id="mx-p1-out"></output></span><input type="range" id="mx-p1" min="0" max="200" value="100" step="1"></label>
+          <label class="ctrl"><span>광원 2 파장 <output id="mx-l2-out"></output></span><input type="range" id="mx-l2" min="380" max="700" value="540" step="1"></label>
+          <label class="ctrl"><span>광원 2 복사 파워 <output id="mx-p2-out"></output></span><input type="range" id="mx-p2" min="0" max="200" value="100" step="1"></label>
+          <label class="check"><input type="checkbox" id="mx-wrong" checked> Y 가중(틀린 계산) 점 표시</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">혼합 xy (올바름)</span><span class="v" id="o-mx-xy">—</span></div>
+        <div class="stat"><span class="k">Y 가중 xy (틀림)</span><span class="v" id="o-mx-wr">—</span></div>
+        <div class="stat"><span class="k">오차 Δu′v′</span><span class="v" id="o-mx-err">—</span></div>
+        <div class="stat"><span class="k">무게 S₁:S₂ (Y₁:Y₂)</span><span class="v" id="o-mx-wt">—</span></div>
+        <div class="stat"><span class="k">혼합 색</span><span class="v" id="o-mx-sw">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 파워 비율을 바꿔도 혼합점은 항상 두 점을 잇는 선분을 벗어나지 않는다. ② 450 nm + 580 nm(같은 파워)에서 Y 가중 점이 노랑 근처에 있음을 확인하자. ③ 두 파장을 궤적 양 끝(400 nm, 700 nm)에 두면 혼합점이 보라선 바로 안쪽을 미끄러진다. ④ 보색 쌍(예: 485 nm + 590 nm 근처)을 찾아 혼합점을 백색 근처로 보내 보자.</div>
+    </div>
+    <div class="callout tip"><strong>u′v′에서도 직선은 직선이다</strong>
+      <p>7절의 u′v′ 좌표도 XYZ의 사영 변환이라서 혼합점은 u′v′에서도 선분 위에 놓인다. 다만 무게가 \(X+15Y+3Z\)(u′v′의 분모)로 바뀐다. 직선성은 사영 좌표 공통의 성질이고, 무게는 좌표계마다 다르다. CIELAB 같은 비선형 공간에서는 혼합이 직선조차 아니다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="gamut">
+    <h2>세 원색과 삼각형 가멋</h2>
+    <p>원색 R, G, B를 음이 아닌 세기로 섞어 만들 수 있는 색도는 무게중심 법칙에 따라 세 원색 점이 만드는 <strong>삼각형</strong> 내부다. 삼각형 밖의 색도를 만들려면 어떤 원색에 음의 세기가 필요하다. 스펙트럼 궤적은 휘어 있으므로, 궤적 위나 안쪽에 있는 실제 원색 세 개로는 어떤 삼각형도 궤적 전체를 덮지 못한다. 단색 레이저 원색을 쓰는 Rec.2020도 청록(490–510 nm)과 짙은 보라 부근을 놓친다. 가산 혼합 디스플레이는 원리적으로 모든 색을 재현할 수 없다.</p>
+    <p>가멋 크기를 숫자 하나로 말하려고 업계는 흔히 <em>색도 삼각형 면적</em>을 쓴다. 꼭짓점 \((x_i,y_i)\)의 면적은 신발끈 공식 \(A = \tfrac12\left|\sum_i (x_iy_{i+1}-x_{i+1}y_i)\right|\)이다. 사영 변환은 직선을 보존하므로 u′v′에서도 가멋은 삼각형이고 같은 공식이 적용된다. 하지만 두 공간의 면적비는 서로 다르다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>색공간</th><th>면적 xy</th><th>면적 u′v′</th><th>sRGB 대비 (xy)</th><th>sRGB 대비 (u′v′)</th><th>sRGB 커버리지</th><th>궤적 대비 xy / u′v′</th><th>Rec.2020 커버리지 xy / u′v′</th></tr></thead>
+      <tbody>
+<tr><td>sRGB / Rec.709</td><td>0.1121</td><td>0.0649</td><td>100.0%</td><td>100.0%</td><td>100.0%</td><td>33.6% / 33.3%</td><td>52.9% / 58.0%</td></tr>
+<tr><td>Display P3</td><td>0.1520</td><td>0.0815</td><td>135.7%</td><td>125.6%</td><td>100.0%</td><td>45.6% / 41.8%</td><td>71.7% / 72.8%</td></tr>
+<tr><td>Adobe RGB</td><td>0.1512</td><td>0.0757</td><td>134.9%</td><td>116.7%</td><td>100.0%</td><td>45.3% / 38.8%</td><td>71.3% / 67.7%</td></tr>
+<tr><td>Rec.2020</td><td>0.2119</td><td>0.1118</td><td>189.1%</td><td>172.3%</td><td>100.0%</td><td>63.6% / 57.3%</td><td>100.0% / 100.0%</td></tr>
+<tr><td>NTSC 1953</td><td>0.1582</td><td>0.0744</td><td>141.2%</td><td>114.7%</td><td>96.7%</td><td>47.5% / 38.2%</td><td>74.7% / 66.5%</td></tr>
+      </tbody>
+    </table></div>
+    <p class="t-dim" style="font-size:14px">표 4-1. 원색 색도 삼각형의 면적과 커버리지(이 페이지의 스크립트로 계산, 궤적은 380–700 nm 다각형). "sRGB 커버리지"는 sRGB 삼각형 중 해당 색공간이 덮는 비율, "Rec.2020 커버리지"는 Rec.2020 삼각형 중 해당 색공간이 덮는 비율이다.</p>
+    <div class="callout warn"><strong>면적비 ≠ 커버리지, xy ≠ u′v′</strong>
+      <p>Adobe RGB는 면적으로 sRGB의 135%(xy)지만 Display P3 삼각형의 일부만 덮고, NTSC 1953은 xy 면적이 P3보다 크지만 u′v′ 면적은 P3보다 작다. "NTSC 대비 몇 %"라는 마케팅 수치는 대부분 xy 면적비다. 이 정의로 sRGB는 NTSC의 약 71%인데, u′v′로 재면 약 87%다. 사양을 비교할 때는 ① 면적비인지 커버리지(교집합)인지 ② xy인지 u′v′인지 ③ 기준 삼각형이 무엇인지를 반드시 확인하라. 가멋은 사실 밝기 축까지 포함한 3D 입체라는 점도 기억하라(<a href="rgb.html">5장</a>).</p>
+    </div>
+
+    <div class="sim" id="sim-gamut">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>가멋 삼각형 드래그: 면적과 커버리지</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-gm" class="drag"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>프리셋</span><div class="seg" id="gm-pre"><button data-value="srgb" class="on">sRGB</button><button data-value="p3">P3</button><button data-value="adobe">Adobe</button><button data-value="rec2020">2020</button><button data-value="ntsc">NTSC</button></div></div>
+          <div class="ctrl"><span>그리는 좌표</span><div class="seg" id="gm-view"><button data-value="xy" class="on">xy</button><button data-value="uv">u′v′</button></div></div>
+          <label class="check"><input type="checkbox" id="gm-ref" checked> 기준 삼각형(sRGB, Rec.2020) 표시</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">면적 xy / u′v′</span><span class="v" id="o-gm-a">—</span></div>
+        <div class="stat"><span class="k">sRGB 대비 면적 xy / u′v′</span><span class="v" id="o-gm-sr">—</span></div>
+        <div class="stat"><span class="k">Rec.2020 커버리지 xy / u′v′</span><span class="v" id="o-gm-cov">—</span></div>
+        <div class="stat"><span class="k">궤적 면적 대비 xy / u′v′</span><span class="v" id="o-gm-loc">—</span></div>
+        <div class="stat"><span class="k">점검</span><span class="v" id="o-gm-warn">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 꼭짓점(원)을 끌어 녹색 원색을 위로 올려 보자. xy 면적은 크게 늘지만 u′v′ 면적은 덜 는다(xy가 녹색 영역을 부풀려 그리기 때문). ② 녹색을 궤적 밖으로 끌면 "물리적으로 불가능" 경고가 뜬다. ③ u′v′ 보기로 바꿔도 삼각형의 변은 직선으로 남는다. ④ 청색 원색을 조금만 움직여도 u′v′ 면적은 크게 변한다.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="dominant">
+    <h2>주파장, 보색 파장, 순도</h2>
+    <p>색도 좌표 두 개는 정확하지만 직관적이지 않다. 그래서 CIE 015는 기준 백색 \(W=(x_n, y_n)\)에 대한 극좌표 같은 기술법을 정의한다. "어떤 파장의 단색광과 백색을 섞은 것과 같은가"라는 질문이다. 무게중심 법칙에 따라 시료 \(C\)가 백색과 단색광 \(\lambda_d\)의 혼합이라면 \(C\)는 선분 \(W\lambda_d\) 위에 있어야 한다. 따라서 <strong>\(W\)에서 \(C\)를 지나는 반직선을 그어 스펙트럼 궤적과 만나는 점</strong>의 파장이 <span class="term">주파장</span><span class="en">(dominant wavelength, \(\lambda_d\))</span>이다.</p>
+    <p>반직선이 궤적이 아니라 보라선과 만나면(마젠타·자주 계열) 주파장이 없다. 이때는 반대 방향으로 반직선을 그어 궤적과 만나는 파장을 <span class="term">보색 파장</span><span class="en">(complementary wavelength, \(\lambda_c\))</span>으로 쓰고 "\(\lambda_c\) = 503 nm"나 "−503 nm", "503c"처럼 표기한다. 그 단색광을 시료와 알맞게 섞으면 백색이 된다는 뜻이다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 480" role="img" aria-label="백색점에서 시료를 지나는 직선으로 주파장과 보색 파장, 여기 순도를 구하는 작도"><path class="f-acc-soft" fill-opacity="0.25" stroke="none" d="M141 447L140 447L140 447L140 447L140 447L140 448L140 448L140 448L140 447L139 447L139 447L139 447L138 447L137 446L137 445L135 444L134 443L132 442L130 440L128 437L125 435L121 430L117 424L112 415L105 401L97 381L89 354L79 318L69 274L61 223L54 170L52 121L55 79L63 46L74 25L89 16L106 20L123 27L139 36L154 47L169 58L185 70L200 84L215 97L229 111L244 125L259 140L274 154L288 169L303 183L316 197L330 210L343 223L355 235L366 246L376 256L385 265L392 273L399 279L405 285L410 290L413 293L416 296L419 299L422 302L424 304L425 305L427 307L428 308L429 309L430 310L430 310L430 310L431 311L431 311L431 311L432 312L432 312L432 312L432 312L432 312Z"/><path d="M141 447L140 447L140 447L140 447L140 447L140 448L140 448L140 448L140 447L139 447L139 447L139 447L138 447L137 446L137 445L135 444L134 443L132 442L130 440L128 437L125 435L121 430L117 424L112 415L105 401L97 381L89 354L79 318L69 274L61 223L54 170L52 121L55 79L63 46L74 25L89 16L106 20L123 27L139 36L154 47L169 58L185 70L200 84L215 97L229 111L244 125L259 140L274 154L288 169L303 183L316 197L330 210L343 223L355 235L366 246L376 256L385 265L392 273L399 279L405 285L410 290L413 293L416 296L419 299L422 302L424 304L425 305L427 307L428 308L429 309L430 310L430 310L430 310L431 311L431 311L431 311L432 312L432 312L432 312L432 312L432 312" fill="none" stroke="var(--text)" stroke-width="1.8"/><line x1="141" y1="447" x2="432" y2="312" stroke="var(--text)" stroke-width="1.8" stroke-dasharray="6 5"/><circle cx="125" cy="435" r="3.2" fill="rgb(0,123,255)"/><text class="t-mono" x="139" y="427" text-anchor="start">460</text><circle cx="97" cy="381" r="3.2" fill="rgb(0,213,255)"/><text class="t-mono" x="114" y="379" text-anchor="start">480</text><circle cx="54" cy="170" r="3.2" fill="rgb(0,255,146)"/><text class="t-mono" x="72" y="173" text-anchor="start">500</text><circle cx="89" cy="16" r="3.2" fill="rgb(54,255,0)"/><text class="t-mono" x="86" y="38" text-anchor="end">520</text><circle cx="169" cy="58" r="3.2" fill="rgb(129,255,0)"/><text class="t-mono" x="158" y="76" text-anchor="end">540</text><circle cx="244" cy="125" r="3.2" fill="rgb(195,255,0)"/><text class="t-mono" x="231" y="142" text-anchor="end">560</text><circle cx="410" cy="290" r="3.2" fill="rgb(255,119,0)"/><text class="t-mono" x="397" y="307" text-anchor="end">620</text><line x1="213" y1="279" x2="290" y2="171" stroke="var(--accent)" stroke-width="2.2"/><circle cx="290" cy="171" r="5.5" fill="rgb(233,255,0)" stroke="var(--text)"/><text class="t-acc" x="300" y="165">λd = 572.6 nm</text><circle cx="258" cy="216" r="5" class="f-acc"/><text class="t" x="248" y="206" text-anchor="end">C₁</text><line x1="53" y1="129" x2="213" y2="279" stroke="var(--accent-2)" stroke-width="2" stroke-dasharray="5 4"/><line x1="213" y1="279" x2="309" y2="369" stroke="var(--accent-2)" stroke-width="2.2"/><circle cx="309" cy="369" r="4.5" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text class="t-dim" x="317" y="385">B (보라선 위)</text><circle cx="284" cy="346" r="5" style="fill:var(--accent-2)"/><text class="t" x="294" y="340">C₂</text><circle cx="53" cy="129" r="5.5" fill="rgb(0,255,105)" stroke="var(--text)"/><text x="41" y="133" text-anchor="end" class="t" style="fill:var(--accent-2);font-weight:700">λc = 503.4 nm</text><circle cx="213" cy="279" r="5" fill="var(--text)"/><text class="t-mono" x="205" y="297" text-anchor="end">W (D65)</text><g transform="translate(470,250)"><rect class="f-elev" width="320" height="200" rx="8"/>
+<text class="t" x="14" y="26">C₁ = (0.40, 0.45)</text>
+<text class="t-dim" x="14" y="47">주파장 λd = 572.6 nm</text>
+<text class="t-dim" x="14" y="67">여기 순도 pₑ = |WC₁|/|WB₁| = 0.583</text>
+<text class="t-dim" x="14" y="87">색도 순도 p_c = pₑ·y_d/y = 0.695</text>
+<text class="t" x="14" y="120">C₂ = (0.45, 0.20)</text>
+<text class="t-dim" x="14" y="141">주파장 없음 → 보색 파장 λc = 503.4 nm</text>
+<text class="t-dim" x="14" y="161">여기 순도 pₑ = |WC₂|/|WB| = 0.742</text>
+<text class="t-mono" x="14" y="185">백색점 D65, CIE 1931 2° 관측자</text></g></svg>
+      <figcaption><b>그림 4-4.</b> 주파장 작도. 백색점 W(D65)에서 시료를 지나는 반직선을 연장한다. C₁은 궤적과 만나 주파장 572.6 nm를 갖는다. C₂의 반직선은 보라선의 점 B에서 끝나므로 반대쪽으로 연장해 보색 파장 503.4 nm를 얻는다. 수치는 이 페이지의 교점 계산 결과다.</figcaption>
+    </figure>
+    <p>시료가 백색에서 궤적까지 얼마나 나아갔는지가 <span class="term">여기 순도</span><span class="en">(excitation purity, \(p_e\))</span>다. 경계점(궤적 위의 \(\lambda_d\) 점 또는 보라선 위의 점 \(B\))을 \((x_b, y_b)\)라 하면</p>
+    <div class="formula">$$p_e=\frac{|WC|}{|WB|}=\frac{x-x_n}{x_b-x_n}=\frac{y-y_n}{y_b-y_n}$$
+      <div class="where">두 비율은 같은 값이다(세 점이 한 직선 위). 실무에서는 분모의 절댓값이 큰 쪽을 써서 수치 오차를 줄인다. 백색은 \(p_e=0\), 단색광은 \(p_e=1\).</div>
+    </div>
+    <p>여기 순도는 xy 평면의 <em>거리 비</em>다. 이것을 "몇 % 휘도의 단색광을 백색에 섞었는가"로 바꾼 것이 <span class="term">색도 순도</span><span class="en">(colorimetric purity, \(p_c\))</span>다. 시료 = 단색광 \(d\) + 백색 \(n\)이라 두고 무게중심 법칙을 적용하면, 지렛대 비율은 \(S\)로 주어진다: \(p_e = S_d/(S_d+S_n)\). 휘도 비율 \(p_c = Y_d/(Y_d+Y_n)\)로 바꾸려면 \(Y=yS\)를 대입하면 된다.</p>
+    <div class="formula">$$p_c=\frac{Y_d}{Y_d+Y_n}=\frac{y_d\,S_d}{y\,(S_d+S_n)}=p_e\,\frac{y_d}{y}$$
+      <div class="where">\(y_d\): 주파장 단색광의 \(y\) 좌표, \(y\): 시료의 \(y\) 좌표. 이 장의 시뮬레이터는 주파장이 있는 색에 대해서만 \(p_c\)를 계산한다.</div>
+    </div>
+    <p>같은 \(p_e\)라도 \(y_d\)가 작은 청색 주파장에서는 \(p_c\)가 작다. 청색 단색광은 휘도를 조금만 보태도 색도를 크게 끌어당기기 때문이다(3절의 \(Y\) 가중 실수와 같은 이야기다). 표 4-2에서 sRGB 청색 원색이 \(p_e=0.925\)인데 \(p_c=0.590\)인 이유가 이것이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>원색</th><th>(x, y)</th><th>주파장 λd (nm)</th><th>여기 순도 pₑ</th><th>색도 순도 p_c</th></tr></thead>
+      <tbody>
+<tr><td>sRGB R</td><td>(0.640, 0.330)</td><td>611.5</td><td>0.917</td><td>0.917</td></tr>
+<tr><td>sRGB G</td><td>(0.300, 0.600)</td><td>549.1</td><td>0.735</td><td>0.855</td></tr>
+<tr><td>sRGB B</td><td>(0.150, 0.060)</td><td>464.3</td><td>0.925</td><td>0.590</td></tr>
+<tr><td>P3 R</td><td>(0.680, 0.320)</td><td>614.9</td><td>1.000</td><td>1.000</td></tr>
+<tr><td>P3 G</td><td>(0.265, 0.690)</td><td>544.1</td><td>0.902</td><td>0.953</td></tr>
+<tr><td>Rec.2020 R</td><td>(0.708, 0.292)</td><td>630.0</td><td>1.000</td><td>1.000</td></tr>
+<tr><td>Rec.2020 G</td><td>(0.170, 0.797)</td><td>531.9</td><td>1.000</td><td>1.000</td></tr>
+<tr><td>Rec.2020 B</td><td>(0.131, 0.046)</td><td>467.0</td><td>1.000</td><td>1.000</td></tr>
+      </tbody>
+    </table></div>
+    <p class="t-dim" style="font-size:14px">표 4-2. 표준 원색의 주파장과 순도(백색점 D65, CIE 1931 2°, 1 nm 궤적 다각형의 직선 교점으로 계산). Rec.2020 원색은 정의상 단색광이므로 주파장이 630 / 532 / 467 nm로 되돌아오고 순도는 1이다(보간 오차는 1을 넘지 않게 잘랐다). 계산 검증에 쓸 만한 항등식이다.</p>
+
+    <div class="sim" id="sim-explore">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>인터랙티브 색도도: 주파장·순도 계산기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-ex" class="pan"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>기준 백색</span><div class="seg" id="ex-w"><button data-value="D65" class="on">D65</button><button data-value="D50">D50</button><button data-value="A">A</button><button data-value="E">E</button></div></div>
+          <p style="font-size:14px;color:var(--text-dim);margin:0">색도도 위에서 마우스를 움직이거나 탭하면 그 점의 좌표와 주파장·순도를 계산한다.</p>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">(x, y)</span><span class="v" id="o-ex-xy">—</span></div>
+        <div class="stat"><span class="k">(u′, v′)</span><span class="v" id="o-ex-uv">—</span></div>
+        <div class="stat"><span class="k">주파장 / 보색 파장</span><span class="v" id="o-ex-dom">—</span></div>
+        <div class="stat"><span class="k">여기 순도 pₑ</span><span class="v" id="o-ex-pe">—</span></div>
+        <div class="stat"><span class="k">색도 순도 p_c</span><span class="v" id="o-ex-pc">—</span></div>
+        <div class="stat"><span class="k">표시 색</span><span class="v" id="o-ex-sw">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 같은 점에서 기준 백색을 D65 → A로 바꾸면 주파장과 순도가 달라진다. 주파장은 시료만의 성질이 아니라 백색점에 대한 상대량이다. ② 백색점에서 마젠타 쪽으로 가면 주파장이 사라지고 보색 파장(c)으로 바뀐다. ③ 청색 영역에서 pₑ와 p_c의 차이가 큰지 확인하자. 표시 색은 sRGB로 클리핑되어 가멋 밖은 실제보다 탁하다.</div>
+    </div>
+    <div class="callout"><strong>공학자 관점: LED 데이터시트의 λd와 λp</strong>
+      <p>단색 LED(신호등, 자동차 램프, 표시등) 데이터시트에는 <em>피크 파장</em> \(\lambda_p\)와 <em>주파장</em> \(\lambda_d\)가 따로 나온다. 사람이 느끼는 색상은 \(\lambda_d\)를 따르기 때문에 제조사는 보통 \(\lambda_d\)로 빈<span class="en">(bin)</span>을 나눈다. 둘은 스펙트럼이 넓거나 비대칭일수록 벌어진다. 위 가우시안 모델에서 피크 600 nm, FWHM 30 nm의 \(\lambda_d\)는 596.8 nm이고, 피크 470 nm에 FWHM 100 nm로 넓히면 \(\lambda_d\)는 480.5 nm가 된다. 신호등 색 규격처럼 색 영역을 xy 다각형으로 직접 지정하는 경우도 많다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="limits">
+    <h2>색도도가 말해 주지 않는 것</h2>
+    <h3>밝기가 없다: 갈색은 색도도에 없다</h3>
+    <p>색도도는 밝기를 버린 그림이므로 갈색, 올리브, 회색, 검정이 따로 자리를 갖지 않는다. 갈색은 주파장 580–600 nm 근처의 주황·노랑이 <em>주변보다 충분히 어두울 때</em> 보이는 색이다. 같은 \((x,y)\)에 \(Y\)만 다른 점들은 색도도에서 한 점이지만 눈에는 주황에서 갈색, 고동색으로 달라 보인다. 회색과 흰색과 검정도 모두 백색점 한 점이다. 갈색은 "관련색"<span class="en">(related color)</span>, 즉 주변과 비교해서만 생기는 지각이다. 같은 패치를 어둠 속에 홀로 띄우면 갈색이 아니라 빛나는 주황으로 보인다(<a href="appearance.html">9장</a>).</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 295" role="img" aria-label="같은 색도 xy=(0.52, 0.42)에서 휘도만 낮춘 색이 주황에서 갈색으로 보이는 그림"><rect x="20" y="20" width="112" height="74" rx="6" fill="#dd7d0f"/><text class="t-mono" x="76" y="112" text-anchor="middle">Y = 0.3</text><text class="t-mono" x="76" y="128" text-anchor="middle">L* = 62</text><rect x="148" y="20" width="112" height="74" rx="6" fill="#b8670a"/><text class="t-mono" x="204" y="112" text-anchor="middle">Y = 0.2</text><text class="t-mono" x="204" y="128" text-anchor="middle">L* = 52</text><rect x="276" y="20" width="112" height="74" rx="6" fill="#925106"/><text class="t-mono" x="332" y="112" text-anchor="middle">Y = 0.12</text><text class="t-mono" x="332" y="128" text-anchor="middle">L* = 41</text><rect x="404" y="20" width="112" height="74" rx="6" fill="#723e04"/><text class="t-mono" x="460" y="112" text-anchor="middle">Y = 0.07</text><text class="t-mono" x="460" y="128" text-anchor="middle">L* = 32</text><rect x="532" y="20" width="112" height="74" rx="6" fill="#522b02"/><text class="t-mono" x="588" y="112" text-anchor="middle">Y = 0.035</text><text class="t-mono" x="588" y="128" text-anchor="middle">L* = 22</text><rect x="660" y="20" width="112" height="74" rx="6" fill="#3b1d01"/><text class="t-mono" x="716" y="112" text-anchor="middle">Y = 0.018</text><text class="t-mono" x="716" y="128" text-anchor="middle">L* = 14</text><rect x="20" y="150" width="370" height="110" rx="6" fill="#000"/><rect x="155" y="175" width="100" height="60" fill="#925106"/><text class="t-dim" x="205" y="282" text-anchor="middle">검은 주변: 빛나는 주황</text><rect x="410" y="150" width="370" height="110" rx="6" fill="#fff" stroke="var(--border)"/><rect x="545" y="175" width="100" height="60" fill="#925106"/><text class="t-dim" x="595" y="282" text-anchor="middle">흰 주변: 갈색</text></svg>
+      <figcaption><b>그림 4-5.</b> 위: 색도 \((x,y)=(0.52, 0.42)\)(D65 기준 주파장 약 588 nm, pₑ ≈ 0.83)를 고정하고 \(Y\)만 줄인 패치들. 모두 색도도에서는 같은 한 점이다. 아래: \(Y=0.12\)인 같은 패치가 검은 주변에서는 주황, 흰 주변에서는 갈색으로 보인다. L*은 D65 백색(Y = 1) 기준.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-brown">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>같은 xy, 다른 Y: 주황과 갈색</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-br"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>주파장 λd <output id="br-l-out"></output></span><input type="range" id="br-l" min="570" max="620" value="588" step="1"></label>
+          <label class="ctrl"><span>여기 순도 pₑ <output id="br-pe-out"></output></span><input type="range" id="br-pe" min="5" max="100" value="80" step="1"></label>
+          <label class="ctrl"><span>패치 휘도 Y <output id="br-Y-out"></output></span><input type="range" id="br-Y" min="0" max="100" value="55" step="1"></label>
+          <label class="ctrl"><span>주변 휘도 Y<sub>s</sub> <output id="br-s-out"></output></span><input type="range" id="br-s" min="0" max="100" value="100" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">색도 (x, y)</span><span class="v" id="o-br-xy">—</span></div>
+        <div class="stat"><span class="k">Y / Y<sub>s</sub></span><span class="v" id="o-br-Y">—</span></div>
+        <div class="stat"><span class="k">L* (주변 백색 기준)</span><span class="v" id="o-br-L">—</span></div>
+        <div class="stat"><span class="k">sRGB</span><span class="v" id="o-br-hex">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 주변을 100%로 두고 패치 Y를 내리면 어느 순간 "주황"이 "갈색"으로 바뀐다. 그동안 (x, y)는 한 자리도 변하지 않는다. ② 같은 패치에서 주변 휘도를 0으로 내리면 갈색이 다시 주황처럼 보인다. 지각은 상대 휘도(Y/Ys)를 따른다. ③ 오른쪽 띠는 같은 xy의 Y 계열이다. 화면이 sRGB 가멋 밖이면 클리핑 표시가 뜬다.</div>
+    </div>
+
+    <h3>지각적으로 균일하지 않다: 맥아담 타원</h3>
+    <p>색도도의 두 점 사이 거리는 눈에 보이는 차이의 크기와 비례하지 않는다. 이를 정량적으로 보인 고전 실험이 <strong>MacAdam(1942)</strong>이다. 한 명의 숙련된 관측자가 일정한 휘도에서 xy 평면의 25개 중심 색 각각에 대해 등색 맞추기를 반복했고, 맞춤 결과의 표준편차를 각 중심 둘레의 타원으로 나타냈다. 원 논문의 그림은 타원을 10배 확대해 그렸다. 타원의 크기와 방향은 위치마다 크게 다르다. 녹색 영역 타원은 xy에서 매우 크고 청색·보라 영역 타원은 매우 작다. 즉 xy 색도도는 녹색 영역을 지나치게 넓게, 청색 영역을 지나치게 좁게 그린다. 이 표준편차 타원을 몇 배로 키워 "n-step 맥아담 타원"이라는 허용 영역으로 쓰는 관행은 조명 업계에 그대로 남아 있다(<a href="lighting.html">10장</a>).</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 500 515" role="img" aria-label="u'v'에서 같은 크기의 원이 xy 색도도에서는 녹색 쪽에서 크고 청색 쪽에서 작은 타원이 되는 그림"><line x1="60" y1="480" x2="60" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="60" y="496" text-anchor="middle">0.0</text><line x1="110" y1="480" x2="110" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="110" y="496" text-anchor="middle">0.1</text><line x1="160" y1="480" x2="160" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="160" y="496" text-anchor="middle">0.2</text><line x1="210" y1="480" x2="210" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="210" y="496" text-anchor="middle">0.3</text><line x1="260" y1="480" x2="260" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="260" y="496" text-anchor="middle">0.4</text><line x1="310" y1="480" x2="310" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="310" y="496" text-anchor="middle">0.5</text><line x1="360" y1="480" x2="360" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="360" y="496" text-anchor="middle">0.6</text><line x1="410" y1="480" x2="410" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="410" y="496" text-anchor="middle">0.7</text><line x1="460" y1="480" x2="460" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="460" y="496" text-anchor="middle">0.8</text><line x1="60" y1="480" x2="460" y2="480" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="484" text-anchor="end">0.0</text><line x1="60" y1="430" x2="460" y2="430" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="434" text-anchor="end">0.1</text><line x1="60" y1="380" x2="460" y2="380" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="384" text-anchor="end">0.2</text><line x1="60" y1="330" x2="460" y2="330" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="334" text-anchor="end">0.3</text><line x1="60" y1="280" x2="460" y2="280" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="284" text-anchor="end">0.4</text><line x1="60" y1="230" x2="460" y2="230" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="234" text-anchor="end">0.5</text><line x1="60" y1="180" x2="460" y2="180" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="184" text-anchor="end">0.6</text><line x1="60" y1="130" x2="460" y2="130" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="134" text-anchor="end">0.7</text><line x1="60" y1="80" x2="460" y2="80" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="84" text-anchor="end">0.8</text><line x1="60" y1="30" x2="460" y2="30" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="34" text-anchor="end">0.9</text><path class="s-axis" d="M60 30L60 480L460 480"/><path class="f-acc-soft" fill-opacity="0.18" stroke="none" d="M147 478L147 478L147 478L147 478L147 478L147 478L147 478L146 478L146 478L146 478L146 477L145 477L145 477L144 476L143 475L142 475L141 473L139 472L137 470L135 468L132 465L129 461L125 455L119 446L113 433L106 414L97 388L88 353L79 311L70 262L64 211L62 164L65 123L72 92L83 72L97 63L113 66L130 73L145 82L160 92L175 103L189 115L204 128L218 141L232 154L247 168L261 182L275 196L289 210L303 223L316 237L329 250L341 262L353 273L364 284L374 294L382 302L389 309L396 316L401 321L406 326L409 329L412 332L415 335L417 337L420 340L421 341L422 342L423 343L424 344L425 345L425 345L426 346L426 346L426 346L427 347L427 347L427 347L427 347L427 347L427 347Z"/><path d="M147 478L147 478L147 478L147 478L147 478L147 478L147 478L146 478L146 478L146 478L146 477L145 477L145 477L144 476L143 475L142 475L141 473L139 472L137 470L135 468L132 465L129 461L125 455L119 446L113 433L106 414L97 388L88 353L79 311L70 262L64 211L62 164L65 123L72 92L83 72L97 63L113 66L130 73L145 82L160 92L175 103L189 115L204 128L218 141L232 154L247 168L261 182L275 196L289 210L303 223L316 237L329 250L341 262L353 273L364 284L374 294L382 302L389 309L396 316L401 321L406 326L409 329L412 332L415 335L417 337L420 340L421 341L422 342L423 343L424 344L425 345L425 345L426 346L426 346L426 346L427 347L427 347L427 347L427 347L427 347L427 347" fill="none" stroke="var(--text)" stroke-width="1.6"/><path d="M180 442L183 435L182 429L178 423L172 418L163 414L153 413L142 413L131 415L120 419L111 424L104 431L99 438L97 445L98 451L102 457L109 462L117 465L127 466L138 466L149 464L159 460L168 455L176 449Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="140" cy="440" r="1.8" fill="var(--text)"/><path d="M209 406L212 395L213 385L209 375L202 367L193 361L181 358L167 358L153 360L139 366L127 374L117 383L111 394L107 405L108 415L112 425L119 432L128 438L140 440L153 440L167 438L180 433L192 425L202 416Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="160" cy="400" r="1.8" fill="var(--text)"/><path d="M208 337L211 315L210 294L203 273L192 256L176 243L157 235L137 233L117 237L97 247L81 262L68 281L61 302L58 325L61 346L68 366L80 382L96 394L114 401L133 402L152 398L171 389L187 375L199 358Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="135" cy="320" r="1.8" fill="var(--text)"/><path d="M222 236L225 189L220 140L208 94L188 54L162 22L133 2L101 -5L70 2L42 22L19 54L3 95L-6 142L-6 191L1 239L16 282L36 319L61 346L89 363L118 368L146 362L173 344L195 316L212 280Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="110" cy="190" r="1.8" fill="var(--text)"/><path d="M267 190L275 127L275 62L265 0L247 -55L221 -98L189 -126L154 -136L118 -128L84 -101L55 -59L33 -5L19 58L14 123L18 186L30 244L50 293L75 329L105 352L137 360L169 353L200 330L228 295L251 247Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="145" cy="125" r="1.8" fill="var(--text)"/><path d="M292 217L305 165L310 112L307 61L295 17L276 -18L251 -41L221 -48L188 -41L156 -19L127 16L102 60L84 111L74 165L72 217L78 265L91 304L110 334L134 353L162 359L192 353L221 334L249 304L273 264Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="190" cy="165" r="1.8" fill="var(--text)"/><path d="M277 332L287 311L292 289L291 269L286 252L275 239L260 231L242 229L222 233L201 243L182 258L165 276L151 297L143 319L139 341L141 360L147 376L158 388L173 394L190 396L209 392L228 383L247 370L264 352Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="215" cy="315" r="1.8" fill="var(--text)"/><path d="M323 275L338 242L348 208L351 177L347 149L336 128L319 114L297 110L272 116L245 130L219 153L195 181L175 214L161 248L154 281L152 311L158 337L169 355L186 367L206 370L230 365L255 352L280 332L303 306Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="250" cy="245" r="1.8" fill="var(--text)"/><path d="M347 295L364 267L375 238L381 212L380 189L373 171L359 160L340 157L317 162L292 174L266 193L242 217L222 245L206 273L196 301L192 327L194 348L202 364L216 373L234 376L255 371L279 360L303 343L326 321Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="285" cy="270" r="1.8" fill="var(--text)"/><path d="M377 310L395 286L409 262L417 240L419 220L415 205L404 196L387 194L366 198L342 209L318 225L293 246L272 269L254 294L242 318L235 339L234 357L240 371L251 378L266 380L286 376L308 367L332 352L355 333Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="325" cy="290" r="1.8" fill="var(--text)"/><path d="M408 326L427 306L443 286L453 267L457 251L455 238L447 231L432 229L413 233L391 242L367 256L343 273L321 293L302 314L288 334L279 352L276 367L279 378L288 385L301 386L319 383L340 374L363 362L386 345Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="365" cy="310" r="1.8" fill="var(--text)"/><path d="M236 371L242 355L244 340L241 326L234 314L223 305L210 300L193 299L177 302L160 310L145 320L132 334L123 349L118 365L117 380L120 394L128 405L138 413L152 417L167 418L183 415L199 408L214 398L227 385Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="180" cy="360" r="1.8" fill="var(--text)"/><path d="M285 383L294 370L299 358L300 346L297 336L290 329L279 325L266 324L251 327L235 334L219 343L205 354L194 367L186 380L182 392L181 403L185 413L192 419L202 423L215 423L230 421L245 415L260 406L274 396Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="240" cy="375" r="1.8" fill="var(--text)"/><path d="M289 265L301 228L306 190L305 154L297 123L282 99L261 84L237 79L210 85L183 101L157 126L135 158L119 194L109 232L105 270L108 303L118 331L133 352L153 365L176 369L201 364L226 350L250 328L271 299Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="205" cy="230" r="1.8" fill="var(--text)"/><path d="M341 353L354 336L364 319L369 303L368 290L363 280L353 275L339 273L321 277L302 285L283 296L264 311L248 327L235 344L227 361L223 376L224 388L230 397L240 402L253 403L270 400L288 393L307 382L325 368Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="295" cy="340" r="1.8" fill="var(--text)"/><path d="M211 289L215 257L211 224L202 193L186 166L166 145L142 132L117 128L91 134L68 148L49 170L34 198L26 230L25 263L30 296L41 325L57 350L77 368L99 379L123 382L147 377L169 364L187 345L202 319Z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/><circle cx="120" cy="260" r="1.8" fill="var(--text)"/><text class="t-mono" x="468" y="484">x</text><text class="t-mono" x="60" y="20" text-anchor="middle">y</text><text class="t-dim" x="335" y="70" text-anchor="middle">u′v′에서 반지름 0.01인 원을</text><text class="t-dim" x="335" y="86" text-anchor="middle">xy로 옮긴 모양 (10배 확대)</text></svg>
+      <figcaption><b>그림 4-6.</b> <strong>개략 그림.</strong> 맥아담의 실측 타원 데이터가 아니다. u′v′ 공간에서 반지름이 같은 원(0.01)을 xy로 되돌려 10배 확대한 모양이다. u′v′이 맥아담 타원을 대략 원에 가깝게 만들도록 설계되었으므로, 이 그림은 실제 타원의 경향(녹색 쪽은 크고 청색 쪽은 작음)을 정성적으로 보여 준다. 이 계산에서 같은 u′v′ 원이 xy에서 차지하는 면적은 (0.17, 0.71) 부근이 (0.16, 0.08) 부근보다 약 29배 크다.</figcaption>
+    </figure>
+    <div class="callout warn"><strong>색도도 그림의 색은 "그 색"이 아니다</strong>
+      <p>화면이나 인쇄물의 색도도는 sRGB 같은 장치 가멋 안에서만 정확하다. 이 장의 캔버스는 각 점을 sRGB 최대 밝기로 칠하고 음수 성분을 0으로 잘랐으므로, sRGB 삼각형 밖의 채색은 실제 색보다 훨씬 탁하다. 색도도 그림을 보고 "Rec.2020 녹색은 이런 색"이라고 판단하면 안 된다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="ucs">
+    <h2>균등 색도 척도: CIE 1960 (u, v)와 1976 (u′, v′)</h2>
+    <p>맥아담 타원을 원에 가깝게 만드는 좌표 변환을 찾으려는 시도가 이어졌다. Judd(1935)의 균등 색도 척도<span class="en">(UCS)</span>를 MacAdam이 간단한 사영 변환으로 정리했고, CIE는 이를 1960년에 (u, v) 좌표로 채택했다. 1976년에는 \(v\) 축을 1.5배 늘린 (u′, v′)를 새 표준으로 정했다. 둘 다 XYZ의 사영 변환이므로 직선과 혼합 법칙이 그대로 유지된다.</p>
+    <div class="formula">$$u'=u=\frac{4X}{X+15Y+3Z}=\frac{4x}{-2x+12y+3},\qquad v'=\frac{9Y}{X+15Y+3Z}=\frac{9y}{-2x+12y+3},\qquad v=\tfrac{2}{3}v'$$
+      <div class="where">역변환: \(x=\dfrac{9u'}{6u'-16v'+12}\), \(y=\dfrac{4v'}{6u'-16v'+12}\). 색차 지표는 유클리드 거리 \(\Delta u'v'=\sqrt{(\Delta u')^2+(\Delta v')^2}\).</div>
+    </div>
+    <p>왜 u′v′이 더 균일한가? 분모 \(X+15Y+3Z\)는 \(Y\)에 큰 가중을 주므로, 휘도가 큰 녹색 영역(\(y\) 큼)에서 좌표가 압축되고 \(y\)가 작은 청색 영역에서는 늘어난다. 그림 4-6이 보여 주듯 xy의 크고 작은 타원이 u′v′에서는 비슷한 크기로 맞춰진다. 완전히 원이 되지는 않는다. 사영 변환 하나로 평면의 모든 타원을 원으로 만들 수는 없고, 색차는 휘도 차이와 주변 조건에도 의존하기 때문이다. 이 한계를 넘으려는 것이 CIELAB·CIEDE2000이다(<a href="uniform.html">7장</a>). 참고로 CIELUV의 \(u^*, v^*\)는 이 u′v′을 기반으로 만들어졌다.</p>
+    <p>1960 (u, v)는 지금도 한 곳에서 표준으로 쓰인다. 상관 색온도<span class="en">(CCT)</span>와 흑체 궤적에서의 거리 <strong>Duv</strong>는 (u, v) 평면에서 정의된다. CCT의 등온선은 이 평면에서 흑체 궤적에 수직이다. 자세한 계산은 <a href="adaptation.html">8장</a>에서 다룬다.</p>
+    <p><strong>수치 예.</strong> xy에서 길이 0.01인 이동이 u′v′에서 얼마인지는 변환의 야코비안에 따라 정해진다. 이 장의 계산으로 D65 근처에서는 방향에 따라 Δu′v′ = 0.0053–0.0081, 녹색 (0.08, 0.80) 근처에서는 0.0017–0.0034, 청색 (0.17, 0.05) 근처에서는 0.013–0.024다. 같은 Δxy가 청색에서는 녹색보다 u′v′ 거리로 약 7배 크다.</p>
+
+    <div class="sim" id="sim-ucs">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>같은 반지름의 원: xy ↔ u′v′</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-uc" class="pan"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>그리는 좌표</span><div class="seg" id="uc-view"><button data-value="xy" class="on">xy</button><button data-value="uv">u′v′</button></div></div>
+          <div class="ctrl"><span>원을 정의한 공간</span><div class="seg" id="uc-def"><button data-value="uv" class="on">u′v′ 원</button><button data-value="xy">xy 원</button></div></div>
+          <label class="ctrl"><span>반지름 <output id="uc-r-out"></output></span><input type="range" id="uc-r" min="5" max="40" value="20" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">선택점 (x, y)</span><span class="v" id="o-uc-pt">—</span></div>
+        <div class="stat"><span class="k">Δxy = 0.01 → Δu′v′</span><span class="v" id="o-uc-s">—</span></div>
+        <div class="stat"><span class="k">이방성 (장축/단축)</span><span class="v" id="o-uc-an">—</span></div>
+        <div class="stat"><span class="k">면적 배율 (D65 = 1)</span><span class="v" id="o-uc-ar">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① "u′v′ 원"을 xy로 그리면 녹색 쪽 원이 크게 부풀고 청색 쪽은 작아진다(그림 4-6). ② 거꾸로 "xy 원"을 u′v′로 그리면 청색 쪽 원이 크게 늘어난다. ③ 색도도 위를 움직이며 선택점의 면적 배율을 비교하자. 청색 쪽에서는 xy의 작은 오차가 u′v′에서 크게 증폭된다. 청색 원색의 xy 공차를 녹색과 같은 숫자로 주면 안 되는 이유다.</div>
+    </div>
+
+    <h3>디스플레이 업계가 Δu′v′을 쓰는 이유</h3>
+    <p>패널 균일성, 백색점 정확도, 시야각 색 변화처럼 <em>밝기는 따로 규정하고 색만 비교하고 싶은</em> 사양에는 Δu′v′이 표준처럼 쓰인다. ① 휘도와 분리되어 있어 "휘도 균일성 ≥ 80%" 같은 사양과 독립적으로 쓸 수 있다. ② xy보다 균일해서 하나의 문턱값을 색도도 전체에 쓸 수 있다. ③ 계산이 측정기(색채계, 분광복사계)의 XYZ 출력에서 바로 나온다. ICDM의 IDMS 같은 디스플레이 측정 표준은 이런 색도 균일성의 측정 방법을 규정한다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>용도</th><th>지표</th><th>쓰이는 수치의 예 (예시)</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>눈에 띄는 차이의 경험칙</td><td>Δu′v′</td><td>≈ 0.004 부근</td><td>나란히 비교 시 겨우 구별된다는 경험칙으로 흔히 인용. 조건에 따라 다름</td></tr>
+        <tr><td>모니터 백색점 정확도</td><td>목표 백색 대비 Δu′v′</td><td>≤ 0.004–0.005 (예시)</td><td>교정용 모니터 사양에서 볼 수 있는 수준</td></tr>
+        <tr><td>화면 색 균일성</td><td>측정점 간 최대 Δu′v′</td><td>≤ 0.005–0.01 (예시)</td><td>9점·25점 측정 등, 측정 방법을 함께 명시해야 의미가 있음</td></tr>
+        <tr><td>시야각 색 변화</td><td>정면 대비 Δu′v′</td><td>각도별 곡선으로 제시</td><td>LCD 위상차, OLED 마이크로캐비티 효과 평가</td></tr>
+        <tr><td>LED·광원 색 일관성</td><td>n-step 맥아담 타원, Duv</td><td>2–7 step 등</td><td><a href="lighting.html">10장</a>·<a href="adaptation.html">8장</a> 참고</td></tr>
+      </tbody>
+    </table></div>
+    <p class="t-dim" style="font-size:14px">표 4-3. Δu′v′의 쓰임. 수치는 이해를 돕기 위한 <strong>예시</strong>이며 특정 표준이나 제품의 규정값이 아니다. 실제 합격 기준은 제품 사양서와 측정 조건을 따른다.</p>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="whites">
+    <h2>표준 백색점과 흑체 궤적</h2>
+    <p>"백색"은 하나가 아니다. 색도도 가운데 영역에는 흑체(플랑크) 복사체의 색도가 온도에 따라 그리는 곡선, <span class="term">흑체 궤적</span><span class="en">(Planckian locus)</span>이 지나간다. 낮은 온도(1,000 K대)의 붉은 주황에서 출발해 2856 K의 광원 A, 5000–6500 K의 주광 영역을 지나 고온에서는 청백색 쪽으로 휜다. 그 약간 위쪽(녹색 쪽)으로 CIE 주광 궤적이 거의 나란히 지나간다. 표준 백색점은 대부분 이 두 곡선 위나 근처에 있다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 760 410" role="img" aria-label="흑체 궤적과 주광 궤적 근처의 표준 백색점 D65 D50 A E 위치"><line x1="80" y1="380" x2="80" y2="40" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="80" y="396" text-anchor="middle">0.28</text><line x1="160" y1="380" x2="160" y2="40" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="160" y="396" text-anchor="middle">0.32</text><line x1="240" y1="380" x2="240" y2="40" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="240" y="396" text-anchor="middle">0.36</text><line x1="320" y1="380" x2="320" y2="40" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="320" y="396" text-anchor="middle">0.40</text><line x1="400" y1="380" x2="400" y2="40" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="400" y="396" text-anchor="middle">0.44</text><line x1="480" y1="380" x2="480" y2="40" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="480" y="396" text-anchor="middle">0.48</text><line x1="60" y1="360" x2="520" y2="360" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="364" text-anchor="end">0.28</text><line x1="60" y1="280" x2="520" y2="280" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="284" text-anchor="end">0.32</text><line x1="60" y1="200" x2="520" y2="200" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="204" text-anchor="end">0.36</text><line x1="60" y1="120" x2="520" y2="120" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="124" text-anchor="end">0.40</text><line x1="60" y1="40" x2="520" y2="40" stroke="var(--grid)" stroke-width="1"/><text class="t-mono" x="54" y="44" text-anchor="end">0.44</text><path class="s-axis" d="M60 40L60 380L520 380"/><path d="M512 90L503 90L494 91L485 91L476 92L468 94L459 95L450 97L441 98L432 101L424 103L415 105L406 108L398 110L389 113L381 116L373 120L365 123L356 126L348 130L340 134L333 138L325 141L317 145L310 150L302 154L295 158L288 162L281 166L274 171L267 175L261 180L254 184L248 189L241 193L235 198L229 202L223 207L217 211L212 216L206 220L201 224L196 229L190 233L185 237L180 242L176 246L171 250L166 254L162 259L158 263L153 267L149 271L145 275L141 278L137 282L134 286L130 290L127 293L123 297L120 300L117 304L113 307L110 310L107 314L105 317L102 320L99 323L96 326L94 329L91 332L89 335L86 337L84 340L82 343L80 345L78 348L76 350L74 353L72 355L70 357L68 359L66 362L64 364L63 366L61 368" fill="none" stroke="var(--text)" stroke-width="2"/><path d="M285 152L263 165L244 178L227 191L211 203L198 214L185 225L174 235L163 244L154 253L146 262L138 269L131 277L124 284L118 290L113 296L108 302L103 307L98 312L94 316L91 321L87 325L84 329L81 333L78 336L75 339L72 343L70 345L67 348L65 351L63 354L61 356" fill="none" stroke="var(--accent-2)" stroke-width="2" stroke-dasharray="6 4"/><circle cx="474" cy="93" r="2.8" fill="var(--text)"/><text class="t-mono" x="476" y="110">2500 K</text><circle cx="394" cy="112" r="2.8" fill="var(--text)"/><text class="t-mono" x="396" y="129">3000 K</text><circle cx="281" cy="166" r="2.8" fill="var(--text)"/><text class="t-mono" x="283" y="183">4000 K</text><circle cx="210" cy="217" r="2.8" fill="var(--text)"/><text class="t-mono" x="212" y="234">5000 K</text><circle cx="147" cy="273" r="2.8" fill="var(--text)"/><text class="t-mono" x="149" y="290">6500 K</text><circle cx="81" cy="343" r="2.8" fill="var(--text)"/><text class="t-mono" x="83" y="360">10000 K</text><circle cx="145" cy="262" r="5" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2.5"/><text class="t-acc" x="135" y="252" text-anchor="end">D65</text><circle cx="211" cy="203" r="5" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2.5"/><text class="t-acc" x="221" y="193" text-anchor="start">D50</text><circle cx="415" cy="105" r="5" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2.5"/><text class="t-acc" x="405" y="93" text-anchor="end">A</text><circle cx="187" cy="253" r="5" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2.5"/><text class="t-acc" x="197" y="269" text-anchor="start">E</text><circle cx="148" cy="218" r="5" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2.5"/><text class="t-acc" x="138" y="212" text-anchor="end">DCI 백색</text><g transform="translate(540,40)"><line x1="0" y1="0" x2="28" y2="0" stroke="var(--text)" stroke-width="2"/><text class="t-dim" x="36" y="4">흑체(플랑크) 궤적</text><line x1="0" y1="24" x2="28" y2="24" stroke="var(--accent-2)" stroke-width="2" stroke-dasharray="6 4"/><text class="t-dim" x="36" y="28">CIE 주광 궤적</text></g><text class="t-mono" x="528" y="384">x</text><text class="t-mono" x="60" y="30" text-anchor="middle">y</text></svg>
+      <figcaption><b>그림 4-7.</b> 백색 영역 확대. 실선은 흑체 궤적(이 페이지에서 플랑크 식을 CMF로 직접 적분), 점선은 CIE 주광 궤적. D65와 D50은 흑체 궤적보다 약간 위(녹색 쪽), E는 약간 아래(마젠타 쪽)에 있다. 흑체 궤적, CCT, Duv의 계산은 <a href="adaptation.html">8장</a>에서 다룬다.</figcaption>
+    </figure>
+    <div class="table-wrap"><table>
+      <thead><tr><th>이름</th><th>정의</th><th>(x, y)</th><th>(u′, v′)</th><th>공칭 CCT</th><th>Duv*</th><th>주요 용도</th></tr></thead>
+      <tbody>
+<tr><td>D65</td><td>CIE 주광, 정오의 평균 주광 대표</td><td>(0.3127, 0.3290)</td><td>(0.1978, 0.4683)</td><td>≈ 6504 K</td><td>+0.0032</td><td>sRGB·Rec.709·Rec.2020·Display P3 백색, 영상·디스플레이</td></tr>
+<tr><td>D50</td><td>CIE 주광</td><td>(0.3457, 0.3585)</td><td>(0.2092, 0.4881)</td><td>≈ 5003 K</td><td>+0.0032</td><td>인쇄·그래픽 아트 관찰 조건(ISO 3664), ICC PCS</td></tr>
+<tr><td>A</td><td>2856 K 흑체(텅스텐 백열등 대표)</td><td>(0.4476, 0.4074)</td><td>(0.2560, 0.5243)</td><td>2856 K</td><td>0.0000</td><td>백열 조명 아래 색 평가, 연색성 기준 광원</td></tr>
+<tr><td>E</td><td>등에너지(이론) 광원</td><td>(0.3333, 0.3333)</td><td>(0.2105, 0.4737)</td><td>≈ 5455 K</td><td>−0.0044</td><td>XYZ 정규화 기준: x̄·ȳ·z̄ 적분이 같도록 정의됨</td></tr>
+<tr><td>DCI 백색</td><td>DCI 영사 백색</td><td>(0.3140, 0.3510)</td><td>(0.1908, 0.4798)</td><td>≈ 6300 K</td><td>+0.0134</td><td>디지털 시네마 극장 영사(SMPTE RP 431-2)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="t-dim" style="font-size:14px">표 4-4. 표준 백색점(CIE 1931 2°). (x, y)는 실무에서 쓰는 4자리 값이다(D65의 CIE 015 값은 (0.31272, 0.32903)). *Duv는 이 페이지에서 1960 (u, v) 평면의 흑체 궤적까지 최단 거리로 계산했다(+는 궤적 위쪽). 공칭 CCT는 관례 값이다.</p>
+    <p>이 장의 시뮬레이터가 기본으로 쓰는 D65는 sRGB·Rec.709·Rec.2020의 기준 백색이고, 내장 D65 분광표를 적분하면 (0.3127, 0.3290)이 정확히 재현된다. 인쇄 업계는 D50을, 연색성 평가는 광원 A와 주광을 기준으로 쓴다. 같은 시료라도 주파장과 순도는 백색점에 따라 달라지므로(5절 시뮬레이터), 보고서에는 기준 백색을 반드시 함께 적는다.</p>
+    <div class="callout deep"><strong>왜 E는 정확히 (1/3, 1/3)인가</strong>
+      <p>CIE 1931 XYZ 등색 함수는 \(\int\bar x\,d\lambda=\int\bar y\,d\lambda=\int\bar z\,d\lambda\)가 되도록 정규화되었다(내장 표의 5 nm 합으로 각 106.857). 따라서 모든 파장에서 파워가 같은 등에너지 스펙트럼은 \(X=Y=Z\)이고 색도는 정확히 (1/3, 1/3)이다. E는 실제 광원이 아니라 좌표계를 정의하기 위한 기준점이다.</p>
+    </div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>색도는 XYZ 벡터를 평면 \(X+Y+Z=1\)로 중심 사영한 점이다: \(x=X/(X+Y+Z)\), \(y=Y/(X+Y+Z)\). 밝기 정보는 버려지며, xyY로 \(Y\)를 붙이면 \(X=xY/y\), \(Z=(1-x-y)Y/y\)로 복원된다.</li>
+      <li>스펙트럼 궤적은 단색광의 색도이고, 실재하는 모든 색은 궤적과 순수 보라선이 둘러싼 볼록 영역 안에 있다. 스펙트럼 폭이 넓을수록 색도는 백색 쪽으로 들어간다.</li>
+      <li>가산 혼합점은 두 색도를 잇는 직선 위에 있고, 무게는 \(S = X+Y+Z = Y/y\)에 비례한다. \(Y\)로 가중하면 틀린다. 청색은 휘도가 작아도 무게가 크다.</li>
+      <li>원색 셋의 가멋은 색도 삼각형이다. 면적비와 커버리지는 다르고, xy와 u′v′ 결과도 다르다(예: sRGB는 NTSC 1953 면적의 약 71%(xy), 87%(u′v′)).</li>
+      <li>주파장은 백색점에서 시료를 지나는 반직선과 궤적의 교점이고, 보라 영역에서는 반대쪽 교점이 보색 파장이 된다. \(p_e = |WC|/|WB|\), \(p_c = p_e\,y_d/y\).</li>
+      <li>색도도에는 밝기가 없어 갈색·회색·검정이 따로 없고, 거리는 지각과 비례하지 않는다(MacAdam 1942: 녹색 영역 타원이 크고 청색 영역은 작다).</li>
+      <li>u′v′(CIE 1976) = \((4X, 9Y)/(X+15Y+3Z)\)는 xy보다 균일한 사영 좌표로, 디스플레이 색 균일성·백색점 사양의 Δu′v′에 쓰인다. 1960 (u, v)는 CCT·Duv 계산에 쓰인다.</li>
+      <li>표준 백색점: D65 (0.3127, 0.3290), D50 (0.3457, 0.3585), A (0.4476, 0.4074), E (1/3, 1/3). D65·D50은 흑체 궤적보다 Duv ≈ +0.003 위에 있다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>어떤 광원의 출력을 정확히 두 배로 올렸다. xyY 값은 어떻게 변하는가?</p><div class="opts">
+        <button class="opt">x, y, Y 모두 두 배가 된다</button>
+        <button class="opt" data-correct>x, y는 그대로이고 Y만 두 배가 된다</button>
+        <button class="opt">x, y는 1/2이 되고 Y는 두 배가 된다</button>
+        <button class="opt">x + y가 1에 가까워진다</button>
+      </div><div class="quiz-exp">XYZ가 모두 2배가 되면 비율인 x, y는 분자·분모가 같이 2배라 변하지 않는다. 같은 광선 위의 점은 같은 색도로 사영된다.</div></div>
+
+      <div class="quiz-q"><p>xyY = (0.3, 0.6, 0.5)인 색의 X와 Z는?</p><div class="opts">
+        <button class="opt">X = 0.15, Z = 0.05</button>
+        <button class="opt" data-correct>X = 0.25, Z = 0.0833</button>
+        <button class="opt">X = 0.3, Z = 0.1</button>
+        <button class="opt">X = 0.5, Z = 0.1667</button>
+      </div><div class="quiz-exp">\(X = xY/y = 0.3\times0.5/0.6 = 0.25\), \(Z=(1-x-y)Y/y = 0.1\times0.5/0.6 = 0.0833\). 확인: \(X+Y+Z = 0.8333 = Y/y\).</div></div>
+
+      <div class="quiz-q"><p>순수 보라선 위의 색에 대한 설명으로 옳은 것은?</p><div class="opts">
+        <button class="opt">380 nm와 700 nm 사이 어딘가의 단일 파장으로 만들 수 있다</button>
+        <button class="opt">실재하지 않는 가상의 색이다</button>
+        <button class="opt" data-correct>스펙트럼 양 끝(단파장과 장파장) 빛의 혼합으로만 만들어지는 실재 색의 경계다</button>
+        <button class="opt">흑체 복사로 만들 수 있는 색이다</button>
+      </div><div class="quiz-exp">보라선은 궤적 양 끝점을 잇는 선분이다. 무게중심 법칙에 따라 두 끝 단색광의 혼합이 그 위에 놓인다. 단일 파장은 없지만 물리적으로 실재하는 색이다.</div></div>
+
+      <div class="quiz-q"><p>두 빛을 섞을 때 xy 평면 위 혼합점의 위치를 정하는 무게는?</p><div class="opts">
+        <button class="opt">각 빛의 휘도 Y</button>
+        <button class="opt">각 빛의 복사 파워(W)</button>
+        <button class="opt" data-correct>각 빛의 X+Y+Z (= Y/y)</button>
+        <button class="opt">각 빛의 y 좌표</button>
+      </div><div class="quiz-exp">\(X_i = x_i S_i\)이므로 \(x_M = \sum S_i x_i/\sum S_i\), \(S_i = X_i+Y_i+Z_i\)다. 휘도 Y로 가중하는 것이 가장 흔한 실수다.</div></div>
+
+      <div class="quiz-q"><p>같은 휘도 Y를 가진 청색 빛과 노란색 빛을 섞었다. 혼합 색도는?</p><div class="opts">
+        <button class="opt">두 색도의 정확히 가운데</button>
+        <button class="opt">노랑 쪽에 더 가깝다</button>
+        <button class="opt" data-correct>청색 쪽에 더 가깝다</button>
+        <button class="opt">항상 백색점과 일치한다</button>
+      </div><div class="quiz-exp">무게 S = Y/y에서 Y가 같으면 y가 작은 청색의 S가 훨씬 크다. 그래서 혼합점이 청색 쪽으로 끌려간다.</div></div>
+
+      <div class="quiz-q"><p>xy = (0.45, 0.20)인 자주색 시료(기준 D65)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">주파장이 약 610 nm다</button>
+        <button class="opt" data-correct>반직선이 보라선과 만나므로 주파장이 없고, 반대 방향의 보색 파장(약 503 nm)으로 나타낸다</button>
+        <button class="opt">궤적 밖이므로 실재하지 않는다</button>
+        <button class="opt">여기 순도는 정의할 수 없다</button>
+      </div><div class="quiz-exp">D65에서 이 점을 지나는 반직선은 보라선에서 끝난다. 반대쪽 연장선이 궤적과 만나는 503.4 nm가 보색 파장이고, 여기 순도는 보라선 위의 점까지 거리의 비로 정의된다(≈ 0.74).</div></div>
+
+      <div class="quiz-q"><p>sRGB 청색 원색의 여기 순도는 0.925인데 색도 순도는 0.590이다. 이유로 가장 알맞은 것은?</p><div class="opts">
+        <button class="opt">sRGB 감마 곡선 때문</button>
+        <button class="opt" data-correct>\(p_c = p_e\,y_d/y\)에서 청색 단색광의 \(y_d\)가 작아, 휘도 기준으로 보면 단색광 몫이 작기 때문</button>
+        <button class="opt">청색 원색이 궤적 밖에 있기 때문</button>
+        <button class="opt">D65가 흑체 궤적 위에 있지 않기 때문</button>
+      </div><div class="quiz-exp">여기 순도는 xy 거리 비, 색도 순도는 휘도 비다. 청색 단색광은 휘도가 작아도 색도를 크게 끌어당기므로, 같은 거리 비에서도 휘도 몫은 작다.</div></div>
+
+      <div class="quiz-q"><p>"색도도에 갈색이 없다"는 말의 가장 정확한 이유는?</p><div class="opts">
+        <button class="opt">갈색은 sRGB 가멋 밖에 있다</button>
+        <button class="opt">갈색은 보라선 위에만 있다</button>
+        <button class="opt" data-correct>갈색은 주황·노랑 색도가 주변보다 어두울 때의 지각이고, 색도도에는 밝기 정보가 없다</button>
+        <button class="opt">갈색은 메타머가 없는 특수한 색이다</button>
+      </div><div class="quiz-exp">갈색의 xy는 주황과 같은 곳에 있다. 상대 휘도가 낮아질 때 갈색으로 보이는 관련색이며, 어둠 속에 홀로 있으면 주황으로 보인다.</div></div>
+
+      <div class="quiz-q"><p>디스플레이 색 균일성을 xy 거리 대신 Δu′v′으로 규정하는 주된 이유는?</p><div class="opts">
+        <button class="opt">u′v′은 휘도까지 포함한 3차원 색차라서</button>
+        <button class="opt" data-correct>u′v′이 xy보다 지각적으로 균일해 하나의 문턱값을 색도 전체에 쓸 수 있고, 휘도와는 분리되어 있어서</button>
+        <button class="opt">u′v′에서는 가산 혼합이 직선이 아니어서</button>
+        <button class="opt">u′v′은 CCT를 직접 나타내서</button>
+      </div><div class="quiz-exp">u′v′은 맥아담 타원을 xy보다 원에 가깝게 만드는 사영 변환이다. 휘도는 별도 사양(휘도 균일성 %)으로 다루고, 색도 차이는 Δu′v′ 하나로 지역에 상관없이 비교한다. 직선성은 u′v′에서도 유지된다.</div></div>
+
+      <div class="quiz-q"><p>xy 평면에서 Δxy = 0.01 오차가 u′v′ 거리로 가장 크게 나타나는 영역은?</p><div class="opts">
+        <button class="opt">녹색 (0.08, 0.80) 부근</button>
+        <button class="opt">D65 부근</button>
+        <button class="opt" data-correct>청색 (0.17, 0.05) 부근</button>
+        <button class="opt">모든 곳에서 같다</button>
+      </div><div class="quiz-exp">야코비안을 계산하면 청색 부근의 Δu′v′은 0.013–0.024, 녹색 부근은 0.0017–0.0034로 약 7배 차이가 난다. xy는 청색 영역을 좁게 그리므로, 청색 원색의 xy 공차는 더 엄격해야 한다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  var LOC = [];
+  for (var l = 380; l <= 700; l += 1) LOC.push({ l: l, p: CB.monoXY(l) });
+  function segHit(o, d, a, b) {
+    var ex = b[0] - a[0], ey = b[1] - a[1], den = d[0] * ey - d[1] * ex;
+    if (Math.abs(den) < 1e-14) return null;
+    var ox = a[0] - o[0], oy = a[1] - o[1];
+    var t = (ox * ey - oy * ex) / den, s = (ox * d[1] - oy * d[0]) / den;
+    return s >= -1e-9 && s <= 1 + 1e-9 ? { t: t, s: s } : null;
+  }
+  function rayHit(o, d, sign) {
+    var best = null;
+    for (var i = 0; i < LOC.length; i++) {
+      var A = LOC[i], B = LOC[(i + 1) % LOC.length], h = segHit(o, d, A.p, B.p);
+      if (!h || h.t * sign <= 1e-9) continue;
+      if (!best || Math.abs(h.t) < Math.abs(best.t)) best = { t: h.t, purple: i === LOC.length - 1, l: A.l + h.s * (B.l - A.l), p: [o[0] + h.t * d[0], o[1] + h.t * d[1]] };
+    }
+    return best;
+  }
+  function insideLocus(p) {
+    var c = false;
+    for (var i = 0, j = LOC.length - 1; i < LOC.length; j = i++) {
+      var a = LOC[i].p, b = LOC[j].p;
+      if (a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0]) c = !c;
+    }
+    return c;
+  }
+  function dominant(c, w) {
+    var d = [c[0] - w[0], c[1] - w[1]], r = Math.hypot(d[0], d[1]);
+    if (r < 1e-6) return { white: true };
+    var f = rayHit(w, d, 1);
+    if (!f) return null;
+    var out = { inside: insideLocus(c), B: f.p, pe: r / Math.hypot(f.p[0] - w[0], f.p[1] - w[1]), purple: f.purple };
+    if (f.purple) {
+      var b = rayHit(w, d, -1);
+      out.lam = b ? b.l : NaN; out.C = b ? b.p : null; out.pc = NaN;
+    } else { out.lam = f.l; out.pc = out.pe * f.p[1] / c[1]; }
+    return out;
+  }
+  function polyArea(P) { var s = 0; for (var i = 0; i < P.length; i++) { var a = P[i], b = P[(i + 1) % P.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
+  function ccw(P) { var s = 0; for (var i = 0; i < P.length; i++) { var a = P[i], b = P[(i + 1) % P.length]; s += a[0] * b[1] - b[0] * a[1]; } return s >= 0 ? P : P.slice().reverse(); }
+  function clipPoly(subj, clip) {
+    clip = ccw(clip); var out = subj.slice();
+    for (var i = 0; i < clip.length && out.length; i++) {
+      var A = clip[i], B = clip[(i + 1) % clip.length], inp = out; out = [];
+      var side = function (p) { return (B[0] - A[0]) * (p[1] - A[1]) - (B[1] - A[1]) * (p[0] - A[0]); };
+      for (var k = 0; k < inp.length; k++) {
+        var P = inp[k], Q = inp[(k + 1) % inp.length], sp = side(P), sq = side(Q);
+        if (sp >= 0) out.push(P);
+        if ((sp >= 0) !== (sq >= 0)) { var t = sp / (sp - sq); out.push([P[0] + t * (Q[0] - P[0]), P[1] + t * (Q[1] - P[1])]); }
+      }
+    }
+    return out;
+  }
+  var LOC_XY = LOC.map(function (o) { return o.p; }), LOC_UV = LOC_XY.map(CB.xy2uv);
+  var AREA_LOC = { xy: polyArea(LOC_XY), uv: polyArea(LOC_UV) };
+  function mix2(l1, P1, l2, P2) {
+    var a = CB.cmf(l1).map(function (v) { return v * P1; }), b = CB.cmf(l2).map(function (v) { return v * P2; });
+    var XYZ = [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+    var p1 = CB.XYZ2xy(a), p2 = CB.XYZ2xy(b), Y1 = a[1], Y2 = b[1];
+    var wrong = [(Y1 * p1[0] + Y2 * p2[0]) / (Y1 + Y2), (Y1 * p1[1] + Y2 * p2[1]) / (Y1 + Y2)];
+    var S1 = a[0] + a[1] + a[2], S2 = b[0] + b[1] + b[2];
+    return { XYZ: XYZ, xy: CB.XYZ2xy(XYZ), wrong: wrong, p1: p1, p2: p2, S1: S1, S2: S2, Y1: Y1, Y2: Y2 };
+  }
+  function jac(p) {
+    var h = 1e-5, u0 = CB.xy2uv(p), ux = CB.xy2uv([p[0] + h, p[1]]), uy = CB.xy2uv([p[0], p[1] + h]);
+    var a = (ux[0] - u0[0]) / h, b = (uy[0] - u0[0]) / h, c = (ux[1] - u0[1]) / h, d = (uy[1] - u0[1]) / h;
+    var T = a * a + b * b + c * c + d * d, D = Math.abs(a * d - b * c), q = Math.sqrt(Math.max(0, T * T / 4 - D * D));
+    return { s1: Math.sqrt(T / 2 + q), s2: Math.sqrt(Math.max(0, T / 2 - q)), J: [[a, b], [c, d]] };
+  }
+
+  var W65 = CB.WHITE.D65;
+  function mono() { return getComputedStyle(document.body).getPropertyValue("--mono") || "monospace"; }
+  function ptr(cv, e) { var r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  function f4(v) { return v.toFixed(4); }
+  function pair(p) { return "(" + f4(p[0]) + ", " + f4(p[1]) + ")"; }
+  function pct(v) { return (100 * v).toFixed(1) + "%"; }
+  function inSRGB(xy) { return CB.XYZ2linRGB(CB.xy2XYZ(xy, 1)).every(function (v) { return v >= -1e-4; }); }
+  function dispCss(xy) { return CB.rgb8css(CB.xy2display(xy)); }
+  function swatch(css, txt) { return '<span class="sw" style="background:' + css + '"></span>' + txt; }
+  function domTxt(d) {
+    if (!d) return "—";
+    if (d.white) return "백색점";
+    if (!isFinite(d.lam)) return "—";
+    return d.purple ? d.lam.toFixed(1) + " nm (보색, c)" : d.lam.toFixed(1) + " nm";
+  }
+  function baseLayer() {
+    var key = "", off = null, D = null;
+    return function (ctx, w, h, opts) {
+      var dpr = ctx.getTransform ? ctx.getTransform().a : 1;
+      var k = [w, h, dpr, CB.color("canvas-bg"), CB.color("text"), CB.color("grid"), JSON.stringify(opts)].join("|");
+      if (k !== key) {
+        key = k; off = document.createElement("canvas");
+        off.width = Math.round(w * dpr); off.height = Math.round(h * dpr);
+        var c = off.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.fillStyle = CB.color("canvas-bg"); c.fillRect(0, 0, w, h);
+        D = CB.chromaticity(c, null, opts);
+      }
+      ctx.drawImage(off, 0, 0, w, h);
+      return D;
+    };
+  }
+  function dot(ctx, p, r, fill, stroke, lw) {
+    ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 2 * Math.PI);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 2; ctx.stroke(); }
+  }
+  function line(ctx, a, b, color, lw, dash) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = lw || 1.5; ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.restore();
+  }
+  function text(ctx, s, p, color, align, base, size) {
+    ctx.save(); ctx.font = (size || 12) + "px " + mono(); ctx.fillStyle = color;
+    ctx.textAlign = align || "left"; ctx.textBaseline = base || "middle"; ctx.fillText(s, p[0], p[1]); ctx.restore();
+  }
+  function poly(ctx, pts, D, color, lw, dash, fill) {
+    ctx.save(); ctx.beginPath();
+    pts.forEach(function (p, i) { var q = D.P(p); if (i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); });
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    ctx.strokeStyle = color; ctx.lineWidth = lw || 1.5; ctx.setLineDash(dash || []); ctx.stroke(); ctx.restore();
+  }
+
+  /* ---------------------------------------------------- 1. gaussian spectrum */
+  (function () {
+    var cS = document.getElementById("cv-gs-spec"), cX = document.getElementById("cv-gs-xy");
+    var tr = document.getElementById("gs-trace"), base = baseLayer(), cache = {}, sv, xv;
+    function redraw() { sv.redraw(); xv.redraw(); }
+    var gc = CB.range("gs-c", function (v) { return v + " nm"; }, redraw);
+    var gw = CB.range("gs-w", function (v) { return v + " nm"; }, redraw);
+    function xyOf(c, w) { return CB.XYZ2xy(CB.spd2XYZ(function (l) { return CB.gauss(l, c, w); }, { step: 1 })); }
+    function trace(w) {
+      if (!cache[w]) { var a = []; for (var c = 380; c <= 720; c += 5) a.push(xyOf(c, w)); cache[w] = a; }
+      return cache[w];
+    }
+    sv = CB.canvas(cS, function (ctx) {
+      var P = CB.palette(), c = gc(), fw = gw(), data = [], cm = [[], [], []];
+      for (var l = 380; l <= 780; l += 1) {
+        data.push([l, CB.gauss(l, c, fw)]);
+        if (l % 4 === 0) { var m = CB.cmf(l); for (var k = 0; k < 3; k++) cm[k].push([l, m[k] / 1.8]); }
+      }
+      CB.chart(ctx, null, { x: [380, 780], y: [0, 1.1], xLabel: "파장 λ (nm)", yLabel: "상대값", series: [
+        { data: cm[0], color: P.faint, width: 1, dash: [4, 3] }, { data: cm[1], color: P.faint, width: 1, dash: [4, 3] }, { data: cm[2], color: P.faint, width: 1, dash: [4, 3] },
+        { data: data, color: CB.wl2rgb(c), width: 2.2, fill: CB.wl2rgb(c, 0.22) }] });
+    }, { aspect: 0.4, minHeight: 170, maxHeight: 230 });
+    xv = CB.canvas(cX, function (ctx, w, h) {
+      var P = CB.palette(), D = base(ctx, w, h, { labels: true }), c = gc(), fw = gw();
+      if (tr.checked) {
+        var t = trace(fw);
+        ctx.save(); ctx.strokeStyle = P.accent2; ctx.lineWidth = 1.6; ctx.setLineDash([5, 4]); ctx.beginPath();
+        t.forEach(function (p, i) { var q = D.P(p); if (i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); });
+        ctx.stroke(); ctx.restore();
+      }
+      var xy = xyOf(c, fw), d = dominant(xy, W65), p = D.P(xy), wp = D.P(W65);
+      if (d && !d.white) line(ctx, wp, D.P(d.B), P.dim, 1.2, [3, 3]);
+      dot(ctx, wp, 4, P.text);
+      text(ctx, "D65", [wp[0] + 7, wp[1] + 10], P.dim);
+      dot(ctx, p, 7, dispCss(xy), P.text, 2);
+      CB.stat("o-gs-xy", pair(xy));
+      CB.stat("o-gs-dom", domTxt(d));
+      CB.stat("o-gs-pe", d && !d.white ? Math.min(1, d.pe).toFixed(3) : "0");
+      CB.stat("o-gs-sw", swatch(dispCss(xy), inSRGB(xy) ? "sRGB 안" : "sRGB 밖(클리핑)"));
+    }, { aspect: 0.95, maxHeight: 470 });
+    tr.addEventListener("change", redraw);
+  })();
+
+  /* ---------------------------------------------------- 2. two-light mixing */
+  (function () {
+    var cv = document.getElementById("cv-mx"), base = baseLayer(), view;
+    var wrongEl = document.getElementById("mx-wrong");
+    function rd() { view.redraw(); }
+    var nm = function (v) { return v + " nm"; }, pw = function (v) { return (v / 100).toFixed(2) + " (상대)"; };
+    var l1 = CB.range("mx-l1", nm, rd), p1 = CB.range("mx-p1", pw, rd), l2 = CB.range("mx-l2", nm, rd), p2 = CB.range("mx-p2", pw, rd);
+    view = CB.canvas(cv, function (ctx, w, h) {
+      var P = CB.palette(), D = base(ctx, w, h, { labels: true });
+      var m = mix2(l1(), p1() / 100, l2(), p2() / 100);
+      var a = D.P(m.p1), b = D.P(m.p2);
+      line(ctx, a, b, P.text, 1.6);
+      dot(ctx, a, 6.5, CB.wl2rgb(l1()), P.text, 1.5); dot(ctx, b, 6.5, CB.wl2rgb(l2()), P.text, 1.5);
+      text(ctx, "1", [a[0] + 9, a[1] - 9], P.text); text(ctx, "2", [b[0] + 9, b[1] - 9], P.text);
+      var S = m.S1 + m.S2, Ysum = m.Y1 + m.Y2;
+      if (S <= 0) { ["o-mx-xy", "o-mx-wr", "o-mx-err", "o-mx-wt", "o-mx-sw"].forEach(function (id) { CB.stat(id, "—"); }); return; }
+      var M = D.P(m.xy);
+      if (wrongEl.checked && Ysum > 0) {
+        var Wr = D.P(m.wrong);
+        line(ctx, M, Wr, P.bad, 1.2, [3, 3]);
+        dot(ctx, Wr, 6, null, P.bad, 2.5);
+        text(ctx, "Y 가중", [Wr[0] + 10, Wr[1] + 12], P.bad);
+      }
+      dot(ctx, M, 7.5, dispCss(m.xy), P.accent, 3);
+      text(ctx, "혼합", [M[0] + 11, M[1] - 10], P.accent);
+      CB.stat("o-mx-xy", pair(m.xy));
+      if (Ysum > 0) {
+        CB.stat("o-mx-wr", pair(m.wrong));
+        var u1 = CB.xy2uv(m.xy), u2 = CB.xy2uv(m.wrong);
+        CB.stat("o-mx-err", Math.hypot(u1[0] - u2[0], u1[1] - u2[1]).toFixed(4));
+        CB.stat("o-mx-wt", (m.S1 / S).toFixed(2) + " : " + (m.S2 / S).toFixed(2) + " <small>(" + (m.Y1 / Ysum).toFixed(2) + " : " + (m.Y2 / Ysum).toFixed(2) + ")</small>");
+      } else { CB.stat("o-mx-wr", "—"); CB.stat("o-mx-err", "—"); CB.stat("o-mx-wt", "—"); }
+      CB.stat("o-mx-sw", swatch(dispCss(m.xy), inSRGB(m.xy) ? "sRGB 안" : "sRGB 밖(클리핑)"));
+    }, { aspect: 1, maxHeight: 520 });
+    wrongEl.addEventListener("change", rd);
+  })();
+
+  /* ---------------------------------------------------- 3. gamut triangle */
+  (function () {
+    var cv = document.getElementById("cv-gm"), base = baseLayer(), D = null, pts, drag = -1, view;
+    var refEl = document.getElementById("gm-ref");
+    function tri(k) { var s = CB.SPACES[k]; return [s.r.slice(), s.g.slice(), s.b.slice()]; }
+    var SR = tri("srgb"), R20 = tri("rec2020");
+    var A_SR = { xy: polyArea(SR), uv: polyArea(SR.map(CB.xy2uv)) };
+    var A_20 = { xy: polyArea(R20), uv: polyArea(R20.map(CB.xy2uv)) };
+    var pre = CB.seg("gm-pre", function (v) { pts = tri(v); view.redraw(); });
+    var vw = CB.seg("gm-view", function () { view.redraw(); });
+    pts = tri(pre());
+    function inTri(p, T) {
+      var s = 0;
+      for (var i = 0; i < 3; i++) { var a = T[i], b = T[(i + 1) % 3], c = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]); if (c !== 0) { if (s && Math.sign(c) !== s) return false; s = Math.sign(c); } }
+      return true;
+    }
+    view = CB.canvas(cv, function (ctx, w, h) {
+      var P = CB.palette(), uv = vw() === "uv";
+      D = base(ctx, w, h, { uv: uv, labels: true });
+      if (refEl.checked) {
+        poly(ctx, SR, D, P.dim, 1.4, [5, 4]);
+        poly(ctx, R20, D, P.accent2, 1.4, [5, 4]);
+        var q1 = D.P(SR[0]), q2 = D.P(R20[1]);
+        text(ctx, "sRGB", [q1[0] - 4, q1[1] + 14], P.dim, "right");
+        text(ctx, "Rec.2020", [q2[0] + 10, q2[1] - 4], P.accent2);
+      }
+      poly(ctx, pts, D, P.accent, 2.4, null, CB.color("accent-soft"));
+      var wp = D.P(W65); dot(ctx, wp, 3.5, P.text);
+      ["R", "G", "B"].forEach(function (n, i) {
+        var q = D.P(pts[i]);
+        dot(ctx, q, 9, dispCss(pts[i]), P.text, 2);
+        text(ctx, n, [q[0] + 13, q[1] - 11], P.text, "left", "middle", 13);
+      });
+      var Tuv = pts.map(CB.xy2uv);
+      var a = { xy: polyArea(pts), uv: polyArea(Tuv) };
+      var cxy = polyArea(clipPoly(pts, R20)) / A_20.xy, cuv = polyArea(clipPoly(Tuv, R20.map(CB.xy2uv))) / A_20.uv;
+      CB.stat("o-gm-a", a.xy.toFixed(4) + " / " + a.uv.toFixed(4));
+      CB.stat("o-gm-sr", pct(a.xy / A_SR.xy) + " / " + pct(a.uv / A_SR.uv));
+      CB.stat("o-gm-cov", pct(cxy) + " / " + pct(cuv));
+      CB.stat("o-gm-loc", pct(a.xy / AREA_LOC.xy) + " / " + pct(a.uv / AREA_LOC.uv));
+      var out = pts.filter(function (p) { return !insideLocus(p); }).length, msg = [];
+      if (out) msg.push('<span style="color:var(--bad)">원색 ' + out + "개가 궤적 밖: 물리적으로 불가능</span>");
+      if (!inTri(W65, pts)) msg.push('<span style="color:var(--warn)">D65가 삼각형 밖</span>');
+      CB.stat("o-gm-warn", msg.length ? msg.join("<br>") : "모든 원색이 실재 영역 안");
+    }, { aspect: 1, maxHeight: 520 });
+    refEl.addEventListener("change", function () { view.redraw(); });
+    cv.addEventListener("pointerdown", function (e) {
+      if (!D) return;
+      var m = ptr(cv, e), best = -1, bd = 24;
+      pts.forEach(function (p, i) { var q = D.P(p), d = Math.hypot(q[0] - m[0], q[1] - m[1]); if (d < bd) { bd = d; best = i; } });
+      if (best >= 0) { drag = best; cv.setPointerCapture(e.pointerId); e.preventDefault(); }
+    });
+    cv.addEventListener("pointermove", function (e) {
+      if (drag < 0 || !D) return;
+      var m = ptr(cv, e), c = D.inv(m[0], m[1]);
+      if (vw() === "uv") c = CB.uv2xy([CB.clamp(c[0], 0, 0.65), CB.clamp(c[1], 0.005, 0.62)]);
+      pts[drag] = [CB.clamp(c[0], 0, 0.8), CB.clamp(c[1], 0.002, 0.9)];
+      view.redraw();
+    });
+    ["pointerup", "pointercancel"].forEach(function (ev) { cv.addEventListener(ev, function () { drag = -1; }); });
+  })();
+
+  /* ---------------------------------------------------- 4. explorer */
+  (function () {
+    var cv = document.getElementById("cv-ex"), base = baseLayer(), D = null, cur = [0.40, 0.45], view;
+    var ws = CB.seg("ex-w", function () { view.redraw(); });
+    view = CB.canvas(cv, function (ctx, w, h) {
+      var P = CB.palette(); D = base(ctx, w, h, { labels: true, planck: true });
+      var Wn = CB.WHITE[ws()], d = dominant(cur, Wn), wp = D.P(Wn), cp = D.P(cur);
+      if (d && !d.white) {
+        if (d.purple) {
+          if (d.C) { line(ctx, D.P(d.C), wp, P.accent2, 1.8, [5, 4]); dot(ctx, D.P(d.C), 6, CB.wl2rgb(d.lam), P.text, 1.5); }
+          line(ctx, wp, D.P(d.B), P.accent2, 2.2);
+          dot(ctx, D.P(d.B), 5, null, P.accent2, 2);
+        } else {
+          line(ctx, wp, D.P(d.B), P.accent, 2.2);
+          dot(ctx, D.P(d.B), 6, CB.wl2rgb(d.lam), P.text, 1.5);
+        }
+      }
+      dot(ctx, wp, 4.5, P.text);
+      text(ctx, ws(), [wp[0] + 8, wp[1] + 11], P.dim);
+      var inside = insideLocus(cur);
+      dot(ctx, cp, 7, inside ? dispCss(cur) : null, P.text, 2);
+      CB.stat("o-ex-xy", pair(cur));
+      CB.stat("o-ex-uv", pair(CB.xy2uv(cur)));
+      if (!inside) {
+        CB.stat("o-ex-dom", '<span style="color:var(--bad)">궤적 밖: 실재하지 않는 색도</span>');
+        CB.stat("o-ex-pe", d && d.pe ? d.pe.toFixed(3) + " (&gt; 1)" : "—"); CB.stat("o-ex-pc", "—"); CB.stat("o-ex-sw", "—");
+        return;
+      }
+      CB.stat("o-ex-dom", domTxt(d));
+      CB.stat("o-ex-pe", d && !d.white ? Math.min(1, d.pe).toFixed(3) : "0");
+      CB.stat("o-ex-pc", d && !d.white ? (d.purple ? "— (보라 영역)" : Math.min(1, d.pc).toFixed(3)) : "0");
+      CB.stat("o-ex-sw", swatch(dispCss(cur), inSRGB(cur) ? "sRGB 안" : "sRGB 밖(클리핑)"));
+    }, { aspect: 1, maxHeight: 540 });
+    function set(e) {
+      if (!D) return;
+      var m = ptr(cv, e), c = D.inv(m[0], m[1]);
+      if (c[0] < 0 || c[1] < 0.001 || c[0] > 0.8 || c[1] > 0.9) return;
+      cur = c; view.redraw();
+    }
+    cv.addEventListener("pointermove", set);
+    cv.addEventListener("pointerdown", set);
+  })();
+
+  /* ---------------------------------------------------- 5. brown */
+  (function () {
+    var cv = document.getElementById("cv-br"), view;
+    function rd() { view.redraw(); }
+    function Yof(v) { return 0.005 * Math.pow(120, v / 100); }
+    var bl = CB.range("br-l", function (v) { return v + " nm"; }, rd);
+    var bp = CB.range("br-pe", function (v) { return (v / 100).toFixed(2); }, rd);
+    var bY = CB.range("br-Y", function (v) { return (100 * Yof(v)).toFixed(1) + "%"; }, rd);
+    var bs = CB.range("br-s", function (v) { return v + "%"; }, rd);
+    function xyNow() {
+      var B = CB.monoXY(bl()), pe = bp() / 100;
+      return [W65[0] + pe * (B[0] - W65[0]), W65[1] + pe * (B[1] - W65[1])];
+    }
+    view = CB.canvas(cv, function (ctx, w, h) {
+      var P = CB.palette(), xy = xyNow(), Y = Yof(bY()), Ys = bs() / 100;
+      var sur = CB.XYZ2css(CB.whiteXYZ("D65", Ys)), XYZ = CB.xy2XYZ(xy, Y), rgb = CB.XYZ2rgb8(XYZ);
+      var narrow = w < 520, lw = narrow ? w - 24 : w * 0.46, lh = narrow ? h * 0.52 : h - 40;
+      ctx.fillStyle = sur; ctx.fillRect(12, 12, lw, lh);
+      ctx.strokeStyle = P.border; ctx.lineWidth = 1; ctx.strokeRect(12, 12, lw, lh);
+      var pw = lw * 0.4, ph = lh * 0.45;
+      ctx.fillStyle = CB.rgb8css(rgb); ctx.fillRect(12 + (lw - pw) / 2, 12 + (lh - ph) / 2, pw, ph);
+      text(ctx, "주변 Ys = " + bs() + "%", [18, 12 + lh + 14], P.dim);
+      var x0 = narrow ? 12 : 24 + lw, y0 = narrow ? 12 + lh + 32 : 12, rw = narrow ? w - 24 : w - x0 - 12, rh = narrow ? h - y0 - 30 : h - 52;
+      var levels = [0.4, 0.25, 0.15, 0.09, 0.05, 0.025, 0.012], n = levels.length, cw = rw / n;
+      ctx.fillStyle = sur; ctx.fillRect(x0, y0, rw, rh);
+      levels.forEach(function (Yl, i) {
+        var c = CB.XYZ2rgb8(CB.xy2XYZ(xy, Yl));
+        ctx.fillStyle = CB.rgb8css(c); ctx.fillRect(x0 + i * cw + 4, y0 + 8, cw - 8, rh - 16);
+        if (c.clipped) text(ctx, "클립", [x0 + i * cw + cw / 2, y0 + rh / 2], "#fff", "center", "middle", 10);
+        text(ctx, String(Yl), [x0 + i * cw + cw / 2, y0 + rh + 13], P.dim, "center", "middle", 10);
+      });
+      var near = 0, bd = 1e9; levels.forEach(function (Yl, i) { var d = Math.abs(Math.log(Yl / Y)); if (d < bd) { bd = d; near = i; } });
+      ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.strokeRect(x0 + near * cw + 2, y0 + 6, cw - 4, rh - 12);
+      CB.stat("o-br-xy", pair(xy));
+      CB.stat("o-br-Y", Y.toFixed(3) + " / " + Ys.toFixed(2) + (Ys > 0 ? " = " + (Y / Ys).toFixed(3) : " (주변 없음)"));
+      CB.stat("o-br-L", Ys > 0 ? CB.XYZ2Lab(XYZ, CB.whiteXYZ("D65", Ys))[0].toFixed(1) : "— (기준 백색 없음)");
+      CB.stat("o-br-hex", swatch(CB.rgb8css(rgb), CB.rgb2hex(rgb)) + (rgb.clipped ? ' <small style="color:var(--warn)">가멋 밖, 클리핑</small>' : ""));
+    }, { aspect: 0.5, minHeight: 260, maxHeight: 340 });
+  })();
+
+  /* ---------------------------------------------------- 6. uniformity circles */
+  (function () {
+    var cv = document.getElementById("cv-uc"), base = baseLayer(), D = null, hp = [0.31, 0.33], view;
+    var CENT = [[0.16, 0.08], [0.20, 0.16], [0.15, 0.32], [0.10, 0.58], [0.17, 0.71], [0.26, 0.63], [0.31, 0.33], [0.38, 0.47], [0.45, 0.42], [0.53, 0.38], [0.61, 0.34], [0.24, 0.24], [0.36, 0.21], [0.29, 0.50], [0.47, 0.28], [0.12, 0.44]];
+    var vw = CB.seg("uc-view", function () { view.redraw(); }), df = CB.seg("uc-def", function () { view.redraw(); });
+    var rr = CB.range("uc-r", function (v) { return (v / 1000).toFixed(3); }, function () { view.redraw(); });
+    var detW = (function () { var j = jac(W65).J; return Math.abs(j[0][0] * j[1][1] - j[0][1] * j[1][0]); })();
+    function circle(c, r) {
+      var out = [], i, t;
+      if (df() === "uv") { var u = CB.xy2uv(c); for (i = 0; i < 64; i++) { t = i / 64 * 2 * Math.PI; out.push(CB.uv2xy([u[0] + r * Math.cos(t), u[1] + r * Math.sin(t)])); } }
+      else for (i = 0; i < 64; i++) { t = i / 64 * 2 * Math.PI; out.push([c[0] + r * Math.cos(t), c[1] + r * Math.sin(t)]); }
+      return out;
+    }
+    view = CB.canvas(cv, function (ctx, w, h) {
+      var P = CB.palette(); D = base(ctx, w, h, { uv: vw() === "uv", labels: false, fillAlpha: 0.55 });
+      var r = rr() / 1000;
+      CENT.forEach(function (c) { poly(ctx, circle(c, r), D, P.text, 1.3, null, null); });
+      poly(ctx, circle(hp, r), D, P.accent, 2.4, null, CB.color("accent-soft"));
+      dot(ctx, D.P(hp), 3, P.accent);
+      var j = jac(hp), J = j.J, det = Math.abs(J[0][0] * J[1][1] - J[0][1] * J[1][0]);
+      CB.stat("o-uc-pt", pair(hp));
+      CB.stat("o-uc-s", (0.01 * j.s2).toFixed(4) + " – " + (0.01 * j.s1).toFixed(4));
+      CB.stat("o-uc-an", (j.s1 / j.s2).toFixed(2));
+      CB.stat("o-uc-ar", (det / detW).toFixed(2) + " <small>(xy 단위 면적 → u′v′ 면적)</small>");
+    }, { aspect: 1, maxHeight: 520 });
+    function set(e) {
+      if (!D) return;
+      var m = ptr(cv, e), c = D.inv(m[0], m[1]);
+      if (vw() === "uv") c = CB.uv2xy(c);
+      if (!insideLocus(c)) return;
+      hp = c; view.redraw();
+    }
+    cv.addEventListener("pointermove", set);
+    cv.addEventListener("pointerdown", set);
+  })();
+})();
+</script>
+</body>
+</html>

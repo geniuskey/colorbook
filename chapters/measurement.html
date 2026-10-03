@@ -1,0 +1,1148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>색 측정과 계측기 · ColorBook</title>
+<meta name="description" content="분광광도계·분광복사계·필터식 색채계의 원리, 대역폭과 샘플링 오차, f1′ 부정합, 45°/0°·d/8과 SCI/SCE, 형광 M 조건, 교정·추적성·불확도, 메타머리즘 지수를 시뮬레이터로 계산한다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/measurement.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="색 측정과 계측기 · ColorBook">
+<meta property="og:description" content="분광광도계·분광복사계·필터식 색채계의 원리, 대역폭과 샘플링 오차, f1′ 부정합, 45°/0°·d/8과 SCI/SCE, 형광 M 조건, 교정·추적성·불확도, 메타머리즘 지수를 시뮬레이터로 계산한다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/measurement.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"색 측정과 계측기","name":"색 측정과 계측기 · ColorBook","url":"https://colorbook.euiyun.com/chapters/measurement.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/measurement.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":11,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"분광광도계·분광복사계·필터식 색채계의 원리, 대역폭과 샘플링 오차, f1′ 부정합, 45°/0°·d/8과 SCI/SCE, 형광 M 조건, 교정·추적성·불확도, 메타머리즘 지수를 시뮬레이터로 계산한다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"11 색 측정과 계측기","item":"https://colorbook.euiyun.com/chapters/measurement.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sim-view canvas { touch-action: pan-y; }
+</style>
+</head>
+<body data-chapter="measurement">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 11</div>
+    <h1>색 측정과 계측기</h1>
+    <p class="lead">지금까지의 모든 색 계산은 하나의 입력, 즉 <strong>분광 데이터</strong>에서 출발했다. 그 데이터를 만드는 것이 계측기다. 계측기는 유한한 대역폭으로 스펙트럼을 흐리게 하고, 정해진 각도로만 빛을 받으며, 필터는 등색 함수와 조금씩 어긋나고, 백색 기준판조차 불확도를 가진다. 이 장은 측정값이 "참값"에서 얼마나, 왜 벗어나는지를 숫자로 따진다.</p>
+    <ul class="objectives">
+      <li>발광체(분광 복사휘도)와 물체(분광 반사율·투과율)의 측정량 차이를 구분하고 각각에 맞는 계측기를 고른다.</li>
+      <li>다이오드 어레이 분광기의 구조와 슬릿 함수를 이해하고, 대역폭·샘플링 간격이 선 스펙트럼 측정에 주는 오차를 계산한다.</li>
+      <li>필터식 색채계의 분광 부정합 지수 f1′을 정의하고, 광원 종류에 따른 오차와 매트릭스 보정의 한계를 설명한다.</li>
+      <li>45°/0°, d/8, SCI/SCE 측정 기하와 광택의 영향, 형광 시료의 M0–M3 측정 조건을 이해한다.</li>
+      <li>교정·추적성·불확도(GUM, 몬테카를로)와 메타머리즘 지수를 실제 수치로 계산한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="what">
+    <h2>무엇을 재는가: 발광체와 물체</h2>
+    <p>색 측정의 첫 질문은 "시료가 빛을 <em>내는가</em>, 빛을 <em>되돌리는가</em>"이다. 광원·디스플레이·LED 같은 <span class="term">발광체</span><span class="en">(self-luminous source)</span>에서 재는 양은 <strong>분광 복사휘도</strong> \(L_{e,\lambda}(\lambda)\) [W·sr⁻¹·m⁻²·nm⁻¹] 또는 분광 방사조도이다. 이것은 절대량이며, 그대로 CIE 등색 함수와 적분하면 휘도(cd/m²)와 색도가 나온다.</p>
+    <p>종이·도료·직물 같은 <span class="term">물체색</span><span class="en">(object color)</span>은 스스로 빛을 내지 않는다. 이때 재는 양은 <strong>분광 반사율(반사율 인자)</strong> \(R(\lambda)\) 또는 투과율 \(T(\lambda)\)로, 같은 기하 조건에서 <span class="term">완전 확산 반사체</span><span class="en">(perfect reflecting diffuser)</span>가 보내는 빛에 대한 비율이다. 무차원이고, 측정에 쓴 기기 광원과 거의 무관한 <strong>시료 고유량</strong>이다(형광 시료는 예외 — 6절). 그래서 한 번 측정한 \(R(\lambda)\)로 D65, A, FL11 등 어떤 광원 아래의 색이든 계산으로 얻을 수 있다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 340" role="img" aria-label="발광체와 물체의 색 측정 체계도">
+        <defs>
+          <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <text x="20" y="28" class="t-acc">발광체 경로</text>
+        <rect x="20" y="42" width="150" height="70" rx="10" class="f-surface"/>
+        <text x="95" y="72" text-anchor="middle" class="t">광원 · 디스플레이</text>
+        <text x="95" y="94" text-anchor="middle" class="t-dim">LED, OLED, 램프</text>
+        <line x1="172" y1="77" x2="222" y2="77" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="226" y="42" width="170" height="70" rx="10" class="f-acc-soft"/>
+        <text x="311" y="70" text-anchor="middle" class="t">분광복사계</text>
+        <text x="311" y="92" text-anchor="middle" class="t-dim">(필터식 색채계)</text>
+        <line x1="398" y1="77" x2="448" y2="77" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="452" y="42" width="150" height="70" rx="10" class="f-elev"/>
+        <text x="527" y="70" text-anchor="middle" class="t-mono">L(λ)</text>
+        <text x="527" y="92" text-anchor="middle" class="t-dim">W·sr⁻¹·m⁻²·nm⁻¹</text>
+        <line x1="604" y1="77" x2="642" y2="77" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="646" y="42" width="138" height="70" rx="10" class="f-surface"/>
+        <text x="715" y="70" text-anchor="middle" class="t">절대 XYZ</text>
+        <text x="715" y="92" text-anchor="middle" class="t-dim">cd/m², xy, CCT</text>
+
+        <line x1="20" y1="150" x2="784" y2="150" class="s-axis" stroke-dasharray="4 5"/>
+
+        <text x="20" y="186" class="t-acc">물체 경로</text>
+        <rect x="20" y="200" width="150" height="70" rx="10" class="f-surface"/>
+        <text x="95" y="230" text-anchor="middle" class="t">물체 (반사·투과)</text>
+        <text x="95" y="252" text-anchor="middle" class="t-dim">도료, 종이, 필름</text>
+        <line x1="172" y1="235" x2="222" y2="235" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="226" y="200" width="170" height="70" rx="10" class="f-acc-soft"/>
+        <text x="311" y="224" text-anchor="middle" class="t">분광광도계</text>
+        <text x="311" y="244" text-anchor="middle" class="t-dim">내장 광원 + 측정 기하</text>
+        <text x="311" y="262" text-anchor="middle" class="t-dim">백색 기준 교정</text>
+        <line x1="398" y1="235" x2="448" y2="235" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="452" y="200" width="150" height="70" rx="10" class="f-elev"/>
+        <text x="527" y="228" text-anchor="middle" class="t-mono">R(λ)</text>
+        <text x="527" y="250" text-anchor="middle" class="t-dim">무차원, 0–1</text>
+        <line x1="604" y1="235" x2="642" y2="235" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="646" y="200" width="138" height="70" rx="10" class="f-surface"/>
+        <text x="715" y="228" text-anchor="middle" class="t">상대 XYZ</text>
+        <text x="715" y="250" text-anchor="middle" class="t-dim">Y=100, L*a*b*</text>
+        <rect x="452" y="290" width="150" height="40" rx="8" class="f-acc2-soft"/>
+        <text x="527" y="315" text-anchor="middle" class="t-dim">× 계산용 광원 S(λ)</text>
+        <line x1="604" y1="310" x2="690" y2="274" class="s-line" marker-end="url(#ar1)"/>
+      </svg>
+      <figcaption><b>그림 11-1.</b> 색 측정 체계. 발광체는 절대 분광 복사휘도를, 물체는 백색 기준 대비 분광 반사율을 잰다. 물체색은 계산 단계에서 광원 \(S(\lambda)\)와 관측자를 <em>나중에</em> 고른다.</figcaption>
+    </figure>
+
+    <div class="formula">
+      $$X = 683\int L_{e,\lambda}(\lambda)\,\bar x(\lambda)\,d\lambda \qquad\qquad X = k\int S(\lambda)\,R(\lambda)\,\bar x(\lambda)\,d\lambda,\quad k = \frac{100}{\int S(\lambda)\,\bar y(\lambda)\,d\lambda}$$
+      <div class="where">왼쪽은 발광체(Y가 cd/m² 단위의 휘도), 오른쪽은 물체색(완전 확산 반사체의 Y=100). \(Y,Z\)도 같은 꼴이다. 적분은 실제로는 1 nm 또는 5 nm 간격의 합으로 계산한다(<a href="colorimetry.html">3장</a>).</div>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>시료</th><th>측정량</th><th>단위</th><th>대표 계측기</th><th>근거 문서</th></tr></thead>
+      <tbody>
+        <tr><td>디스플레이, 광원</td><td>분광 복사휘도 \(L_{e,\lambda}\)</td><td>W·sr⁻¹·m⁻²·nm⁻¹</td><td>분광복사계, 색채계</td><td>CIE 015:2018, ICDM IDMS</td></tr>
+        <tr><td>조명 환경</td><td>분광 방사조도 \(E_{e,\lambda}\)</td><td>W·m⁻²·nm⁻¹</td><td>분광 조도계</td><td>CIE S 023, ISO/CIE 19476</td></tr>
+        <tr><td>불투명 물체</td><td>분광 반사율 인자 \(R(\lambda)\)</td><td>무차원</td><td>분광광도계(45°/0°, d/8)</td><td>CIE 015:2018, ISO 13655, ASTM E1164</td></tr>
+        <tr><td>투명 필름·용액</td><td>분광 투과율 \(T(\lambda)\)</td><td>무차원</td><td>투과 분광광도계</td><td>CIE 015:2018</td></tr>
+        <tr><td>형광 시료</td><td>분광 복사휘도 인자 \(\beta(\lambda)\)</td><td>무차원(광원 의존)</td><td>UV 조절 광원 분광광도계, 2중 단색기</td><td>ISO 13655, CIE 182</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout tip"><strong>공학자 관점: 반사율을 저장하라</strong>
+      도료·잉크 품질 관리에서 L*a*b*만 저장하면 나중에 "매장 조명(FL11, LED) 아래에서는?"이라는 질문에 답할 수 없다. 분광 반사율 31점(400–700 nm, 10 nm) 또는 81점(380–780 nm, 5 nm)을 저장하면 광원·관측자·색차식이 바뀌어도 재계산된다. CxF(ISO 17972)처럼 분광 데이터를 담는 교환 형식이 쓰이는 이유다.</div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="instruments">
+    <h2>세 가지 계측기</h2>
+    <p>색 계측기는 크게 셋이다. <span class="term">분광광도계</span><span class="en">(spectrophotometer)</span>는 자체 광원으로 시료를 비추고 반사광 스펙트럼을 백색 기준과 비교해 \(R(\lambda)\)를 낸다. <span class="term">분광복사계</span><span class="en">(spectroradiometer)</span>는 광원이 없고, 대물 렌즈와 시야 조리개로 정해진 측정각(예: 1°, 0.2°) 안의 복사휘도 스펙트럼을 절대 단위로 잰다. <span class="term">필터식 색채계</span><span class="en">(tristimulus colorimeter)</span>는 분광 분해 없이 \(\bar x,\bar y,\bar z\)를 흉내 낸 세(또는 네) 개의 필터–검출기 조합으로 X, Y, Z를 직접 적분한다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="분광광도계, 분광복사계, 필터식 색채계의 구조">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+          <linearGradient id="rb2" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stop-color="#6a3cff"/><stop offset=".2" stop-color="#2f6fe0"/><stop offset=".4" stop-color="#21b0a8"/><stop offset=".55" stop-color="#5cc23a"/><stop offset=".7" stop-color="#f2c21b"/><stop offset=".85" stop-color="#f07a1a"/><stop offset="1" stop-color="#d8262a"/>
+          </linearGradient>
+        </defs>
+        <!-- (a) spectrophotometer -->
+        <rect x="8" y="8" width="252" height="284" rx="12" class="f-surface"/>
+        <text x="134" y="32" text-anchor="middle" class="t">(a) 분광광도계</text>
+        <rect x="30" y="226" width="208" height="22" rx="3" class="f-acc-soft"/>
+        <text x="134" y="241" text-anchor="middle" class="t-dim">시료</text>
+        <circle cx="52" cy="110" r="14" class="f-acc"/>
+        <text x="52" y="86" text-anchor="middle" class="t-dim">광원</text>
+        <line x1="62" y1="122" x2="126" y2="220" class="s-acc" marker-end="url(#ar2)"/>
+        <line x1="134" y1="222" x2="134" y2="130" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="114" y="98" width="40" height="28" rx="4" class="f-elev"/>
+        <text x="134" y="117" text-anchor="middle" class="t-mono">렌즈</text>
+        <line x1="154" y1="112" x2="190" y2="112" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="192" y="70" width="52" height="80" rx="6" class="f-elev"/>
+        <text x="218" y="100" text-anchor="middle" class="t-mono">격자</text>
+        <rect x="198" y="120" width="40" height="10" fill="url(#rb2)"/>
+        <text x="218" y="146" text-anchor="middle" class="t-dim">어레이</text>
+        <text x="134" y="272" text-anchor="middle" class="t-dim">출력: R(λ) = 시료/백색</text>
+        <!-- (b) spectroradiometer -->
+        <rect x="274" y="8" width="252" height="284" rx="12" class="f-surface"/>
+        <text x="400" y="32" text-anchor="middle" class="t">(b) 분광복사계</text>
+        <rect x="292" y="70" width="18" height="150" rx="3" class="f-acc-soft"/>
+        <text x="301" y="240" text-anchor="middle" class="t-dim">화면</text>
+        <line x1="312" y1="130" x2="356" y2="140" class="s-acc"/>
+        <line x1="312" y1="160" x2="356" y2="150" class="s-acc"/>
+        <ellipse cx="364" cy="145" rx="8" ry="30" class="f-elev"/>
+        <text x="364" y="100" text-anchor="middle" class="t-dim">대물렌즈</text>
+        <line x1="372" y1="145" x2="404" y2="145" class="s-line" marker-end="url(#ar2)"/>
+        <line x1="408" y1="130" x2="408" y2="160" class="s-axis"/>
+        <text x="408" y="182" text-anchor="middle" class="t-dim">시야 조리개</text>
+        <line x1="410" y1="145" x2="440" y2="145" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="444" y="105" width="64" height="80" rx="6" class="f-elev"/>
+        <text x="476" y="135" text-anchor="middle" class="t-mono">분광기</text>
+        <rect x="452" y="155" width="48" height="10" fill="url(#rb2)"/>
+        <text x="400" y="272" text-anchor="middle" class="t-dim">출력: 절대 L(λ), 광원 없음</text>
+        <!-- (c) colorimeter -->
+        <rect x="540" y="8" width="252" height="284" rx="12" class="f-surface"/>
+        <text x="666" y="32" text-anchor="middle" class="t">(c) 필터식 색채계</text>
+        <rect x="556" y="70" width="18" height="150" rx="3" class="f-acc-soft"/>
+        <line x1="576" y1="145" x2="618" y2="145" class="s-acc" marker-end="url(#ar2)"/>
+        <ellipse cx="626" cy="145" rx="7" ry="26" class="f-elev"/>
+        <line x1="634" y1="145" x2="664" y2="90" class="s-line" marker-end="url(#ar2)"/>
+        <line x1="634" y1="145" x2="664" y2="145" class="s-line" marker-end="url(#ar2)"/>
+        <line x1="634" y1="145" x2="664" y2="200" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="668" y="76" width="24" height="28" fill="#d8262a" opacity=".8"/>
+        <rect x="668" y="131" width="24" height="28" fill="#3aa83a" opacity=".8"/>
+        <rect x="668" y="186" width="24" height="28" fill="#2f6fe0" opacity=".8"/>
+        <text x="680" y="70" text-anchor="middle" class="t-mono">x̄</text>
+        <text x="680" y="125" text-anchor="middle" class="t-mono">ȳ</text>
+        <text x="680" y="180" text-anchor="middle" class="t-mono">z̄</text>
+        <rect x="700" y="80" width="16" height="20" class="f-acc"/>
+        <rect x="700" y="135" width="16" height="20" class="f-acc"/>
+        <rect x="700" y="190" width="16" height="20" class="f-acc"/>
+        <text x="756" y="94" text-anchor="middle" class="t-mono">X</text>
+        <text x="756" y="149" text-anchor="middle" class="t-mono">Y</text>
+        <text x="756" y="204" text-anchor="middle" class="t-mono">Z</text>
+        <text x="666" y="272" text-anchor="middle" class="t-dim">출력: X, Y, Z 직접</text>
+      </svg>
+      <figcaption><b>그림 11-2.</b> 세 계측기의 구조. (a) 분광광도계는 광원·측정 기하·분광기를 모두 품고 백색 기준 대비 비율을 낸다. (b) 분광복사계는 광원 없이 시야각 안의 스펙트럼을 절대 단위로 잰다. (c) 색채계는 필터×검출기 감도가 등색 함수를 근사하도록 만들어 X, Y, Z를 한 번에 적분한다.</figcaption>
+    </figure>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>분광광도계</th><th>분광복사계</th><th>필터식 색채계</th></tr></thead>
+      <tbody>
+        <tr><td>측정 대상</td><td>물체 반사·투과</td><td>광원, 디스플레이, 원격 물체</td><td>광원, 디스플레이</td></tr>
+        <tr><td>출력</td><td>\(R(\lambda)\), 모든 광원 아래 색</td><td>절대 \(L_{e,\lambda}\), XYZ, cd/m²</td><td>XYZ (광원 의존 오차)</td></tr>
+        <tr><td>파장 정보</td><td>있음(보통 10 nm 간격 보고)</td><td>있음(1–5 nm, 대역폭 2–10 nm 급)</td><td>없음</td></tr>
+        <tr><td>강점</td><td>재계산 가능, 기기 간 일치</td><td>기준(reference) 정확도</td><td>빠름, 저휘도 감도, 저가</td></tr>
+        <tr><td>약점</td><td>형광, 광택·기하 의존</td><td>느림(저휘도에서 적분 시간), 고가</td><td>필터 부정합 → 스펙트럼마다 오차</td></tr>
+      </tbody>
+    </table></div>
+    <p>디스플레이 생산 라인에서는 이 둘을 섞어 쓴다. 기준 분광복사계로 각 패널 종류의 원색을 한 번 재서 색채계의 보정 행렬을 만들고, 이후 수천 장의 패널은 빠른 색채계로 잰다(4절). 이 조합이 성립하는 조건과 깨지는 조건을 아는 것이 계측 엔지니어의 핵심 역량이다.</p>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="spectrometer">
+    <h2>다이오드 어레이 분광기</h2>
+    <p>현대 분광광도계와 분광복사계의 심장은 <span class="term">폴리크로메이터</span><span class="en">(polychromator)</span>다. 입사 슬릿을 통과한 빛을 오목 거울로 평행하게 만들고, 회절 격자가 파장마다 다른 각도로 꺾으며, 다시 초점을 맺은 스펙트럼을 선형 다이오드(또는 CMOS/CCD) 어레이가 한 번에 읽는다. 기계적으로 움직이는 부품이 없어 수 ms 만에 전 스펙트럼을 얻는다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="폴리크로메이터 광학 구조와 삼각 슬릿 함수">
+        <defs>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+          <linearGradient id="rb3" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#6a3cff"/><stop offset=".2" stop-color="#2f6fe0"/><stop offset=".4" stop-color="#21b0a8"/><stop offset=".55" stop-color="#5cc23a"/><stop offset=".7" stop-color="#f2c21b"/><stop offset=".85" stop-color="#f07a1a"/><stop offset="1" stop-color="#d8262a"/>
+          </linearGradient>
+        </defs>
+        <rect x="8" y="8" width="470" height="284" rx="12" class="f-surface"/>
+        <line x1="40" y1="150" x2="80" y2="150" class="s-acc" marker-end="url(#ar3)"/>
+        <line x1="84" y1="120" x2="84" y2="146" class="s-axis"/><line x1="84" y1="154" x2="84" y2="180" class="s-axis"/>
+        <text x="84" y="200" text-anchor="middle" class="t-dim">슬릿 w</text>
+        <path d="M200 60 Q 214 100 200 140" class="s-line" fill="none" stroke-width="3"/>
+        <text x="214" y="56" class="t-dim">콜리메이터</text>
+        <line x1="86" y1="150" x2="200" y2="80" class="s-line"/>
+        <line x1="86" y1="150" x2="200" y2="125" class="s-line"/>
+        <line x1="200" y1="80" x2="300" y2="180" class="s-line"/>
+        <line x1="200" y1="125" x2="300" y2="220" class="s-line"/>
+        <rect x="290" y="170" width="50" height="60" rx="3" class="f-elev" transform="rotate(-20 315 200)"/>
+        <text x="315" y="256" text-anchor="middle" class="t-mono">격자 d</text>
+        <line x1="330" y1="180" x2="400" y2="90" stroke="#2f6fe0" stroke-width="2"/>
+        <line x1="335" y1="190" x2="410" y2="140" stroke="#5cc23a" stroke-width="2"/>
+        <line x1="340" y1="200" x2="410" y2="190" stroke="#d8262a" stroke-width="2"/>
+        <rect x="412" y="70" width="18" height="140" rx="2" fill="url(#rb3)"/>
+        <text x="440" y="66" class="t-dim">어레이</text>
+        <text x="40" y="40" class="t">폴리크로메이터</text>
+        <text x="40" y="276" class="t-mono">mλ = d(sin α + sin β)</text>
+        <!-- slit function -->
+        <rect x="494" y="8" width="298" height="284" rx="12" class="f-surface"/>
+        <text x="643" y="36" text-anchor="middle" class="t">슬릿 함수(밴드패스)</text>
+        <line x1="516" y1="230" x2="776" y2="230" class="s-axis"/>
+        <path d="M566 230 L643 80 L720 230" class="f-acc-soft" stroke="var(--accent)" stroke-width="2"/>
+        <line x1="604" y1="155" x2="682" y2="155" class="s-acc" marker-start="url(#ar3)" marker-end="url(#ar3)"/>
+        <text x="643" y="148" text-anchor="middle" class="t-acc">FWHM = 대역폭</text>
+        <line x1="643" y1="230" x2="643" y2="242" class="s-line"/>
+        <line x1="604" y1="230" x2="604" y2="238" class="s-line"/><line x1="682" y1="230" x2="682" y2="238" class="s-line"/>
+        <text x="643" y="258" text-anchor="middle" class="t-mono">λₖ</text>
+        <text x="604" y="258" text-anchor="middle" class="t-mono t-dim">λₖ₋₁</text>
+        <text x="682" y="258" text-anchor="middle" class="t-mono t-dim">λₖ₊₁</text>
+        <text x="643" y="282" text-anchor="middle" class="t-dim">간격 Δλ = FWHM 이면 이웃 삼각형 합 = 1</text>
+      </svg>
+      <figcaption><b>그림 11-3.</b> 왼쪽: 슬릿–콜리메이터–격자–어레이로 이루어진 폴리크로메이터. 오른쪽: 슬릿 상(像)과 화소 폭이 같으면 한 화소가 보는 파장 응답은 삼각형이 된다. 삼각형의 반치폭이 <strong>대역폭</strong>, 화소 중심 간격이 <strong>샘플링 간격</strong>이다.</figcaption>
+    </figure>
+
+    <div class="formula">
+      $$m\lambda = d\,(\sin\alpha + \sin\beta), \qquad \frac{d\beta}{d\lambda} = \frac{m}{d\cos\beta}, \qquad M(\lambda_k) = \frac{\int S(\lambda)\,T(\lambda_k-\lambda)\,d\lambda}{\int T(\lambda)\,d\lambda}$$
+      <div class="where">\(m\): 회절 차수, \(d\): 격자 홈 간격, \(\alpha,\beta\): 입사·회절각. 각분산이 클수록(홈 밀도↑) 같은 슬릿 폭에서 대역폭이 좁아진다. 측정 스펙트럼 \(M\)은 참 스펙트럼 \(S\)와 슬릿 함수 \(T\)의 <strong>컨볼루션</strong>을 화소 위치에서 샘플링한 것이다.</div>
+    </div>
+    <p>예를 들어 600 lines/mm(\(d\) = 1.667 µm) 격자를 1차로 쓰고 \(\beta\approx 0\)이면 \(d\beta/d\lambda \approx 0.6\) mrad/nm이다. 초점 거리 50 mm 분광기면 선분산이 0.03 mm/nm, 즉 400 nm 범위가 12 mm 어레이에 펼쳐진다. 25 µm 슬릿의 상은 약 0.8 nm 폭이므로 화소 간격까지 고려한 광학 분해능은 수 nm 수준이 된다. 휴대형 분광광도계는 보통 10 nm 간격(400–700 nm, 31점)으로 보고하고, 기준급 분광복사계는 1–2 nm 대역폭을 가진다.</p>
+    <p>파장 축은 화소 번호 \(p\)에 대한 다항식 \(\lambda(p)=a_0+a_1p+a_2p^2+\dots\)로 정하며, 이 계수는 수은 램프처럼 파장이 정확히 알려진 선으로 교정한다(7절). 어레이 분광기는 격자의 고차 회절(예: 2차의 350 nm가 1차의 700 nm 자리에 겹침)을 막는 차수 분리 필터, 그리고 미광<span class="en">(stray light)</span>이 정확도의 한계가 된다. 미광은 청색 LED처럼 강한 피크 옆의 어두운 영역 값을 들어 올린다.</p>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="bandpass">
+    <h2>대역폭과 샘플링: 선 스펙트럼의 함정</h2>
+    <p>백열등이나 주광처럼 매끄러운 스펙트럼에서는 대역폭 10 nm로 재든 1 nm로 재든 색도 차이가 거의 없다. 문제는 형광등의 수은·희토류 방출선, 레이저, 반치폭 20 nm 내외의 QD처럼 <strong>스펙트럼 구조가 대역폭보다 좁은</strong> 경우다. 두 가지 오차가 생긴다.</p>
+    <ul>
+      <li><strong>대역폭 오차</strong>: 컨볼루션으로 선이 넓게 퍼져 이웃 파장의 등색 함수 값으로 가중된다. 등색 함수의 곡률이 큰 곳(예: \(\bar x\)의 600 nm 피크 양옆)의 선일수록 크다.</li>
+      <li><strong>샘플링 오차</strong>: 대역폭이 간격보다 좁으면 샘플 사이에 떨어진 선은 <em>통째로 사라진다</em>. 측정된 Y가 수십 % 줄고 색도가 크게 튄다.</li>
+    </ul>
+    <p>삼각 슬릿의 반치폭이 샘플링 간격과 정확히 같으면 이웃 삼각형들이 빈틈없이 겹쳐 합이 1이 되므로, 어떤 좁은 선도 에너지가 보존된다. 그래서 CIE 015는 "간격 = 대역폭"인 삼각 밴드패스를 기본 가정으로 삼고, 대역폭이 넓을 때는 대역통과 보정을 권한다. 대표적인 보정이 Stearns–Stearns 식이다.</p>
+    <div class="formula">
+      $$R'_i = (1+2\alpha)\,R_i - \alpha\,(R_{i-1}+R_{i+1}), \qquad \alpha = 0.083$$
+      <div class="where">이웃 값의 곡률만큼 피크를 되살리는 간단한 역컨볼루션 근사. 끝점은 \(R'_0=(1+\alpha)R_0-\alpha R_1\). ASTM E308의 10·20 nm 가중치 표는 이런 보정을 가중치에 포함한 판과 포함하지 않은 판이 따로 있어, 데이터가 이미 보정되었는지 확인해야 한다(보정 절차 자체는 ASTM E2729).</div>
+    </div>
+
+    <div class="sim" id="sim-bw">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>분광기 대역폭·샘플링 → 선 스펙트럼 색도 오차</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-bw"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>광원(0.1 nm 참 스펙트럼)</span><div class="seg" id="bw-src"><button data-value="tri" class="on">3파장 FL</button><button data-value="led">백색 LED</button><button data-value="qd">QD</button><button data-value="laser">레이저</button></div></div>
+          <label class="ctrl"><span>대역폭 FWHM <output id="bw-out"></output></span><input type="range" id="bw" min="0.5" max="20" step="0.5" value="10"></label>
+          <div class="ctrl"><span>샘플링 간격 (nm)</span><div class="seg" id="bw-dl"><button data-value="1">1</button><button data-value="2">2</button><button data-value="5">5</button><button data-value="10" class="on">10</button><button data-value="20">20</button></div></div>
+          <label class="check"><input type="checkbox" id="bw-stearns"> Stearns–Stearns 대역통과 보정</label>
+          <label class="check"><input type="checkbox" id="bw-interp"> 1 nm 선형 보간 후 적분</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">참 xy</span><span class="v" id="o-bw-true">—</span></div>
+        <div class="stat"><span class="k">측정 xy</span><span class="v" id="o-bw-meas">—</span></div>
+        <div class="stat"><span class="k">Δu′v′</span><span class="v" id="o-bw-duv">—</span></div>
+        <div class="stat"><span class="k">ΔY</span><span class="v" id="o-bw-dy">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: (1) 3파장 FL에서 간격 10 nm, 대역폭 2 nm로 줄여 보라 — 분해능을 "높였는데" 오차는 폭증한다(선이 샘플 사이로 빠짐). (2) 대역폭 = 간격으로 맞추면 오차가 거의 0으로 돌아온다. (3) 레이저는 20/20 nm에서 Δu′v′ ≈ 0.005지만 보정을 켜면 0.001대로 준다. (4) 매끄러운 백색 LED는 어떤 조합에서도 상대적으로 둔감하다. 회색 선은 0.1 nm 참 스펙트럼, 강조색 선·점은 측정값이다.</div>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>광원(합성 모델)</th><th>FWHM / 간격</th><th>Δu′v′</th><th>ΔY</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>3파장 FL (CCT ≈ 3,800 K)</td><td>10 / 10 nm</td><td>0.0005</td><td>−0.1 %</td><td>삼각 밴드패스 정합</td></tr>
+        <tr><td>3파장 FL</td><td>2 / 10 nm</td><td>0.066</td><td>−14 %</td><td>선 누락(언더샘플링)</td></tr>
+        <tr><td>3파장 FL</td><td>1 / 5 nm</td><td>0.017</td><td>−6 %</td><td>선 누락</td></tr>
+        <tr><td>RGB 레이저</td><td>20 / 20 nm</td><td>0.0049 → 0.0013</td><td>−0.9 %</td><td>Stearns 보정 전 → 후</td></tr>
+        <tr><td>백색 LED</td><td>20 / 20 nm</td><td>0.0011</td><td>−0.6 %</td><td>매끄러운 스펙트럼</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><strong>흔한 실수: "좁은 대역폭 = 좋은 분광기"</strong>
+      대역폭만 좁히고 화소 간격(또는 보고 간격)을 그대로 두면 선 스펙트럼 측정은 오히려 나빠진다. 분광기 사양을 볼 때는 대역폭, 화소 간격, 보고 간격 세 가지를 함께 보라. 기준 분광복사계로 레이저·QD 디스플레이를 잴 때는 대역폭 ≤ 2 nm, 간격 ≤ 1 nm가 안전하다. 반대로 측정 데이터를 10 nm로 리샘플링해 저장하면서 대역폭 정보를 버리는 것도 같은 실수다.</div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="colorimeter">
+    <h2>필터식 색채계와 분광 부정합 f1′</h2>
+    <p>필터식 색채계가 정확하려면 각 채널의 분광 감도(광학계 투과 × 필터 × 검출기 감도)가 등색 함수의 선형 결합이어야 한다. 이것이 <span class="term">루터 조건</span><span class="en">(Luther condition)</span>이며, <a href="camera.html">12장</a>의 카메라에서도 같은 조건이 나온다. 현실의 유리 필터 적층은 이 조건을 근사할 뿐이고, 남은 차이는 측정 대상의 스펙트럼에 따라 다른 오차를 만든다.</p>
+    <p>광도계(휘도계·조도계)에서는 이 차이를 하나의 숫자로 등급화한다. CIE S 023/E:2013(= ISO/CIE 19476:2014)의 <span class="term">분광 부정합 지수</span> \(f_1'\)이다.</p>
+    <div class="formula">
+      $$f_1' = \frac{\int \left|\,s^*_{\mathrm{rel}}(\lambda) - V(\lambda)\,\right|\,d\lambda}{\int V(\lambda)\,d\lambda}, \qquad s^*_{\mathrm{rel}}(\lambda) = \frac{\int S_A(\lambda)\,V(\lambda)\,d\lambda}{\int S_A(\lambda)\,s_{\mathrm{rel}}(\lambda)\,d\lambda}\; s_{\mathrm{rel}}(\lambda)$$
+      <div class="where">\(s_{\mathrm{rel}}\): 기기의 상대 분광 감도, \(S_A\): CIE 표준광 A. 즉 광원 A를 정확히 읽도록 이득을 맞춘 뒤 남는 V(λ)와의 면적 차이를 V(λ) 면적으로 나눈 값이다. 같은 식을 \(\bar x,\bar z\) 채널에 적용해 3자극 색채계의 부정합을 가늠하기도 한다.</div>
+    </div>
+    <p>\(f_1'\)은 "광원 A에서 0 오차"를 기준으로 한 지표다. 따라서 광원 A와 스펙트럼이 비슷한 할로겐 조명에서는 오차가 작고, 청색 성분이 강한 주광, 좁은 선을 가진 형광등, 그리고 무엇보다 <strong>좁은 원색으로 이루어진 디스플레이</strong>에서 오차가 커진다. 아래 시뮬레이터는 CB의 Wyman 가우시안 근사 CMF를 이용해 "필터 감도 = 참 CMF + (피크 이동·폭 변경한 가우시안 − 원래 가우시안)"으로 필터 제작 오차를 모델링한다.</p>
+
+    <div class="sim" id="sim-cm">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>색채계 필터 부정합 → 광원별 색도 오차</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cm"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>ȳ 필터 피크 이동 <output id="cm-dy-out"></output></span><input type="range" id="cm-dy" min="-6" max="6" step="0.5" value="3"></label>
+          <label class="ctrl"><span>x̄·z̄ 필터 피크 이동 <output id="cm-dxz-out"></output></span><input type="range" id="cm-dxz" min="-6" max="6" step="0.5" value="0"></label>
+          <label class="ctrl"><span>필터 폭 배율 <output id="cm-s-out"></output></span><input type="range" id="cm-s" min="0.85" max="1.15" step="0.01" value="1"></label>
+          <div class="ctrl"><span>보정 방식</span><div class="seg" id="cm-mode"><button data-value="A" class="on">광원 A 이득 교정</button><button data-value="matrix">디스플레이 행렬 보정</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">f1′ (ȳ 채널)</span><span class="v" id="o-cm-f1">—</span></div>
+        <div class="stat"><span class="k">x̄ / z̄ 부정합</span><span class="v" id="o-cm-fxz">—</span></div>
+        <div class="stat"><span class="k">최대 Δu′v′</span><span class="v" id="o-cm-worst">—</span></div>
+        <div class="stat"><span class="k">디스플레이 백색 Δu′v′</span><span class="v" id="o-cm-dispw">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: (1) ȳ만 +3 nm 이동하면 f1′ ≈ 5.7 %. 광원 A는 0이지만 D65는 Δu′v′ ≈ 0.005, 디스플레이 적색 원색은 0.03을 넘는다. (2) "디스플레이 행렬 보정"으로 바꾸면 그 디스플레이의 R, G, B, W는 0이 되지만 광원 A가 0.002 정도로 <em>나빠진다</em> — 보정 행렬은 특정 스펙트럼 집합 전용이다. (3) 폭 배율만 1.10으로 바꿔도 f1′이 8 %를 넘는다. 위 그래프의 실선은 CIE 1931 CMF, 점선은 모델 필터 감도다. 막대는 Δu′v′×10³, 점선은 0.002.</div>
+    </div>
+
+    <p>디스플레이 측정에서 쓰는 해법은 <span class="term">매트릭스 보정</span>이다. 기준 분광복사계와 색채계로 같은 디스플레이의 R, G, B 원색을 재서, 색채계 원시값 \(\mathbf r\)을 참 XYZ로 보내는 3×3 행렬을 구한다.</p>
+    <div class="formula">
+      $$\mathbf M = \big[\mathbf X_R\;\mathbf X_G\;\mathbf X_B\big]_{\text{ref}}\;\big[\mathbf r_R\;\mathbf r_G\;\mathbf r_B\big]_{\text{meter}}^{-1}, \qquad \mathbf X = \mathbf M\,\mathbf r$$
+      <div class="where">가산 혼합이 성립하는 디스플레이라면 모든 RGB 조합의 스펙트럼이 세 원색의 선형 결합이므로, 같은 기종에 대해서는 원리적으로 부정합 오차가 사라진다.</div>
+    </div>
+    <p>Ohno와 Hardis(1997)의 <span class="term">4색 방법</span><span class="en">(four-color method)</span>은 원색 R, G, B의 <em>색도</em>와 백색 W의 색도·휘도를 함께 써서 행렬을 정한다. 각 원색의 휘도 측정 오차(드리프트, 비선형)에 덜 민감하고 백색점을 정확히 맞춘다는 장점이 있어 디스플레이 계측 실무에서 널리 쓰인다. 그러나 어떤 방법이든 <strong>보정에 쓴 원색 스펙트럼과 다른 디스플레이</strong>(LCD 보정 행렬로 OLED·QD를 재는 경우)에서는 다시 오차가 생긴다. 상용 색채계가 패널 종류별 보정 테이블(예: "WLED", "OLED", "QD")을 고르게 하는 이유다.</p>
+    <div class="callout"><strong>공학자 관점: 수치 감각</strong>
+      일반 조도계·휘도계의 f1′은 수 %, 정밀급은 1–2 % 수준이다. 광원 A 교정 상태에서 \(f_1'\) 3 %의 휘도계로 백색 LED를 재면 휘도 오차는 보통 1–3 %, 협대역 청색·적색 LED 단색은 10 %를 넘을 수 있다. 디스플레이 공정의 xy 허용차는 흔히 ±0.003–0.005이므로, 색채계는 기종별 행렬 보정 없이는 이 허용차를 지키기 어렵다.</div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="geometry">
+    <h2>측정 기하: 45°/0°, d/8, SCI와 SCE</h2>
+    <p>물체 표면에서 되돌아오는 빛은 두 성분으로 나뉜다. 공기–표면 경계에서 거울처럼 반사되는 <span class="term">정반사 성분</span><span class="en">(specular, first-surface reflection)</span>과, 내부로 들어가 안료에 산란·흡수된 뒤 나오는 <span class="term">확산(몸체) 성분</span>이다. 정반사율은 프레넬 식으로 정해지고 굴절률 1.5 수지의 수직 입사에서 \(\rho_s = ((n-1)/(n+1))^2 = 4\%\)로, 파장에 거의 무관하다(무채색). 같은 시료라도 이 4 %를 얼마나 포함하느냐에 따라 L*가 크게 달라지므로, 측정값은 반드시 <strong>측정 기하</strong>와 함께 보고해야 한다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 310" role="img" aria-label="45/0 기하와 d/8 적분구 기하, 정반사 트랩">
+        <defs>
+          <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <!-- 45/0 -->
+        <rect x="8" y="8" width="380" height="294" rx="12" class="f-surface"/>
+        <text x="198" y="34" text-anchor="middle" class="t">45°/0° (45°a:0°, 환형 조명)</text>
+        <rect x="60" y="236" width="276" height="20" rx="3" class="f-acc-soft"/>
+        <text x="198" y="276" text-anchor="middle" class="t-dim">시료 (개구)</text>
+        <line x1="78" y1="106" x2="190" y2="230" class="s-acc" marker-end="url(#ar4)"/>
+        <line x1="318" y1="106" x2="206" y2="230" class="s-acc" marker-end="url(#ar4)"/>
+        <rect x="58" y="92" width="34" height="20" rx="4" class="f-acc"/><rect x="304" y="92" width="34" height="20" rx="4" class="f-acc"/>
+        <text x="75" y="84" text-anchor="middle" class="t-dim">광원</text>
+        <line x1="198" y1="234" x2="198" y2="80" class="s-line" marker-end="url(#ar4)"/>
+        <rect x="180" y="52" width="36" height="24" rx="4" class="f-elev"/>
+        <text x="198" y="46" text-anchor="middle" class="t-dim">검출기 0°</text>
+        <line x1="206" y1="234" x2="330" y2="110" class="s-axis" stroke-dasharray="4 4"/>
+        <text x="300" y="160" class="t-dim">정반사 방향(45°)</text>
+        <text x="300" y="178" class="t-dim">→ 검출기에 안 들어감</text>
+        <path d="M198 200 A 34 34 0 0 0 174 210" class="s-line" fill="none"/>
+        <text x="150" y="196" class="t-mono">45°</text>
+        <!-- d/8 -->
+        <rect x="402" y="8" width="390" height="294" rx="12" class="f-surface"/>
+        <text x="597" y="34" text-anchor="middle" class="t">d/8° 적분구 (di:8° / de:8°)</text>
+        <circle cx="597" cy="150" r="100" class="f-elev" stroke="var(--border)"/>
+        <rect x="567" y="244" width="60" height="16" rx="2" class="f-acc-soft"/>
+        <text x="597" y="282" text-anchor="middle" class="t-dim">시료</text>
+        <rect x="508" y="100" width="18" height="18" rx="3" class="f-acc"/>
+        <text x="480" y="96" class="t-dim">광원</text>
+        <path d="M600 246 L 616 64" class="s-line" marker-end="url(#ar4)"/>
+        <rect x="604" y="36" width="26" height="20" rx="3" class="f-surface" stroke="var(--border)"/>
+        <text x="650" y="50" class="t-dim">검출기 8°</text>
+        <path d="M594 246 L 578 64" class="s-axis" stroke-dasharray="4 4"/>
+        <rect x="562" y="40" width="30" height="16" rx="2" class="f-acc2-soft" stroke="var(--accent-2)"/>
+        <text x="500" y="44" class="t-acc">정반사 트랩</text>
+        <text x="597" y="150" text-anchor="middle" class="t-dim">확산 백색 내벽</text>
+        <text x="597" y="170" text-anchor="middle" class="t-dim">(BaSO₄ / PTFE)</text>
+        <text x="420" y="300" class="t-mono t-dim">트랩 닫힘 = SCI · 열림 = SCE</text>
+      </svg>
+      <figcaption><b>그림 11-4.</b> 대표 측정 기하. 왼쪽 45°/0°는 정반사 방향을 피해 검출하므로 사람이 광택을 피해 보는 방식과 비슷하다. 오른쪽 d/8°는 적분구 내벽이 모든 방향에서 시료를 비추고, 8° 방향으로 검출한다. 거울 방향(−8°) 구멍을 흰 마개로 막으면 정반사 포함(SCI), 검은 트랩으로 열면 정반사 제외(SCE)다.</figcaption>
+    </figure>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>CIE 표기</th><th>통칭</th><th>정반사</th><th>쓰임</th></tr></thead>
+      <tbody>
+        <tr><td>di:8°</td><td>d/8 SCI</td><td>포함</td><td>배합·조색(광택 무관한 "재료 색"), 플라스틱·도료 처방</td></tr>
+        <tr><td>de:8°</td><td>d/8 SCE</td><td>제외(트랩)</td><td>외관에 가까운 값, 광택 차이 포함</td></tr>
+        <tr><td>45°a:0° / 45°c:0°</td><td>45/0 환형·원주형</td><td>제외</td><td>인쇄(ISO 13655), 시각 판정과 상관 높음</td></tr>
+        <tr><td>0°:45°x</td><td>0/45</td><td>제외</td><td>45/0의 역방향, 헬름홀츠 상반성으로 거의 같음</td></tr>
+        <tr><td>다각(multi-angle)</td><td>여러 검출각(예: 15°·45°·110°)</td><td>—</td><td>메탈릭·펄 도료(각도별 색 변화)</td></tr>
+      </tbody>
+    </table></div>
+    <p>SCE의 트랩은 거울 방향 근처의 좁은 원뿔만 제거한다. 광택 표면은 정반사가 그 원뿔 안에 몰려 거의 다 빠지지만, 무광 표면은 표면 반사가 넓은 각도로 퍼져 대부분 트랩 밖으로 나가 그대로 측정된다. 그래서 <strong>무광 시료의 SCI와 SCE는 비슷하고, 광택 시료일수록 크게 벌어진다</strong>. 아래 시뮬레이터는 이를 개념 모델로 계산한다: 표면 반사 로브를 각도 표준편차 σ의 2차원 가우시안으로 두고, 트랩(반각 4°)이 잡는 비율 \(1-e^{-\theta_t^2/2\sigma^2}\)만큼을 SCE에서 뺀다.</p>
+    <div class="formula">
+      $$R_{\mathrm{SCI}}(\lambda) = R_b(\lambda) + \rho_s, \qquad R_{\mathrm{SCE}}(\lambda) = R_b(\lambda) + \rho_s\,\big(1 - c_{\text{trap}}\big), \qquad \rho_s = \left(\frac{n-1}{n+1}\right)^2$$
+      <div class="where">\(R_b\): 몸체 확산 반사율, \(c_{\text{trap}}\): 트랩이 제거하는 표면 반사 비율. 실제로는 내부 반사까지 고려한 Saunderson 보정이 필요하다(<a href="print.html">17장</a>의 쿠벨카–뭉크와 함께 다룸). 여기서는 개념 시연용 근사다.</div>
+    </div>
+
+    <div class="sim" id="sim-sci">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>SCI vs SCE: 광택과 정반사 성분 → L* 변화</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-sci"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>시료</span><div class="seg" id="sci-sample"><button data-value="black" class="on">흑색</button><button data-value="navy">TCS12</button><button data-value="red">TCS09</button><button data-value="skin">TCS13</button></div></div>
+          <label class="ctrl"><span>표면 반사 로브 σ (작을수록 광택) <output id="sci-gloss-out"></output></span><input type="range" id="sci-gloss" min="1" max="30" step="0.5" value="2"></label>
+          <label class="ctrl"><span>표면 굴절률 n <output id="sci-n-out"></output></span><input type="range" id="sci-n" min="1.4" max="1.7" step="0.01" value="1.5"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">ρs (프레넬)</span><span class="v" id="o-sci-rs">—</span></div>
+        <div class="stat"><span class="k">트랩 제거율</span><span class="v" id="o-sci-cap">—</span></div>
+        <div class="stat"><span class="k">L* SCI / SCE</span><span class="v" id="o-sci-L">—</span></div>
+        <div class="stat"><span class="k">ΔE00 (SCI–SCE)</span><span class="v" id="o-sci-de">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: (1) 몸체 반사율 2 %인 광택 흑색(σ = 2°)은 SCI L* = 29.4, SCE L* = 18.1 — 같은 시료가 ΔE00 8 이상 다르게 측정된다. (2) σ를 30°로 올리면(무광) 두 값이 거의 같아진다. (3) 밝은 TCS13에서는 같은 4 %가 ΔE00 1.4 정도에 그친다 — 정반사 성분의 영향은 어두운 색일수록 크다. (4) 채도 높은 TCS09·TCS12는 SCE에서 C*가 커진다(백색 정반사가 섞이면 채도가 떨어짐).</div>
+    </div>
+
+    <p><strong>측정 개구</strong><span class="en">(aperture)</span>도 결과를 바꾼다. 직물·인쇄 망점처럼 질감이 있는 시료는 개구가 작으면 위치마다 값이 흔들리므로 큰 개구로 평균하거나 여러 점을 재서 평균한다. 반대로 반투명 시료(플라스틱, 피부, 음식)는 빛이 내부에서 옆으로 퍼져 개구 밖으로 빠져나가는 <span class="term">가장자리 손실</span><span class="en">(lateral diffusion error)</span> 때문에 개구가 작을수록 어둡게 측정된다. 조명 영역을 측정 영역보다 크게 두는 기하(과조명)가 이 오차를 줄인다. 같은 기기라도 개구 마스크를 바꾸면 기기 간 비교값이 달라질 수 있으므로 개구 크기는 기하와 함께 기록한다.</p>
+    <div class="callout tip"><strong>공학자 관점: 어떤 기하를 쓸까</strong>
+      조색·처방(안료 농도 계산)에는 광택의 영향을 없앤 SCI가, 출하 검사·외관 판정에는 SCE나 45/0이 맞다. 인쇄는 ISO 13655에 따라 45/0(또는 0/45)을 쓴다. 서로 다른 기하로 잰 값끼리 ΔE를 계산하는 것은 측정 오차가 아니라 <em>정의</em>가 다른 두 양의 비교다.</div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="fluorescence">
+    <h2>형광 시료와 UV: M0–M3 측정 조건</h2>
+    <p>형광 시료는 짧은 파장의 빛을 흡수해 긴 파장으로 다시 내놓는다. 대표가 종이·세제·직물에 들어가는 <span class="term">형광 증백제</span><span class="en">(OBA: optical brightening agent)</span>로, 약 300–400 nm UV를 흡수해 420–470 nm 청색을 낸다. 이 청색이 종이의 누런 기를 상쇄해 "더 희게" 보인다. 문제는 이 방출이 <strong>측정 광원의 UV 양에 비례</strong>한다는 것이다. 반사율은 시료 고유량이었지만, 형광 시료의 측정값(분광 복사휘도 인자 \(\beta(\lambda)\) = 반사 + 형광)은 기기 광원에 따라 달라진다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="형광 증백제의 UV 흡수와 청색 방출">
+        <defs>
+          <marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <line x1="60" y1="200" x2="760" y2="200" class="s-axis"/>
+        <line x1="60" y1="200" x2="60" y2="30" class="s-axis"/>
+        <text x="410" y="236" text-anchor="middle" class="t-dim">파장 (nm)</text>
+        <text x="60" y="218" text-anchor="middle" class="t-mono t-dim">300</text>
+        <text x="235" y="218" text-anchor="middle" class="t-mono t-dim">400</text>
+        <text x="410" y="218" text-anchor="middle" class="t-mono t-dim">500</text>
+        <text x="585" y="218" text-anchor="middle" class="t-mono t-dim">600</text>
+        <text x="760" y="218" text-anchor="middle" class="t-mono t-dim">700</text>
+        <path d="M95 200 C 140 60, 200 60, 235 200 Z" class="f-acc2-soft" stroke="var(--accent-2)"/>
+        <text x="160" y="56" text-anchor="middle" class="t-acc">흡수(여기)</text>
+        <path d="M225 200 C 280 50, 330 60, 420 200 Z" class="f-acc-soft" stroke="var(--accent)"/>
+        <text x="320" y="46" text-anchor="middle" class="t-acc">방출(청색)</text>
+        <path d="M160 120 Q 230 20 300 95" class="s-line" fill="none" marker-end="url(#ar5)"/>
+        <path d="M235 160 C 350 120, 500 105, 760 100" class="s-line" fill="none" stroke-dasharray="6 4"/>
+        <text x="560" y="94" class="t-dim">종이 바탕 반사율(청색에서 낮음)</text>
+        <text x="610" y="150" class="t-dim">M2: UV 없음 → 방출 없음</text>
+        <text x="610" y="170" class="t-dim">M1: D50 수준 UV → 방출</text>
+      </svg>
+      <figcaption><b>그림 11-5.</b> 형광 증백제는 UV(약 300–400 nm)를 흡수해 청색으로 방출한다. 측정 광원에 UV가 얼마나 있느냐에 따라 같은 종이의 b*가 크게 달라진다.</figcaption>
+    </figure>
+
+    <p>인쇄 업계는 이 문제를 ISO 13655(2009년 판에서 M 조건 도입)의 <strong>측정 조건</strong>으로 정리했다. 조건 이름은 측정값에 함께 기록해야 한다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>조건</th><th>측정 광원</th><th>목적</th></tr></thead>
+      <tbody>
+        <tr><td>M0</td><td>CIE 표준광 A(백열 텅스텐 계열)에 해당하는 광원. UV 양은 규정하지 않음</td><td>기존(레거시) 기기와의 호환. 기기마다 UV 양이 달라 형광 시료는 기기 간 불일치</td></tr>
+        <tr><td>M1</td><td>CIE D50에 맞춘 광원(특히 UV 영역 포함). 광원 자체를 D50에 맞추거나(Part 1), UV 성분을 조절해 형광 효과를 D50과 같게 보상(Part 2)</td><td>ISO 3664 D50 관찰 조건의 외관과 일치. OBA 종이·잉크에 권장</td></tr>
+        <tr><td>M2</td><td>UV 차단(UV-cut) 광원: 약 400 nm 미만 성분을 배제</td><td>형광 기여를 빼고 "반사 성분만" 평가</td></tr>
+        <tr><td>M3</td><td>M2 + 교차 편광 필터</td><td>젖은 잉크·광택 표면 반사 억제(농도 측정 등)</td></tr>
+      </tbody>
+    </table></div>
+    <p>형광을 완전히 기술하려면 여기 파장과 방출 파장을 각각 주사하는 2중 단색기 분광계로 <span class="term">돈널드슨 행렬</span><span class="en">(Donaldson matrix, bispectral radiance factor)</span>을 측정해야 한다. 이것이 있으면 어떤 조명 아래의 \(\beta(\lambda)\)도 계산할 수 있지만, 기기가 크고 비싸 연구·표준 기관에서 주로 쓴다.</p>
+
+    <div class="sim" id="sim-fl">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>형광 증백 종이: M0 / M1 / M2 측정값</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-fl"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>OBA 방출 세기(M1 기준 피크) <output id="fl-oba-out"></output></span><input type="range" id="fl-oba" min="0" max="0.3" step="0.01" value="0.15"></label>
+          <label class="ctrl"><span>M0 광원의 상대 UV (D50 = 1) <output id="fl-u0-out"></output></span><input type="range" id="fl-u0" min="0" max="1" step="0.05" value="0.3"></label>
+        </div>
+      </div>
+      <div class="legend"><span><i style="background:var(--text-dim)"></i>M2 (= 바탕 반사율)</span><span><i style="background:var(--warn)"></i>M0</span><span><i style="background:var(--accent)"></i>M1</span></div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">M0 L*a*b*</span><span class="v" id="o-fl-m0">—</span></div>
+        <div class="stat"><span class="k">M1 L*a*b*</span><span class="v" id="o-fl-m1">—</span></div>
+        <div class="stat"><span class="k">M2 L*a*b*</span><span class="v" id="o-fl-m2">—</span></div>
+        <div class="stat"><span class="k">ΔE00 M1–M2</span><span class="v" id="o-fl-d12">—</span></div>
+        <div class="stat"><span class="k">CIE 백색도 M1 / M2</span><span class="v" id="o-fl-w">—</span></div>
+      </div>
+      <div class="sim-note">모델: \(\beta(\lambda) = R_{\text{paper}}(\lambda) + u\cdot k\cdot G(\lambda;\,440\text{ nm},\,60\text{ nm})\). \(u\)는 측정 광원의 상대 UV(M1 = 1, M2 = 0, M0는 기기마다 다름 — 0.3은 예시값). L*a*b*는 D50/2°, 백색도는 같은 β를 D65/10°로 적분한 CIE 백색도 \(W = Y + 800(x_n-x) + 1700(y_n-y)\). 해볼 것: 기본값에서 M1 b* ≈ −5.2, M2 b* ≈ +1.8로 ΔE00 ≈ 7. 같은 종이를 M0 기기와 M1 기기로 재면 ΔE00 ≈ 4.7 차이가 난다 — 기기 결함이 아니라 측정 조건 차이다.</div>
+    </div>
+    <div class="callout warn"><strong>흔한 실수: 측정 조건을 적지 않은 Lab 값</strong>
+      "종이 백색 L*a*b* = 95, 1, −5"라는 숫자는 M1인지 M2인지 모르면 해석할 수 없다. OBA가 많은 종이에서 M1과 M2 사이 b* 차이는 5–10에 이른다. 교정판 사양, 인쇄 표준 특성 데이터(예: FOGRA51/52는 M1 기준)와 비교할 때는 조건을 맞춰야 한다.</div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="calibration">
+    <h2>교정과 추적성</h2>
+    <p>분광광도계는 절대값을 재는 기기가 아니라 <strong>비교기</strong>다. 매 측정 전(또는 정해진 주기로) 두 기준을 잰다. 하나는 반사율이 알려진 <span class="term">백색 기준판</span><span class="en">(white calibration standard)</span>, 다른 하나는 반사율이 사실상 0인 <span class="term">흑색 트랩</span><span class="en">(black trap, light trap)</span>이다. 흑색 트랩은 검출기 암전류와 기기 내부 미광·광학계 반사(오프셋)를 잰다.</p>
+    <div class="formula">
+      $$R_{\text{sample}}(\lambda) = R_{\text{white}}(\lambda)\;\frac{S(\lambda) - D(\lambda)}{W(\lambda) - D(\lambda)}$$
+      <div class="where">\(S, W, D\): 시료·백색 기준·흑색 트랩의 원시 신호, \(R_{\text{white}}\): 백색 기준판의 교정 성적서 값(완전 확산 반사체 대비). 백색판 값의 오차는 모든 측정에 곱셈으로, 흑색 보정 오차는 덧셈으로 전파된다. 어두운 시료는 \(S-D\)가 작아 흑색 보정에 특히 민감하다.</div>
+    </div>
+    <p>백색 기준 재료로는 압축 황산바륨(BaSO₄) 분말, 그리고 압축 또는 소결 <span class="term">PTFE</span>(상품명 Spectralon 등)가 쓰인다. 소결 PTFE는 가시 영역 반사율이 약 0.99로 높고 거의 완전 확산에 가까우며 세척이 가능하다. 휴대형 기기는 세라믹 타일을 백색 기준으로 내장하는데, 이 타일의 값은 제조사가 상위 표준과 비교해 정해 둔 것이다. 타일 오염이나 지문은 그대로 모든 측정의 곱셈 오차가 된다.</p>
+    <p>파장 축은 원자 방출선으로 교정한다. 저압 수은 램프의 선은 다음과 같다(공기 중 파장). 분광광도계는 홀뮴 산화물 유리·용액의 흡수 피크를, 분광복사계는 수은·아르곤·네온 선을 쓴다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Hg 선 (nm)</th><td>365.02</td><td>404.66</td><td>435.83</td><td>546.07</td><td>576.96</td><td>579.07</td></tr></thead>
+      <tbody><tr><th>용도</th><td>UV 끝</td><td>보라</td><td>청색 (FL에도 존재)</td><td>녹색 기준</td><td colspan="2">분해능 점검(2.1 nm 이중선)</td></tr></tbody>
+    </table></div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 220" role="img" aria-label="측정 추적성 사슬">
+        <defs>
+          <marker id="ar6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <rect x="10" y="40" width="170" height="90" rx="10" class="f-acc-soft"/>
+        <text x="95" y="68" text-anchor="middle" class="t">국가측정표준기관</text>
+        <text x="95" y="90" text-anchor="middle" class="t-dim">KRISS, NIST, PTB …</text>
+        <text x="95" y="110" text-anchor="middle" class="t-dim">절대 반사율·SI 단위</text>
+        <line x1="182" y1="85" x2="210" y2="85" class="s-line" marker-end="url(#ar6)"/>
+        <rect x="214" y="40" width="170" height="90" rx="10" class="f-elev"/>
+        <text x="299" y="68" text-anchor="middle" class="t">전이 표준</text>
+        <text x="299" y="90" text-anchor="middle" class="t-dim">교정된 PTFE·세라믹</text>
+        <text x="299" y="110" text-anchor="middle" class="t-dim">타일 세트</text>
+        <line x1="386" y1="85" x2="414" y2="85" class="s-line" marker-end="url(#ar6)"/>
+        <rect x="418" y="40" width="170" height="90" rx="10" class="f-elev"/>
+        <text x="503" y="68" text-anchor="middle" class="t">기기 백색 기준판</text>
+        <text x="503" y="90" text-anchor="middle" class="t-dim">제조사 마스터 기기와</text>
+        <text x="503" y="110" text-anchor="middle" class="t-dim">비교 교정</text>
+        <line x1="590" y1="85" x2="618" y2="85" class="s-line" marker-end="url(#ar6)"/>
+        <rect x="622" y="40" width="168" height="90" rx="10" class="f-surface"/>
+        <text x="706" y="68" text-anchor="middle" class="t">현장 측정</text>
+        <text x="706" y="90" text-anchor="middle" class="t-dim">시료 R(λ) ± U</text>
+        <text x="706" y="110" text-anchor="middle" class="t-dim">(성적서에 불확도)</text>
+        <line x1="40" y1="170" x2="770" y2="170" class="s-acc" marker-end="url(#ar6)"/>
+        <text x="405" y="196" text-anchor="middle" class="t-dim">단계마다 불확도가 더해진다 (불확도는 아래로만 커진다)</text>
+      </svg>
+      <figcaption><b>그림 11-6.</b> 측정 추적성<span class="en">(metrological traceability)</span> 사슬. 현장 측정값은 끊기지 않는 비교 교정 사슬로 국가 표준(궁극적으로 SI)에 연결되고, 각 단계의 불확도가 성적서에 기록되어야 "추적 가능"하다.</figcaption>
+    </figure>
+
+    <p>기기 성능은 두 가지로 나눠 본다. <span class="term">반복성</span><span class="en">(repeatability)</span>은 같은 기기로 같은 백색 타일을 짧은 시간에 반복 측정한 흩어짐으로, 고급 기기에서 ΔE*ab 0.01–0.05 수준이다. <span class="term">기기 간 일치</span><span class="en">(inter-instrument agreement)</span>는 같은 모델의 여러 대(또는 마스터 기기)와의 차이로, 보통 BCRA 세라믹 타일 시리즈(12색) 평균 ΔE*ab로 표기하며 0.1–0.4 수준이다. 공급망에서 "우리 기기로는 합격인데 고객 기기로는 불합격"인 분쟁의 상당 부분이 이 기기 간 차이와 측정 조건 차이(기하, 개구, M 조건)에서 나온다. 허용차를 정할 때 기기 간 일치보다 작은 허용차는 의미가 없다.</p>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="uncertainty">
+    <h2>측정 불확도: GUM과 몬테카를로</h2>
+    <p>측정 결과는 값과 <span class="term">불확도</span><span class="en">(uncertainty)</span>의 쌍이다. GUM(JCGM 100:2008)은 입력량 \(x_i\)의 표준 불확도 \(u(x_i)\)를 모델 \(y=f(x_1,\dots,x_N)\)의 감도 계수로 전파한다.</p>
+    <div class="formula">
+      $$u_c^2(y) = \sum_i \left(\frac{\partial f}{\partial x_i}\right)^2 u^2(x_i) + 2\sum_{i<j}\frac{\partial f}{\partial x_i}\frac{\partial f}{\partial x_j}\,u(x_i,x_j), \qquad U = k\,u_c\;(k=2 \approx 95\,\%)$$
+      <div class="where">색 측정에서는 \(f\)가 "반사율 81점 → XYZ → L*a*b* → ΔE"라는 강한 비선형 사슬이고 입력 사이에 상관(공통 백색 교정, 파장 이동)이 있어, 선형 전파가 번거롭다. 그래서 GUM 보충서 1(JCGM 101:2008)의 <strong>몬테카를로 방법</strong>이 자주 쓰인다: 입력 분포에서 표본을 뽑아 모델을 그대로 수만 번 계산하고 출력 분포를 직접 본다.</div>
+    </div>
+    <p>L*의 감도는 한 줄로 유도된다. \(L^* = 116\,(Y/Y_n)^{1/3} - 16\)에서</p>
+    <div class="formula">
+      $$\delta L^* \approx \frac{L^*+16}{3}\cdot\frac{\delta Y}{Y} \qquad\text{(상대 오차)}, \qquad \delta L^* \approx \frac{116}{3}\,\frac{\delta Y}{Y_n^{1/3}\,Y^{2/3}} \qquad\text{(절대 오차)}$$
+      <div class="where">곱셈 오차(백색판 0.4 %)는 L* = 80인 시료에서 δL* ≈ 0.13이지만, 덧셈 오차(흑색 보정·노이즈 0.1 %)는 Y가 작을수록 \(Y^{-2/3}\)로 커진다. 어두운 시료의 ΔE가 크게 흔들리는 이유다.</div>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>불확도 요인 (550 nm, 반사율 0.6 시료, 예시값)</th><th>분포</th><th>표준 불확도 (상대)</th></tr></thead>
+      <tbody>
+        <tr><td>백색 기준판 교정값 (성적서 U=0.6 %, k=2)</td><td>정규</td><td>0.30 %</td></tr>
+        <tr><td>검출기 비선형성</td><td>직사각형</td><td>0.20 %</td></tr>
+        <tr><td>시료 불균일·재위치</td><td>정규</td><td>0.20 %</td></tr>
+        <tr><td>온도 드리프트</td><td>직사각형</td><td>0.10 %</td></tr>
+        <tr><td>파장 오차 0.1 nm × 반사율 기울기 0.5 %/nm</td><td>정규</td><td>0.05 %</td></tr>
+        <tr><td>반복성(노이즈)</td><td>정규</td><td>0.05 %</td></tr>
+        <tr><th>합성 표준 불확도 \(u_c\) (제곱합의 제곱근)</th><td></td><th>0.43 %</th></tr>
+        <tr><th>확장 불확도 \(U\) (k = 2)</th><td></td><th>0.86 %</th></tr>
+      </tbody>
+    </table></div>
+    <p>이 예산에서 가장 큰 항은 백색 기준판이다. 반복성을 아무리 좋게 해도 합성 불확도는 거의 줄지 않는다 — 불확도 예산의 목적은 "어디를 개선해야 효과가 있는가"를 찾는 것이다.</p>
+
+    <div class="sim" id="sim-mc">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>몬테카를로: 반사율 오차 → L*a*b* 분산 → ΔE00 분포</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-mc"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>시료</span><div class="seg" id="mc-sample"><button data-value="black">흑색 2 %</button><button data-value="navy">TCS12</button><button data-value="red">TCS09</button><button data-value="skin" class="on">TCS13</button></div></div>
+          <label class="ctrl"><span>파장별 노이즈 σ (반사율) <output id="mc-noise-out"></output></span><input type="range" id="mc-noise" min="0" max="0.01" step="0.0005" value="0.002"></label>
+          <label class="ctrl"><span>스케일(백색 교정) σ <output id="mc-gain-out"></output></span><input type="range" id="mc-gain" min="0" max="1" step="0.05" value="0.3"></label>
+          <label class="ctrl"><span>파장 이동 σ <output id="mc-wl-out"></output></span><input type="range" id="mc-wl" min="0" max="1" step="0.05" value="0.2"></label>
+          <label class="ctrl"><span>오프셋(흑색 보정) σ <output id="mc-off-out"></output></span><input type="range" id="mc-off" min="0" max="0.005" step="0.0005" value="0.001"></label>
+          <div class="ctrl"><span>표본 수</span><div class="seg" id="mc-n"><button data-value="500">500</button><button data-value="2000" class="on">2000</button><button data-value="5000">5000</button></div></div>
+          <button class="btn primary" id="mc-run">다시 추출</button>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">공칭 L*a*b* (D65)</span><span class="v" id="o-mc-nom">—</span></div>
+        <div class="stat"><span class="k">σ(L*, a*, b*)</span><span class="v" id="o-mc-sd">—</span></div>
+        <div class="stat"><span class="k">평균 ΔE00</span><span class="v" id="o-mc-mean">—</span></div>
+        <div class="stat"><span class="k">95 % 분위 ΔE00</span><span class="v" id="o-mc-p95">—</span></div>
+      </div>
+      <div class="sim-note">모델: \(R'(\lambda) = g\,R(\lambda+\delta) + o + n_\lambda\), \(g\sim N(1,\sigma_g)\), \(\delta\sim N(0,\sigma_\lambda)\), \(o\sim N(0,\sigma_o)\), \(n_\lambda\sim N(0,\sigma_n)\) 독립(5 nm 81점). 왼쪽은 ΔE00 히스토그램, 오른쪽은 Δa*–Δb* 산점도. 해볼 것: (1) 기본값에서 TCS13(L* 80)은 평균 ΔE00 ≈ 0.10, 95 % ≈ 0.20. (2) 같은 오차로 흑색 2 %(L* 15.5)는 평균 ≈ 1.0, 95 % ≈ 1.9로 열 배 커진다. (3) 흑색에서 오프셋 σ를 0으로 줄이면 무엇이 지배적인지 보인다. (4) 채도 높은 TCS09에서 파장 이동을 1 nm로 키우면 색상 방향으로 길쭉한 분포가 생긴다.</div>
+    </div>
+    <div class="callout deep"><strong>심화: ΔE 분포는 0에서 시작하는 비대칭 분포</strong>
+      ΔE는 3차원 오차 벡터의 길이이므로, 각 성분이 평균 0의 정규 분포여도 ΔE는 맥스웰 분포에 가까운 꼬리 긴 분포가 된다. 그래서 "평균 ΔE"와 "95 % ΔE"를 함께 보고하며, 두 기기의 비교에서 평균 ΔE 0.2는 단일 측정에서 0.4를 넘는 경우가 흔하다는 뜻이다.</div>
+  </section>
+
+  <!-- ============================================================ 10 -->
+  <section id="metamerism">
+    <h2>메타머리즘 지수: 광원이 바뀌면 깨지는 일치</h2>
+    <p><a href="vision.html">2장</a>에서 보았듯 스펙트럼이 다른 두 자극이 같은 색으로 보이는 것이 메타머리즘이다. 측정 실무에서는 이를 정량화해야 한다: 기준 조건(보통 D65, 2° 또는 10°)에서 일치하는 두 시료가 다른 광원 아래서 얼마나 벌어지는가. CIE 015는 이것을 <span class="term">특수 메타머리즘 지수(광원 변화)</span><span class="en">(special metamerism index: change in illuminant)</span>로 정의한다 — 시험 광원 아래 두 시료의 색차 그 자체다.</p>
+    <div class="formula">
+      $$M_t = \Delta E\big(\text{시료}_1,\,\text{시료}_2\big)\Big|_{\text{시험 광원}}, \qquad \text{기준에서 } \Delta E_r\neq 0 \text{이면 } L^*a^*b^* \text{ 차이를 빼는 가법 보정}$$
+      <div class="where">기준 광원에서 완전히 일치하지 않는 실제 쌍에서는 기준 광원의 \((\Delta L^*,\Delta a^*,\Delta b^*)\)를 시험 광원의 차이에서 빼서 계산한다. 관측자를 바꾸는 <em>관측자 메타머리즘</em>(2° ↔ 10°)도 같은 방식으로 다룬다.</div>
+    </div>
+    <p>메타머 쌍을 계산으로 만드는 방법이 <span class="term">메타머 블랙</span><span class="en">(metameric black)</span>이다. 기준 광원 \(S\)로 가중한 등색 함수 세 개 \(\mathbf W = [S\bar x\;\, S\bar y\;\, S\bar z]\)(81×3)에 직교하는 반사율 변화 \(\Delta\mathbf R\)은 3자극치를 바꾸지 않는다. 임의의 파형 \(\mathbf b\)에서 \(\mathbf W\)의 열공간 성분을 빼면 된다.</p>
+    <div class="formula">
+      $$\Delta\mathbf R = \mathbf b - \mathbf W(\mathbf W^{\mathsf T}\mathbf W)^{-1}\mathbf W^{\mathsf T}\mathbf b, \qquad \mathbf W^{\mathsf T}\Delta\mathbf R = \mathbf 0, \qquad \mathbf R_2 = \mathbf R_1 + a\,\Delta\mathbf R$$
+      <div class="where">\(\mathbf R_2\)가 0–1 범위를 벗어나지 않도록 진폭 \(a\)를 제한한다. D65에서는 정확히 같은 XYZ, 다른 광원·관측자에서는 다른 XYZ가 된다.</div>
+    </div>
+
+    <div class="sim" id="sim-mi">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>메타머 쌍의 광원·관측자 메타머리즘 지수</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-mi"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>기준 시료 R₁</span><div class="seg" id="mi-sample"><button data-value="grey" class="on">회색 0.4</button><button data-value="skin">TCS13</button><button data-value="green">TCS04</button></div></div>
+          <label class="ctrl"><span>메타머 블랙 진폭 a <output id="mi-amp-out"></output></span><input type="range" id="mi-amp" min="0" max="0.3" step="0.01" value="0.15"></label>
+          <label class="ctrl"><span>파형 주기 <output id="mi-per-out"></output></span><input type="range" id="mi-per" min="40" max="200" step="5" value="100"></label>
+          <label class="ctrl"><span>위상 <output id="mi-ph-out"></output></span><input type="range" id="mi-ph" min="0" max="350" step="10" value="0"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">ΔE00 @ D65 (기준)</span><span class="v" id="o-mi-d65">—</span></div>
+        <div class="stat"><span class="k">MI @ A</span><span class="v" id="o-mi-a">—</span></div>
+        <div class="stat"><span class="k">MI @ FL11</span><span class="v" id="o-mi-fl11">—</span></div>
+        <div class="stat"><span class="k">관측자 MI (D65, 10°)</span><span class="v" id="o-mi-obs">—</span></div>
+        <div class="stat"><span class="k">적용 진폭</span><span class="v" id="o-mi-lim">—</span></div>
+      </div>
+      <div class="sim-note">각 막대 왼쪽의 두 견본은 해당 광원 아래 시료 1·2의 L*a*b*(그 광원의 백색 기준, 완전 순응 가정)를 sRGB로 표시한 것이다. 해볼 것: (1) 회색 0.4, 진폭 0.15, 주기 100 nm에서 D65 ΔE00 = 0.00, A에서 3.6, FL11에서 14.2, 10° 관측자에서 2.5. (2) 주기를 60 nm로 줄이면 매끄러운 광원(D50, A)에서는 거의 일치하지만 선 스펙트럼 FL11에서만 크게 벌어진다. (3) D50은 D65와 가까워 MI가 작다 — 주광 시뮬레이터 품질을 메타머 쌍으로 평가하는 CIE 51.2의 발상이 이것이다.</div>
+    </div>
+    <div class="callout"><strong>공학자 관점: 조색 결과의 "MI 검사"</strong>
+      자동차 내장재, 가구, 섬유처럼 서로 다른 재료(다른 안료)로 같은 색을 맞추는 산업에서는 D65에서 ΔE00 &lt; 1을 맞춘 뒤 A(또는 FL11·LED) 아래 MI를 별도 합격 기준으로 둔다. 같은 안료 계열을 쓰면 반사율 곡선이 비슷해 MI가 작고, 다른 계열이면 D65 일치가 무의미해질 수 있다. 분광 반사율을 측정·저장해야만 이 검사가 가능하다(1절).</div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>발광체는 절대 분광 복사휘도를, 물체는 백색 기준 대비 분광 반사율을 잰다. 반사율은 광원과 무관한 시료 고유량이므로 어떤 광원 아래 색이든 재계산할 수 있다(형광 제외).</li>
+      <li>분광기 측정값은 참 스펙트럼과 슬릿 함수의 컨볼루션을 샘플링한 것이다. 선 스펙트럼에서는 대역폭 &lt; 간격일 때 선이 누락되어 Δu′v′ 0.07, ΔY −14 % 같은 큰 오차가 생기고, 삼각 대역폭 = 간격이면 에너지가 보존된다.</li>
+      <li>필터식 색채계의 부정합은 f1′(CIE S 023 / ISO/CIE 19476)로 표현하며, 광원 A 교정 상태에서 주광·형광등·디스플레이 원색에 대해 다른 오차를 낸다. 디스플레이용 행렬(4색) 보정은 같은 원색 스펙트럼에서만 유효하다.</li>
+      <li>측정 기하(45°/0°, di:8°, de:8°)와 SCI/SCE는 정반사 4 %의 포함 여부를 정한다. 광택 흑색에서 SCI L* 29.4 vs SCE L* 18.1처럼 정의가 다른 두 값이 나온다.</li>
+      <li>형광 증백 시료는 측정 광원 UV에 따라 값이 달라진다. ISO 13655의 M0(A), M1(D50 UV), M2(UV 차단), M3(M2+편광)를 측정값과 함께 기록한다.</li>
+      <li>분광광도계는 백색 기준판·흑색 트랩으로 교정되는 비교기이며, 추적성 사슬과 불확도 예산(GUM, 몬테카를로)으로 신뢰도를 표현한다. 같은 반사율 오차라도 어두운 시료의 ΔE가 훨씬 크다.</li>
+      <li>메타머리즘 지수는 기준 광원에서 일치한 두 시료의 시험 광원 아래 색차다. 메타머 블랙으로 만든 쌍(회색 0.4, a = 0.15)은 D65에서 0, A에서 3.6, FL11에서 14.2의 ΔE00을 보인다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 물체색을 L*a*b* 대신 분광 반사율로 저장할 때의 가장 큰 이점은?</p><div class="opts">
+        <button class="opt">측정 시간이 짧아진다</button>
+        <button class="opt" data-correct>측정 후에 어떤 광원·관측자 아래의 색이든 다시 계산할 수 있다</button>
+        <button class="opt">형광 시료의 오차가 사라진다</button>
+        <button class="opt">측정 기하의 영향이 없어진다</button>
+      </div><div class="quiz-exp">비형광 시료의 반사율은 광원과 무관한 시료 고유량이다. 계산 단계에서 \(S(\lambda)\)와 등색 함수를 고르면 되므로 MI 검사나 매장 조명 평가가 가능하다. 형광과 측정 기하 의존성은 반사율 저장만으로 해결되지 않는다.</div></div>
+
+      <div class="quiz-q"><p>2. 3파장 형광등을 샘플링 간격 10 nm인 분광기로 잴 때, 대역폭을 10 nm에서 2 nm로 줄이면?</p><div class="opts">
+        <button class="opt">분해능이 좋아져 색도 오차가 줄어든다</button>
+        <button class="opt">변화가 없다</button>
+        <button class="opt" data-correct>샘플 사이에 떨어진 좁은 선이 누락되어 Y와 색도 오차가 크게 늘어난다</button>
+        <button class="opt">Y는 정확해지고 색도만 틀린다</button>
+      </div><div class="quiz-exp">대역폭이 간격보다 좁으면 슬릿 함수들 사이에 빈틈이 생겨 그 사이의 선 에너지는 어느 샘플에도 잡히지 않는다. 시뮬레이터에서 Δu′v′ ≈ 0.07, ΔY ≈ −14 %였다. 대역폭과 간격은 함께 줄여야 한다.</div></div>
+
+      <div class="quiz-q"><p>3. f1′(CIE S 023 / ISO/CIE 19476)에 대한 설명으로 옳은 것은?</p><div class="opts">
+        <button class="opt">D65를 기준으로 정규화한 x̄ 채널의 부정합이다</button>
+        <button class="opt" data-correct>광원 A에 대해 같은 값을 내도록 정규화한 상대 감도와 V(λ)의 절대 차이 적분을 V(λ) 적분으로 나눈 값이다</button>
+        <button class="opt">측정 반복성의 표준편차다</button>
+        <button class="opt">f1′이 0이 아니면 광원 A 측정도 틀린다</button>
+      </div><div class="quiz-exp">정규화가 광원 A 기준이므로 광원 A에서는 f1′과 무관하게 오차가 0이 되도록 맞춰져 있다. A와 스펙트럼이 다른 광원일수록 오차가 커진다.</div></div>
+
+      <div class="quiz-q"><p>4. OLED 패널의 원색으로 매트릭스 보정한 색채계로 QD-LCD를 재면?</p><div class="opts">
+        <button class="opt">가산 혼합이 성립하므로 오차가 없다</button>
+        <button class="opt" data-correct>보정에 쓴 원색 스펙트럼과 달라 다시 부정합 오차가 생긴다</button>
+        <button class="opt">휘도만 틀리고 색도는 정확하다</button>
+        <button class="opt">4색 방법을 쓰면 어떤 디스플레이에도 정확하다</button>
+      </div><div class="quiz-exp">행렬은 "그 원색 스펙트럼 집합"의 선형 결합에 대해서만 정확하다. 원색 스펙트럼이 바뀌면(OLED→QD) 필터 부정합이 다시 드러난다. 4색 방법도 같은 한계를 가진다.</div></div>
+
+      <div class="quiz-q"><p>5. 광택 있는 검은 플라스틱을 d/8 기기로 잴 때 SCI와 SCE의 L* 관계는?</p><div class="opts">
+        <button class="opt">SCE가 더 크다</button>
+        <button class="opt">항상 같다</button>
+        <button class="opt" data-correct>SCI가 더 크다. SCI는 약 4 %의 정반사를 포함하기 때문이다</button>
+        <button class="opt">SCI가 더 작다. 트랩이 확산광을 흡수하기 때문이다</button>
+      </div><div class="quiz-exp">SCI는 정반사 포함, SCE는 제외다. 몸체 반사율 2 %인 시료에 4 %가 더해지면 L*가 18에서 29로 오른다. 무광 시료는 표면 반사가 트랩 밖으로 퍼지므로 두 값이 비슷하다.</div></div>
+
+      <div class="quiz-q"><p>6. 사람이 광택을 피해서 본 외관과 가장 가까운 측정 기하는?</p><div class="opts">
+        <button class="opt">di:8° (SCI)</button>
+        <button class="opt" data-correct>45°/0° 또는 de:8° (SCE)</button>
+        <button class="opt">d:d</button>
+        <button class="opt">투과 0°:0°</button>
+      </div><div class="quiz-exp">45/0과 SCE는 정반사 성분을 제외하므로 광택에 의한 "깊어 보임"을 반영한다. SCI는 재료 자체의 색(조색·처방)에 적합하다.</div></div>
+
+      <div class="quiz-q"><p>7. ISO 13655의 M2 조건은?</p><div class="opts">
+        <button class="opt">광원 A, UV 미규정</button>
+        <button class="opt">D50과 같은 UV 포함</button>
+        <button class="opt" data-correct>UV 차단 광원으로 형광 증백 기여를 배제</button>
+        <button class="opt">교차 편광만 사용</button>
+      </div><div class="quiz-exp">M0는 광원 A 계열(UV 미규정), M1은 D50 UV 수준, M2는 UV 차단, M3는 M2에 교차 편광을 더한 조건이다.</div></div>
+
+      <div class="quiz-q"><p>8. 분광광도계 교정에서 흑색 트랩 측정값 \(D\)의 역할은?</p><div class="opts">
+        <button class="opt">파장 축 교정</button>
+        <button class="opt" data-correct>암전류와 기기 내부 미광 같은 덧셈(오프셋) 성분을 빼기 위한 기준</button>
+        <button class="opt">백색판의 반사율을 결정</button>
+        <button class="opt">형광 성분 제거</button>
+      </div><div class="quiz-exp">\(R = R_w (S-D)/(W-D)\). 백색판은 곱셈 오차, 흑색 트랩은 덧셈 오차를 다룬다. 어두운 시료는 \(S-D\)가 작아 흑색 보정 오차에 민감하다.</div></div>
+
+      <div class="quiz-q"><p>9. 같은 크기의 절대 반사율 노이즈가 어두운 시료에서 더 큰 ΔE를 만드는 이유는?</p><div class="opts">
+        <button class="opt">어두운 시료는 형광이 강해서</button>
+        <button class="opt" data-correct>L* ∝ Y^(1/3)이라 Y가 작을수록 dL*/dY가 커지기 때문</button>
+        <button class="opt">ΔE00 식이 어두운 색에 가중치 0을 주기 때문</button>
+        <button class="opt">어두운 시료는 반사율이 음수가 되기 때문</button>
+      </div><div class="quiz-exp">\(\delta L^* \approx (116/3)\,\delta Y/(Y_n^{1/3}Y^{2/3})\). 몬테카를로에서 L* 80 시료의 평균 ΔE00 0.1이 L* 15.5 흑색에서는 1.0으로 커졌다.</div></div>
+
+      <div class="quiz-q"><p>10. 메타머 블랙 \(\Delta\mathbf R\)을 더한 시료가 D65에서 원래 시료와 같은 XYZ를 갖는 이유는?</p><div class="opts">
+        <button class="opt">\(\Delta\mathbf R\)의 평균이 0이라서</button>
+        <button class="opt">\(\Delta\mathbf R\)이 매끄러워서</button>
+        <button class="opt" data-correct>\(\Delta\mathbf R\)이 D65로 가중한 세 등색 함수에 모두 직교하도록 만들어졌기 때문</button>
+        <button class="opt">D65가 모든 파장에서 같은 세기라서</button>
+      </div><div class="quiz-exp">\(\mathbf W^{\mathsf T}\Delta\mathbf R = \mathbf 0\)이면 3자극치 변화가 0이다. 그러나 다른 광원 \(S'\)의 가중치 \(\mathbf W'\)에는 직교하지 않으므로 A·FL11에서는 색차가 생긴다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  /*MODEL-START*/
+  var WL5 = CB.wls(5), WL1 = CB.wls(1);
+  function lab(XYZ, W) { return CB.XYZ2Lab(XYZ, W); }
+  function whiteOf(illum, obs) { return CB.spd2XYZ(function () { return 1; }, { illum: illum, observer: obs }); }
+  function uvDist(a, b) { var p = CB.XYZ2uv(a), q = CB.XYZ2uv(b); return Math.hypot(p[0] - q[0], p[1] - q[1]); }
+
+  /* ---- (1) 선 스펙트럼과 분광기 대역폭/샘플링 ---- */
+  var HR = 0.1, NHR = Math.round(400 / HR) + 1;
+  var CMF_HR = (function () { var a = new Float64Array(NHR * 3); for (var i = 0; i < NHR; i++) { var c = CB.cmf(380 + i * HR); a[3 * i] = c[0]; a[3 * i + 1] = c[1]; a[3 * i + 2] = c[2]; } return a; })();
+  var LINE_SRC = {
+    tri: { name: "3파장 형광등(FL11 유사 합성)", base: 0.012, comp: [[404.7, 1, 0.25], [435.8, 1, 2.6], [487, 6, 0.55], [546.1, 1, 0.95], [543.5, 5, 0.95], [577, 1, 0.22], [579.1, 1, 0.22], [588, 5, 0.35], [611.5, 4, 1.1], [626, 5, 0.3], [650, 8, 0.22], [707, 4, 0.18]] },
+    led: { name: "백색 LED(청색+형광체)", base: 0, comp: [[450, 20, 1.0], [560, 115, 0.62]] },
+    qd: { name: "QD 디스플레이 백색", base: 0, comp: [[452, 18, 1.0], [531, 24, 0.82], [630, 24, 0.85]] },
+    laser: { name: "RGB 레이저 백색", base: 0, comp: [[465, 1, 1.0], [532, 1, 0.75], [638, 1, 1.35]] },
+  };
+  function lineSpecHR(key) {
+    var s = LINE_SRC[key], a = new Float64Array(NHR);
+    for (var i = 0; i < NHR; i++) {
+      var l = 380 + i * HR, v = s.base;
+      for (var k = 0; k < s.comp.length; k++) { var c = s.comp[k]; if (Math.abs(l - c[0]) < 4 * c[1]) v += c[2] * CB.gauss(l, c[0], c[1]); }
+      a[i] = v;
+    }
+    return a;
+  }
+  function xyzHR(S) { var X = 0, Y = 0, Z = 0; for (var i = 0; i < NHR; i++) { X += S[i] * CMF_HR[3 * i]; Y += S[i] * CMF_HR[3 * i + 1]; Z += S[i] * CMF_HR[3 * i + 2]; } return [X * HR, Y * HR, Z * HR]; }
+  /** 삼각 슬릿 함수(FWHM=bw)로 컨볼루션 후 간격 dl 로 샘플링 */
+  function measureSpec(S, bw, dl) {
+    var out = [], half = Math.max(1, Math.round(bw / HR));
+    for (var l = 380; l <= 780 + 1e-9; l += dl) {
+      var c = Math.round((l - 380) / HR), num = 0, den = 0;
+      for (var j = -half + 1; j < half; j++) { var w = 1 - Math.abs(j) / half, ii = c + j; den += w; if (ii >= 0 && ii < NHR) num += w * S[ii]; }
+      out.push([l, num / den]);
+    }
+    return out;
+  }
+  /** Stearns–Stearns 대역통과 보정 (끝점은 단측 형태) */
+  function stearns(M) {
+    var a = 0.083, n = M.length;
+    return M.map(function (p, i) {
+      if (i === 0) return [p[0], (1 + a) * p[1] - a * M[1][1]];
+      if (i === n - 1) return [p[0], (1 + a) * p[1] - a * M[n - 2][1]];
+      return [p[0], (1 + 2 * a) * p[1] - a * (M[i - 1][1] + M[i + 1][1])];
+    });
+  }
+  function xyzSampled(M, dl, interp) {
+    var X = 0, Y = 0, Z = 0;
+    if (!interp) { M.forEach(function (p) { var c = CB.cmf(p[0]); X += p[1] * c[0]; Y += p[1] * c[1]; Z += p[1] * c[2]; }); return [X * dl, Y * dl, Z * dl]; }
+    for (var l = 380; l <= 780; l += 1) {
+      var f = (l - 380) / dl, i = Math.min(M.length - 2, Math.floor(f)), t = f - i, v = M[i][1] + (M[i + 1][1] - M[i][1]) * t, c = CB.cmf(l);
+      X += v * c[0]; Y += v * c[1]; Z += v * c[2];
+    }
+    return [X, Y, Z];
+  }
+  function bandwidthSim(key, bw, dl, opt) {
+    var S = lineSpecHR(key), T = xyzHR(S), M = measureSpec(S, bw, dl);
+    if (opt && opt.stearns) M = stearns(M);
+    var Mx = xyzSampled(M, dl, opt && opt.interp);
+    return { S: S, M: M, T: T, Mx: Mx, xyT: CB.XYZ2xy(T), xyM: CB.XYZ2xy(Mx), duv: uvDist(T, Mx), dY: (Mx[1] / T[1] - 1) * 100 };
+  }
+
+  /* ---- (2) 필터식 색채계 ---- */
+  var g2 = function (x, mu, s1, s2) { var t = (x - mu) / (x < mu ? s1 : s2); return Math.exp(-0.5 * t * t); };
+  function fitShift(nm, dxz, dy, s) {
+    return [
+      1.056 * g2(nm, 599.8 + dxz, 37.9 * s, 31.0 * s) + 0.362 * g2(nm, 442.0 + dxz, 16.0 * s, 26.7 * s) - 0.065 * g2(nm, 501.1 + dxz, 20.4 * s, 26.2 * s),
+      0.821 * g2(nm, 568.8 + dy, 46.9 * s, 40.5 * s) + 0.286 * g2(nm, 530.9 + dy, 16.3 * s, 31.1 * s),
+      1.217 * g2(nm, 437.0 + dxz, 11.8 * s, 36.0 * s) + 0.681 * g2(nm, 459.0 + dxz, 26.0 * s, 13.8 * s),
+    ];
+  }
+  /** 실제 필터 감도 = 원 CMF + (변형 가우시안 근사 − 원 가우시안 근사), 음수는 0 */
+  function meterSens(dxz, dy, s) {
+    return WL1.map(function (l) { var c = CB.cmf(l), f = fitShift(l, dxz, dy, s), f0 = fitShift(l, 0, 0, 1); return [0, 1, 2].map(function (k) { return Math.max(0, c[k] + f[k] - f0[k]); }); });
+  }
+  var DISP = { R: [[626, 28, 1]], G: [[531, 38, 1]], B: [[458, 24, 1]] };
+  function dispSpec(key) { var comps = DISP[key]; return function (l) { var v = 0; comps.forEach(function (c) { v += c[2] * CB.gauss(l, c[0], c[1]); }); return v; }; }
+  var METER_SRC = [
+    { k: "A", f: CB.illum("A") }, { k: "D65", f: CB.D65 }, { k: "FL2", f: CB.illum("FL2") }, { k: "FL11", f: CB.illum("FL11") },
+    { k: "LED-B3", f: CB.illum("LED-B3") }, { k: "LED-RGB1", f: CB.illum("LED-RGB1") },
+    { k: "Disp R", f: dispSpec("R") }, { k: "Disp G", f: dispSpec("G") }, { k: "Disp B", f: dispSpec("B") },
+    { k: "Disp W", f: function (l) { return 0.80 * dispSpec("R")(l) + 0.62 * dispSpec("G")(l) + 0.72 * dispSpec("B")(l); } },
+  ];
+  function rawRead(sens, f) { var r = [0, 0, 0]; WL1.forEach(function (l, i) { var v = f(l); r[0] += v * sens[i][0]; r[1] += v * sens[i][1]; r[2] += v * sens[i][2]; }); return r; }
+  function trueXYZ1(f) { var r = [0, 0, 0]; WL1.forEach(function (l) { var v = f(l), c = CB.cmf(l); r[0] += v * c[0]; r[1] += v * c[1]; r[2] += v * c[2]; }); return r; }
+  function f1prime(sens, k) {
+    k = k == null ? 1 : k;
+    var A = CB.illum("A"), nA = 0, dA = 0, sumV = 0;
+    WL1.forEach(function (l, i) { var c = CB.cmf(l)[k]; nA += A(l) * c; dA += A(l) * sens[i][k]; sumV += c; });
+    var r = nA / dA, e = 0;
+    WL1.forEach(function (l, i) { e += Math.abs(r * sens[i][k] - CB.cmf(l)[k]); });
+    return e / sumV;
+  }
+  function colorimeterSim(dxz, dy, s, mode) {
+    var sens = meterSens(dxz, dy, s), M;
+    if (mode === "matrix") {
+      var Tm = ["R", "G", "B"].map(function (k) { return trueXYZ1(dispSpec(k)); }), Rm = ["R", "G", "B"].map(function (k) { return rawRead(sens, dispSpec(k)); });
+      var tr = function (cols) { return [0, 1, 2].map(function (r) { return cols.map(function (c) { return c[r]; }); }); };
+      M = CB.mat.mul(tr(Tm), CB.mat.inv(tr(Rm)));
+    } else {
+      var tA = trueXYZ1(CB.illum("A")), rA = rawRead(sens, CB.illum("A"));
+      M = CB.mat.diag([tA[0] / rA[0], tA[1] / rA[1], tA[2] / rA[2]]);
+    }
+    var rows = METER_SRC.map(function (src) {
+      var T = trueXYZ1(src.f), Me = CB.mat.vec(M, rawRead(sens, src.f));
+      return { k: src.k, T: T, Me: Me, duv: uvDist(T, Me), dxy: Math.hypot(CB.XYZ2xy(T)[0] - CB.XYZ2xy(Me)[0], CB.XYZ2xy(T)[1] - CB.XYZ2xy(Me)[1]), dY: (Me[1] / T[1] - 1) * 100 };
+    });
+    return { sens: sens, M: M, rows: rows, f1: f1prime(sens, 1), fx: f1prime(sens, 0), fz: f1prime(sens, 2) };
+  }
+
+  /* ---- (3) SCI / SCE ---- */
+  var W_D65 = whiteOf(CB.D65);
+  var SAMPLES = {
+    black: { name: "광택 흑색", R: function () { return 0.02; } },
+    navy: { name: "TCS12 (강한 청색)", R: CB.tcs(12) },
+    red: { name: "TCS09 (강한 적색)", R: CB.tcs(9) },
+    skin: { name: "TCS13 (피부색)", R: CB.tcs(13) },
+  };
+  function sciSce(R, n, sigma, trap) {
+    var rs = Math.pow((n - 1) / (n + 1), 2), cap = 1 - Math.exp(-(trap * trap) / (2 * sigma * sigma));
+    var sci = function (l) { return R(l) + rs; }, sce = function (l) { return R(l) + rs * (1 - cap); };
+    var L1 = lab(CB.spd2XYZ(sci, { illum: CB.D65 }), W_D65), L2 = lab(CB.spd2XYZ(sce, { illum: CB.D65 }), W_D65), L0 = lab(CB.spd2XYZ(R, { illum: CB.D65 }), W_D65);
+    return { rs: rs, cap: cap, sci: sci, sce: sce, labSCI: L1, labSCE: L2, labBody: L0, dE: CB.dE2000(L1, L2) };
+  }
+
+  /* ---- (4) 형광 증백 종이 ---- */
+  var D50 = CB.illum("D50"), W_D50 = whiteOf(D50), D65_10 = whiteOf(CB.D65, "1964");
+  function paperR(l) { return 0.875 - 0.2 * Math.exp(-(l - 380) / 35); }
+  function obaBeta(oba, u) { return function (l) { return paperR(l) + u * oba * CB.gauss(l, 440, 60); }; }
+  function whiteness(beta) {
+    var XYZ = CB.spd2XYZ(beta, { illum: CB.D65, observer: "1964" }), xy = CB.XYZ2xy(XYZ);
+    return XYZ[1] + 800 * (0.3138 - xy[0]) + 1700 * (0.3310 - xy[1]);
+  }
+  function fluorSim(oba, u0) {
+    var conds = { M0: u0, M1: 1, M2: 0 }, out = {};
+    Object.keys(conds).forEach(function (k) { var b = obaBeta(oba, conds[k]); out[k] = { beta: b, lab: lab(CB.spd2XYZ(b, { illum: D50 }), W_D50), W: whiteness(b) }; });
+    out.d12 = CB.dE2000(out.M1.lab, out.M2.lab); out.d01 = CB.dE2000(out.M0.lab, out.M1.lab);
+    return out;
+  }
+
+  /* ---- (5) 몬테카를로 ---- */
+  var MC_W = (function () { var Wt = WL5.map(function (l) { var c = CB.cmf(l), s = CB.D65(l); return [s * c[0], s * c[1], s * c[2]]; }); var N = Wt.reduce(function (a, w) { return a + w[1]; }, 0); return Wt.map(function (w) { return [w[0] * 100 / N, w[1] * 100 / N, w[2] * 100 / N]; }); })();
+  function mcRun(R, sig, N) {
+    var base = WL5.map(function (l) { return R(l); }), nomX = [0, 0, 0];
+    base.forEach(function (v, i) { nomX[0] += v * MC_W[i][0]; nomX[1] += v * MC_W[i][1]; nomX[2] += v * MC_W[i][2]; });
+    var nom = lab(nomX, W_D65), labs = [], dEs = [];
+    for (var t = 0; t < N; t++) {
+      var g = 1 + sig.gain * CB.randn(), d = sig.wl * CB.randn(), o = sig.off * CB.randn(), X = 0, Y = 0, Z = 0;
+      for (var i = 0; i < WL5.length; i++) {
+        var v = g * R(WL5[i] + d) + o + sig.noise * CB.randn();
+        X += v * MC_W[i][0]; Y += v * MC_W[i][1]; Z += v * MC_W[i][2];
+      }
+      var L = lab([X, Y, Z], W_D65); labs.push(L); dEs.push(CB.dE2000(nom, L));
+    }
+    var sd = [0, 1, 2].map(function (k) { var m = labs.reduce(function (a, L) { return a + L[k]; }, 0) / N; return Math.sqrt(labs.reduce(function (a, L) { return a + (L[k] - m) * (L[k] - m); }, 0) / (N - 1)); });
+    var sorted = dEs.slice().sort(function (a, b) { return a - b; });
+    return { nom: nom, labs: labs, dEs: dEs, sd: sd, mean: dEs.reduce(function (a, b) { return a + b; }, 0) / N, p95: sorted[Math.floor(0.95 * (N - 1))], max: sorted[N - 1] };
+  }
+
+  /* ---- (6) 메타머 쌍 ---- */
+  function metamerBlack(period, phase) {
+    var Wt = WL5.map(function (l) { var c = CB.cmf(l), s = CB.D65(l); return [s * c[0], s * c[1], s * c[2]]; });
+    var b = WL5.map(function (l) { return Math.sin((2 * Math.PI * (l - 380)) / period + phase); });
+    var G = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], h = [0, 0, 0];
+    Wt.forEach(function (w, i) { for (var r = 0; r < 3; r++) { h[r] += w[r] * b[i]; for (var c = 0; c < 3; c++) G[r][c] += w[r] * w[c]; } });
+    var a = CB.mat.vec(CB.mat.inv(G), h);
+    var k = b.map(function (v, i) { return v - (Wt[i][0] * a[0] + Wt[i][1] * a[1] + Wt[i][2] * a[2]); });
+    var m = Math.max.apply(null, k.map(Math.abs)) || 1;
+    return k.map(function (v) { return v / m; });
+  }
+  var META_ILL = [
+    { k: "D65", f: CB.D65 }, { k: "D50", f: D50 }, { k: "A", f: CB.illum("A") }, { k: "FL2", f: CB.illum("FL2") },
+    { k: "FL11", f: CB.illum("FL11") }, { k: "LED-B3", f: CB.illum("LED-B3") }, { k: "LED-RGB1", f: CB.illum("LED-RGB1") },
+  ];
+  function metamerSim(R1f, amp, period, phase) {
+    var r1 = WL5.map(function (l) { return R1f(l); }), kb = metamerBlack(period, phase);
+    var lim = Infinity;
+    kb.forEach(function (v, i) { if (v > 0) lim = Math.min(lim, (0.98 - r1[i]) / v); else if (v < 0) lim = Math.min(lim, (r1[i] - 0.005) / -v); });
+    var a = Math.min(amp, lim), r2 = r1.map(function (v, i) { return v + a * kb[i]; });
+    var R1 = CB.table(r1), R2 = CB.table(r2);
+    var rows = META_ILL.map(function (il) { var W = whiteOf(il.f), L1 = lab(CB.spd2XYZ(R1, { illum: il.f }), W), L2 = lab(CB.spd2XYZ(R2, { illum: il.f }), W); return { k: il.k, L1: L1, L2: L2, dE: CB.dE2000(L1, L2) }; });
+    var W10 = whiteOf(CB.D65, "1964"), o1 = lab(CB.spd2XYZ(R1, { illum: CB.D65, observer: "1964" }), W10), o2 = lab(CB.spd2XYZ(R2, { illum: CB.D65, observer: "1964" }), W10);
+    rows.push({ k: "D65·10°", L1: o1, L2: o2, dE: CB.dE2000(o1, o2) });
+    return { r1: r1, r2: r2, a: a, limited: a < amp - 1e-9, rows: rows };
+  }
+  /*MODEL-END*/
+
+  var $ = function (id) { return document.getElementById(id); };
+  var fx = function (v, d) { return v.toFixed(d); };
+  var fmtLab = function (L) { return L.map(function (v) { return v.toFixed(1); }).join(", "); };
+  var MONO = function () { return getComputedStyle(document.body).getPropertyValue("--mono"); };
+  var lab2css = function (L) { return CB.XYZ2css(CB.Lab2XYZ(L, CB.whiteXYZ())); };
+
+  /** 가로 막대: items [{k, v, c, sw:[css,css]}] */
+  function hbars(ctx, box, items, opt) {
+    var P = CB.palette(), n = items.length, rowH = box.h / n, lw = opt.labelW || 72, sw = items[0] && items[0].sw ? 38 : 0;
+    var x0 = box.x + lw + sw, bw = Math.max(40, box.w - lw - sw - 64), mx = opt.max;
+    ctx.save(); ctx.font = "11px " + MONO();
+    if (opt.thr != null && opt.thr <= mx) {
+      var tx = x0 + (opt.thr / mx) * bw; ctx.strokeStyle = P.warn; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(tx, box.y - 4); ctx.lineTo(tx, box.y + box.h); ctx.stroke(); ctx.setLineDash([]);
+      if (opt.thrLabel) { ctx.fillStyle = P.warn; ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillText(opt.thrLabel, tx, box.y - 5); }
+    }
+    ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(x0, box.y); ctx.lineTo(x0, box.y + box.h); ctx.stroke();
+    items.forEach(function (it, i) {
+      var y = box.y + i * rowH, h = Math.min(16, rowH * 0.62), w = Math.min(1, it.v / mx) * bw;
+      ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(it.k, box.x + lw - 6, y + rowH / 2);
+      if (it.sw) { ctx.fillStyle = it.sw[0]; ctx.fillRect(box.x + lw, y + (rowH - h) / 2, 15, h); ctx.fillStyle = it.sw[1]; ctx.fillRect(box.x + lw + 16, y + (rowH - h) / 2, 15, h); }
+      ctx.fillStyle = it.c || P.accent; ctx.fillRect(x0, y + (rowH - h) / 2, Math.max(1, w), h);
+      ctx.fillStyle = P.text; ctx.textAlign = "left"; ctx.fillText(opt.fmt(it.v) + (it.v > mx ? " ▸" : ""), x0 + Math.max(1, w) + 6, y + rowH / 2);
+    });
+    if (opt.title) { ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "bottom"; ctx.font = "12px " + getComputedStyle(document.body).getPropertyValue("--font"); ctx.fillText(opt.title, box.x, box.y - 6); }
+    ctx.restore();
+  }
+
+  /* ===== Sim 1: 대역폭/샘플링 ===== */
+  (function () {
+    var res = null;
+    var src = CB.seg("bw-src", upd), dl = CB.seg("bw-dl", upd), bw = CB.range("bw", function (v) { return v.toFixed(1) + " nm"; }, upd);
+    var stE = $("bw-stearns"), inE = $("bw-interp");
+    stE.addEventListener("change", upd); inE.addEventListener("change", upd);
+    var cv = CB.canvas($("cv-bw"), function (ctx, w, h) {
+      if (!res) return;
+      var P = CB.palette(), mx = 0, tr = [], i;
+      for (i = 0; i < NHR; i++) { if (res.S[i] > mx) mx = res.S[i]; }
+      for (i = 0; i < NHR; i += 2) tr.push([380 + i * HR, res.S[i]]);
+      var c = CB.chart(ctx, null, { x: [380, 780], y: [0, mx * 1.08], xLabel: "파장 (nm)", yLabel: "상대 분광 복사휘도",
+        series: [{ data: tr, color: P.faint, width: 1 }, { data: res.M, color: P.accent, width: 2 }] });
+      ctx.fillStyle = P.accent;
+      res.M.forEach(function (p) { ctx.beginPath(); ctx.arc(c.X(p[0]), c.Y(p[1]), 2.6, 0, 2 * Math.PI); ctx.fill(); });
+      ctx.fillStyle = P.dim; ctx.font = "12px " + MONO(); ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillText(LINE_SRC[src()].name, c.box.x + c.box.w - 4, c.box.y + 4);
+    }, { aspect: 0.5, minHeight: 260, maxHeight: 400 });
+    function upd() {
+      res = bandwidthSim(src(), bw(), Number(dl()), { stearns: stE.checked, interp: inE.checked });
+      cv.redraw();
+      CB.stat("o-bw-true", fx(res.xyT[0], 4) + ", " + fx(res.xyT[1], 4));
+      CB.stat("o-bw-meas", fx(res.xyM[0], 4) + ", " + fx(res.xyM[1], 4));
+      CB.stat("o-bw-duv", fx(res.duv, 4));
+      CB.stat("o-bw-dy", (res.dY >= 0 ? "+" : "") + fx(res.dY, 2) + " %");
+    }
+    upd();
+  })();
+
+  /* ===== Sim 2: 색채계 부정합 ===== */
+  (function () {
+    var res = null;
+    var dy = CB.range("cm-dy", function (v) { return (v > 0 ? "+" : "") + v.toFixed(1) + " nm"; }, upd);
+    var dxz = CB.range("cm-dxz", function (v) { return (v > 0 ? "+" : "") + v.toFixed(1) + " nm"; }, upd);
+    var sc = CB.range("cm-s", function (v) { return "×" + v.toFixed(2); }, upd);
+    var mode = CB.seg("cm-mode", upd);
+    var cv = CB.canvas($("cv-cm"), function (ctx, w, h) {
+      if (!res) return;
+      var P = CB.palette(), cols = [P.red, P.green, P.blue], ser = [];
+      [0, 1, 2].forEach(function (k) {
+        ser.push({ data: WL1.filter(function (l) { return l % 2 === 0; }).map(function (l) { return [l, CB.cmf(l)[k]]; }), color: cols[k], width: 1.2 });
+        ser.push({ data: WL1.map(function (l, i) { return [l, res.sens[i][k]]; }).filter(function (p) { return p[0] % 2 === 0; }), color: cols[k], width: 2, dash: [5, 4] });
+      });
+      var topH = Math.round(h * 0.4);
+      CB.chart(ctx, { x: 52, y: 12, w: w - 68, h: topH - 40 }, { x: [380, 780], y: [0, 1.9], xLabel: "", yLabel: "감도", series: ser });
+      var items = res.rows.map(function (r) { return { k: r.k, v: r.duv * 1000, c: r.k.indexOf("Disp") === 0 ? P.accent2 : P.accent }; });
+      hbars(ctx, { x: 6, y: topH + 18, w: w - 12, h: h - topH - 26 }, items, { max: 20, thr: 2, thrLabel: "0.002", fmt: function (v) { return v.toFixed(1); }, title: "Δu′v′ × 10³ (측정 − 참)", labelW: 78 });
+    }, { aspect: 0.95, minHeight: 540, maxHeight: 640 });
+    function upd() {
+      res = colorimeterSim(dxz(), dy(), sc(), mode());
+      cv.redraw();
+      var worst = res.rows.reduce(function (a, r) { return r.duv > a.duv ? r : a; });
+      CB.stat("o-cm-f1", fx(res.f1 * 100, 2) + " %");
+      CB.stat("o-cm-fxz", fx(res.fx * 100, 1) + " % / " + fx(res.fz * 100, 1) + " %");
+      CB.stat("o-cm-worst", fx(worst.duv, 4) + " (" + worst.k + ")");
+      CB.stat("o-cm-dispw", fx(res.rows[9].duv, 4));
+    }
+    upd();
+  })();
+
+  /* ===== Sim 3: SCI / SCE ===== */
+  (function () {
+    var res = null;
+    var smp = CB.seg("sci-sample", upd);
+    var gl = CB.range("sci-gloss", function (v) { return v.toFixed(1) + "°"; }, upd);
+    var nn = CB.range("sci-n", function (v) { return v.toFixed(2); }, upd);
+    var cv = CB.canvas($("cv-sci"), function (ctx, w, h) {
+      if (!res) return;
+      var P = CB.palette(), R = SAMPLES[smp()].R, narrow = w < 560;
+      var mx = 0; WL5.forEach(function (l) { mx = Math.max(mx, res.sci(l)); });
+      var box = narrow ? { x: 52, y: 14, w: w - 66, h: h - 150 } : { x: 52, y: 14, w: w * 0.68 - 52, h: h - 60 };
+      CB.chart(ctx, box, { x: [380, 780], y: [0, Math.min(1, mx * 1.2 + 0.02)], xLabel: "파장 (nm)", yLabel: "반사율",
+        series: [{ data: WL5.map(function (l) { return [l, R(l)]; }), color: P.dim, width: 1.5, dash: [4, 4] },
+                 { data: WL5.map(function (l) { return [l, res.sci(l)]; }), color: P.accent, width: 2 },
+                 { data: WL5.map(function (l) { return [l, res.sce(l)]; }), color: P.accent2, width: 2 }] });
+      var sw = [[res.labSCI, "SCI", P.accent], [res.labSCE, "SCE", P.accent2]];
+      ctx.font = "12px " + MONO(); ctx.textBaseline = "top";
+      sw.forEach(function (s, i) {
+        var bx, by, bw2, bh;
+        if (narrow) { bw2 = (w - 40) / 2; bh = 64; bx = 14 + i * (bw2 + 12); by = h - 86; }
+        else { bw2 = w * 0.26; bh = (h - 70) / 2 - 18; bx = w * 0.71; by = 16 + i * (bh + 30); }
+        ctx.fillStyle = lab2css(s[0]); ctx.fillRect(bx, by, bw2, bh);
+        ctx.strokeStyle = P.border; ctx.strokeRect(bx, by, bw2, bh);
+        ctx.fillStyle = s[2]; ctx.textAlign = "left"; ctx.fillText(s[1] + "  L* " + s[0][0].toFixed(1) + "  C* " + Math.hypot(s[0][1], s[0][2]).toFixed(1), bx, by + bh + 4);
+      });
+    }, { aspect: 0.5, minHeight: 300, maxHeight: 400 });
+    function upd() {
+      res = sciSce(SAMPLES[smp()].R, nn(), gl(), 4);
+      cv.redraw();
+      CB.stat("o-sci-rs", fx(res.rs * 100, 2) + " %");
+      CB.stat("o-sci-cap", fx(res.cap * 100, 1) + " %");
+      CB.stat("o-sci-L", fx(res.labSCI[0], 1) + " / " + fx(res.labSCE[0], 1));
+      CB.stat("o-sci-de", fx(res.dE, 2));
+    }
+    upd();
+  })();
+
+  /* ===== Sim 4: 형광 ===== */
+  (function () {
+    var res = null;
+    var oba = CB.range("fl-oba", function (v) { return v.toFixed(2); }, upd);
+    var u0 = CB.range("fl-u0", function (v) { return v.toFixed(2); }, upd);
+    var cv = CB.canvas($("cv-fl"), function (ctx, w, h) {
+      if (!res) return;
+      var P = CB.palette();
+      CB.chart(ctx, null, { x: [380, 780], y: [0.6, 1.2], xLabel: "파장 (nm)", yLabel: "분광 복사휘도 인자 β",
+        hlines: [{ y: 1, label: "완전 확산 반사체", color: P.faint }],
+        series: [{ data: WL5.map(function (l) { return [l, res.M2.beta(l)]; }), color: P.dim, width: 2, dash: [5, 4] },
+                 { data: WL5.map(function (l) { return [l, res.M0.beta(l)]; }), color: P.warn, width: 2 },
+                 { data: WL5.map(function (l) { return [l, res.M1.beta(l)]; }), color: P.accent, width: 2.4 }] });
+    }, { aspect: 0.45, minHeight: 240, maxHeight: 360 });
+    function upd() {
+      res = fluorSim(oba(), u0());
+      cv.redraw();
+      CB.stat("o-fl-m0", fmtLab(res.M0.lab)); CB.stat("o-fl-m1", fmtLab(res.M1.lab)); CB.stat("o-fl-m2", fmtLab(res.M2.lab));
+      CB.stat("o-fl-d12", fx(res.d12, 2) + " (M0–M1 " + fx(res.d01, 2) + ")");
+      CB.stat("o-fl-w", fx(res.M1.W, 1) + " / " + fx(res.M2.W, 1));
+    }
+    upd();
+  })();
+
+  /* ===== Sim 5: 몬테카를로 ===== */
+  (function () {
+    var res = null, timer = 0;
+    var smp = CB.seg("mc-sample", sched), nsel = CB.seg("mc-n", sched);
+    var noise = CB.range("mc-noise", function (v) { return v.toFixed(4); }, sched);
+    var gain = CB.range("mc-gain", function (v) { return v.toFixed(2) + " %"; }, sched);
+    var wl = CB.range("mc-wl", function (v) { return v.toFixed(2) + " nm"; }, sched);
+    var off = CB.range("mc-off", function (v) { return v.toFixed(4); }, sched);
+    $("mc-run").addEventListener("click", run);
+    var cv = CB.canvas($("cv-mc"), function (ctx, w, h) {
+      if (!res) return;
+      var P = CB.palette(), side = w >= 560;
+      var hb = side ? { x: 52, y: 14, w: w * 0.58 - 60, h: h - 60 } : { x: 52, y: 14, w: w - 66, h: h * 0.5 - 56 };
+      var sorted = res.dEs.slice().sort(function (a, b) { return a - b; }), top = sorted[Math.floor(0.995 * (sorted.length - 1))] * 1.15 || 1;
+      var nb = 30, bins = new Array(nb).fill(0);
+      res.dEs.forEach(function (d) { var b = Math.min(nb - 1, Math.floor((d / top) * nb)); bins[b]++; });
+      var bmax = Math.max.apply(null, bins);
+      var c = CB.chart(ctx, hb, { x: [0, top], y: [0, bmax * 1.1], xLabel: "ΔE00", yLabel: "빈도",
+        vlines: [{ x: res.mean, label: "평균", color: P.accent2 }, { x: res.p95, label: "95%", color: P.warn }] });
+      ctx.fillStyle = P.accent;
+      bins.forEach(function (n, i) { var x0 = c.X((i / nb) * top), x1 = c.X(((i + 1) / nb) * top); ctx.fillRect(x0 + 0.5, c.Y(n), Math.max(1, x1 - x0 - 1), c.Y(0) - c.Y(n)); });
+      var sb = side ? { x: w * 0.58 + 44, y: 14, w: w * 0.42 - 58, h: h - 60 } : { x: 52, y: h * 0.5 + 10, w: w - 66, h: h * 0.5 - 56 };
+      var r = 0; res.labs.forEach(function (L) { r = Math.max(r, Math.abs(L[1] - res.nom[1]), Math.abs(L[2] - res.nom[2])); });
+      r = r * 1.1 || 1;
+      var rx = r * sb.w / sb.h;
+      var s = CB.chart(ctx, sb, { x: [-rx, rx], y: [-r, r], xLabel: "Δa*", yLabel: side ? "" : "Δb*" });
+      if (side) { ctx.save(); ctx.fillStyle = P.dim; ctx.font = "12px " + MONO(); ctx.translate(sb.x - 40, sb.y + sb.h / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("Δb*", 0, 0); ctx.restore(); }
+      ctx.fillStyle = P.accent2; ctx.globalAlpha = 0.45;
+      res.labs.forEach(function (L) { ctx.fillRect(s.X(L[1] - res.nom[1]) - 1, s.Y(L[2] - res.nom[2]) - 1, 2, 2); });
+      ctx.globalAlpha = 1;
+    }, { aspect: 0.55, minHeight: 440, maxHeight: 480 });
+    function sched() { clearTimeout(timer); timer = setTimeout(run, 60); }
+    function run() {
+      res = mcRun(SAMPLES[smp()].R, { noise: noise(), gain: gain() / 100, wl: wl(), off: off() }, Number(nsel()));
+      cv.redraw();
+      CB.stat("o-mc-nom", fmtLab(res.nom));
+      CB.stat("o-mc-sd", res.sd.map(function (v) { return v.toFixed(3); }).join(", "));
+      CB.stat("o-mc-mean", fx(res.mean, 3));
+      CB.stat("o-mc-p95", fx(res.p95, 3));
+    }
+    run();
+  })();
+
+  /* ===== Sim 6: 메타머리즘 지수 ===== */
+  (function () {
+    var res = null;
+    var BASE = { grey: function () { return 0.4; }, skin: CB.tcs(13), green: CB.tcs(4) };
+    var smp = CB.seg("mi-sample", upd);
+    var amp = CB.range("mi-amp", function (v) { return v.toFixed(2); }, upd);
+    var per = CB.range("mi-per", function (v) { return v + " nm"; }, upd);
+    var ph = CB.range("mi-ph", function (v) { return v + "°"; }, upd);
+    var cv = CB.canvas($("cv-mi"), function (ctx, w, h) {
+      if (!res) return;
+      var P = CB.palette(), topH = Math.round(h * 0.42);
+      CB.chart(ctx, { x: 52, y: 12, w: w - 68, h: topH - 46 }, { x: [380, 780], y: [0, 1], xLabel: "파장 (nm)", yLabel: "반사율",
+        series: [{ data: WL5.map(function (l, i) { return [l, res.r1[i]]; }), color: P.accent, width: 2 },
+                 { data: WL5.map(function (l, i) { return [l, res.r2[i]]; }), color: P.accent2, width: 2 }] });
+      var items = res.rows.map(function (r) { return { k: r.k, v: r.dE, c: r.k === "D65" ? P.ok : P.accent, sw: [lab2css(r.L1), lab2css(r.L2)] }; });
+      hbars(ctx, { x: 6, y: topH + 22, w: w - 12, h: h - topH - 28 }, items, { max: 16, thr: 1, thrLabel: "1", fmt: function (v) { return v.toFixed(2); }, title: "ΔE00 (시료 1 vs 2), 견본: 시료 1 | 시료 2", labelW: 76 });
+    }, { aspect: 0.85, minHeight: 500, maxHeight: 600 });
+    function upd() {
+      res = metamerSim(BASE[smp()], amp(), per(), (ph() * Math.PI) / 180);
+      cv.redraw();
+      var g = function (k) { return res.rows.filter(function (r) { return r.k === k; })[0].dE; };
+      CB.stat("o-mi-d65", fx(g("D65"), 3));
+      CB.stat("o-mi-a", fx(g("A"), 2));
+      CB.stat("o-mi-fl11", fx(g("FL11"), 2));
+      CB.stat("o-mi-obs", fx(g("D65·10°"), 2));
+      CB.stat("o-mi-lim", fx(res.a, 3) + (res.limited ? " (0–1 범위로 제한)" : ""));
+    }
+    upd();
+  })();
+})();
+</script>
+</body>
+</html>

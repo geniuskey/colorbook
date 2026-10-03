@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>감산 혼합과 인쇄 · ColorBook</title>
+<meta name="description" content="감산 혼합을 파장별 투과율의 곱으로 계산한다. 베르-람베르트, 쿠벨카-뭉크, 하프톤과 율-닐슨 도트 게인, 스펙트럴 노이게바우어, CMYK 분해와 GCR, ISO 12647 공정 관리를 시뮬레이터로 다룬다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/print.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="감산 혼합과 인쇄 · ColorBook">
+<meta property="og:description" content="감산 혼합을 파장별 투과율의 곱으로 계산한다. 베르-람베르트, 쿠벨카-뭉크, 하프톤과 율-닐슨 도트 게인, 스펙트럴 노이게바우어, CMYK 분해와 GCR, ISO 12647 공정 관리를 시뮬레이터로 다룬다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/print.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"감산 혼합과 인쇄","name":"감산 혼합과 인쇄 · ColorBook","url":"https://colorbook.euiyun.com/chapters/print.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/print.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":17,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"감산 혼합을 파장별 투과율의 곱으로 계산한다. 베르-람베르트, 쿠벨카-뭉크, 하프톤과 율-닐슨 도트 게인, 스펙트럴 노이게바우어, CMYK 분해와 GCR, ISO 12647 공정 관리를 시뮬레이터로 다룬다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"17 감산 혼합과 인쇄","item":"https://colorbook.euiyun.com/chapters/print.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sw { display:inline-block; width:1.15em; height:1.15em; border-radius:4px; border:1px solid var(--border); vertical-align:-.2em; margin-right:.35em; }
+  .sim-view canvas { touch-action: pan-y; }
+  .sim-view canvas + canvas { margin-top: 8px; }
+</style>
+</head>
+<body data-chapter="print">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 17</div>
+    <h1>감산 혼합과 인쇄</h1>
+    <p class="lead">디스플레이는 빛을 <strong>더해서</strong> 색을 만들고, 잉크·페인트·필터는 빛을 <strong>빼서</strong> 색을 만든다. 빼기는 3자극치 공간에서 선형이 아니다. 파장마다 투과율을 곱하고, 불투명 안료는 흡수와 산란을 함께 풀어야 하며, 인쇄는 여기에 망점의 면적률과 종이 속 빛 번짐이 더해진다. 이 장은 이 과정을 스펙트럼 단위로 계산해서 "C 60 M 40 Y 40 K 10%를 찍으면 어떤 Lab이 나오는가"까지 따라간다.</p>
+    <ul class="objectives">
+      <li>가산 혼합(합)과 감산 혼합(파장별 곱)의 차이를 스펙트럼으로 설명하고, 색료 혼합이 xy에서 직선이 아닌 이유를 보인다.</li>
+      <li>베르–람베르트 법칙으로 투명 잉크·필터 적층의 투과 스펙트럼과 Lab을 계산한다.</li>
+      <li>쿠벨카–뭉크 이론으로 불투명 페인트 혼합을 계산하고 Saunderson 표면 보정의 역할을 이해한다.</li>
+      <li>AM/FM 스크리닝, 스크린 각도와 모아레, Murray–Davies·Yule–Nielsen 식으로 도트 게인(TVI)을 정량화한다.</li>
+      <li>스펙트럴 노이게바우어 + Yule–Nielsen(YNSN) 모델로 CMYK 커버리지에서 반사 스펙트럼과 Lab을 예측하고, 인쇄 가멋을 sRGB와 비교한다.</li>
+      <li>K 잉크를 쓰는 이유, UCR/GCR, 총 잉크량(TAC), ISO 12647-2 기반 공정 관리를 실무 수치로 정리한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="mixing">
+    <h2>가산 혼합과 감산 혼합</h2>
+    <p><a href="chromaticity.html">4장</a>에서 본 가산 혼합은 두 빛의 스펙트럼을 <strong>더하는</strong> 것이다. 3자극치는 스펙트럼의 선형 범함수이므로 \( \mathbf{XYZ}(S_1+S_2) = \mathbf{XYZ}(S_1)+\mathbf{XYZ}(S_2) \)이고, 혼합색은 xy 색도도에서 두 색을 잇는 직선 위에 놓인다. 디스플레이(<a href="display.html">13장</a>)가 3×3 행렬 하나로 특성화되는 근거가 이것이다.</p>
+    <p>잉크, 염료, 컬러 필터는 다르게 동작한다. 백색광이 필터 1을 지나면 각 파장의 빛이 \( T_1(\lambda) \)의 비율로 남고, 남은 빛이 다시 필터 2를 지나면 \( T_2(\lambda) \)의 비율로 남는다. 결과는 <strong>파장별 곱</strong>이다.</p>
+    <div class="formula">$$S_{\text{out}}(\lambda) = S_{\text{in}}(\lambda)\,T_1(\lambda)\,T_2(\lambda)\cdots T_N(\lambda)$$
+      <div class="where">곱은 각 파장에서 따로 일어난다. 따라서 \( \mathbf{XYZ}(S\,T_1T_2) \)는 \( \mathbf{XYZ}(S\,T_1) \)과 \( \mathbf{XYZ}(S\,T_2) \)만으로는 결정되지 않는다. 같은 색으로 보이는 두 필터(메타머)도 겹쳤을 때는 다른 색이 될 수 있다.</div>
+    </div>
+    <p>이 차이 때문에 감산 혼합의 결과는 3자극치만으로 예측할 수 없고 <strong>스펙트럼이 필요하다</strong>. 인쇄 특성화가 디스플레이보다 훨씬 많은 측정 패치(예: ISO 12642-2의 IT8.7/4는 1,617패치)를 쓰는 근본 이유이기도 하다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="가산 혼합은 스펙트럼의 합, 감산 혼합은 투과율의 곱">
+        <text x="200" y="22" text-anchor="middle" class="t">가산: 스펙트럼의 합</text>
+        <text x="600" y="22" text-anchor="middle" class="t">감산: 투과율의 곱 (파장별)</text>
+        <g transform="translate(40,40)">
+          <line x1="0" y1="90" x2="140" y2="90" class="s-axis"/>
+          <path d="M0 90 L60 90 L60 30 L95 30 L95 90 L140 90" fill="none" stroke="#2fa84f" stroke-width="2.5"/>
+          <path d="M0 90 L95 90 L95 40 L140 40 L140 90" fill="none" stroke="#e0443e" stroke-width="2.5" stroke-dasharray="5 3"/>
+          <text x="70" y="112" text-anchor="middle" class="t-dim">G + R 빛</text>
+          <text x="165" y="65" class="t">+</text>
+          <line x1="190" y1="90" x2="320" y2="90" class="s-axis"/>
+          <path d="M190 90 L245 90 L245 30 L285 30 L285 40 L320 40 L320 90" fill="none" stroke="#c9a400" stroke-width="2.5"/>
+          <text x="255" y="112" text-anchor="middle" class="t-dim">합 → 노랑(빛)</text>
+          <text x="160" y="150" text-anchor="middle" class="t-mono">XYZ(S₁+S₂) = XYZ(S₁) + XYZ(S₂)</text>
+          <text x="160" y="172" text-anchor="middle" class="t-dim">xy에서 두 점을 잇는 직선 위</text>
+        </g>
+        <g transform="translate(430,40)">
+          <line x1="0" y1="90" x2="100" y2="90" class="s-axis"/>
+          <path d="M0 90 L0 80 L50 80 L50 18 L100 18" fill="none" stroke="#c9a400" stroke-width="2.5"/>
+          <text x="50" y="112" text-anchor="middle" class="t-dim">T_Y(λ)</text>
+          <text x="112" y="62" class="t">×</text>
+          <line x1="130" y1="90" x2="230" y2="90" class="s-axis"/>
+          <path d="M130 18 L190 18 L190 80 L230 80" fill="none" stroke="#1d9bd6" stroke-width="2.5"/>
+          <text x="180" y="112" text-anchor="middle" class="t-dim">T_C(λ)</text>
+          <text x="242" y="62" class="t">=</text>
+          <line x1="260" y1="90" x2="360" y2="90" class="s-axis"/>
+          <path d="M260 88 L285 88 L285 22 L320 22 L320 88 L360 88" fill="none" stroke="#2fa84f" stroke-width="2.5"/>
+          <text x="310" y="112" text-anchor="middle" class="t-dim">초록만 남음</text>
+          <text x="180" y="150" text-anchor="middle" class="t-mono">R(λ) = T_Y(λ)·T_C(λ)</text>
+          <text x="180" y="172" text-anchor="middle" class="t-dim">XYZ는 곱의 적분 → 3자극치로 닫히지 않음</text>
+        </g>
+        <text x="400" y="248" text-anchor="middle" class="t-dim">가로축: 파장 400 → 700 nm (개념도). 이상적인 블록 필터라면 감산도 "남은 대역의 합"처럼 보이지만,</text>
+        <text x="400" y="270" text-anchor="middle" class="t-dim">실제 흡수 대역은 넓고 겹치며 꼬리가 있어 곱의 결과가 탁해지고 어두워진다.</text>
+      </svg>
+      <figcaption><b>그림 17-1.</b> 가산 혼합은 스펙트럼의 합이므로 3자극치 공간에서 선형이다. 감산 혼합은 파장별 곱이므로, 같은 XYZ의 두 필터를 겹쳐도 결과가 스펙트럼에 따라 달라진다.</figcaption>
+    </figure>
+
+    <p>교과서의 이상 색료는 시안 = 빨강(600–700 nm) 흡수, 마젠타 = 초록(500–600 nm) 흡수, 옐로 = 파랑(400–500 nm) 흡수의 <span class="term">블록 필터</span><span class="en">(block dyes)</span>다. 이 경우 C+M+Y = 검정, C+Y = 초록처럼 깔끔하게 떨어진다. 실제 잉크의 흡수 스펙트럼은 넓은 종 모양이고, 특히 마젠타는 파랑, 시안은 초록과 파랑에도 원치 않는 흡수<span class="en">(unwanted absorption)</span>를 가진다. 이 장에서는 실제 잉크를 <strong>가우시안 흡수 밴드의 합</strong>으로 근사한다. 파라미터는 ISO 12647-2의 솔리드·2차색 목표 Lab에 맞춰 이 장에서 피팅한 교육용 모델이다(실측 잉크 데이터가 아니다, <a href="#standards">9절 표</a> 참고).</p>
+
+    <div class="sim" id="sim-mix">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>가산 vs 감산: 세 원 겹침을 스펙트럼으로 계산</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-mix"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>혼합 방식</span><div class="seg" id="mx-mode"><button data-value="add" class="on">가산 (빛)</button><button data-value="sub">감산 (필터)</button></div></div>
+          <div class="ctrl"><span>원색 모델</span><div class="seg" id="mx-model"><button data-value="ideal" class="on">이상 블록</button><button data-value="real">가우시안</button></div></div>
+          <label class="ctrl"><span>R / C 세기·농도 <output id="mx-1-out"></output></span><input type="range" id="mx-1" min="0" max="100" value="100"></label>
+          <label class="ctrl"><span>G / M 세기·농도 <output id="mx-2-out"></output></span><input type="range" id="mx-2" min="0" max="100" value="100"></label>
+          <label class="ctrl"><span>B / Y 세기·농도 <output id="mx-3-out"></output></span><input type="range" id="mx-3" min="0" max="100" value="100"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">세 원 겹침(중앙) 색</span><span class="v" id="o-mx-c">—</span></div>
+        <div class="stat"><span class="k">중앙 Y (백색 = 100)</span><span class="v" id="o-mx-y">—</span></div>
+        <div class="stat"><span class="k">중앙 xy</span><span class="v" id="o-mx-xy">—</span></div>
+        <div class="stat"><span class="k">두 원 겹침 (1+3)</span><span class="v" id="o-mx-p">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 가산·이상 블록에서 세 빛을 모두 켜면 백색(D65로 균형)이 된다. 감산·이상 블록으로 바꾸면 세 필터가 겹친 중앙은 Y≈0이다. ② 원색 모델을 가우시안으로 바꾸면 감산 중앙이 완전한 검정이 되지 않고, C+Y(초록)가 이상 블록보다 어둡고 탁해진다 — 흡수 대역의 꼬리와 불필요 흡수 때문이다. ③ 감산 모드에서 농도를 반으로 낮추면 Y가 반이 아니라 지수적으로 변한다(다음 절). 가산 모드 광원은 백색이 D65가 되도록 세 원색의 세기를 자동 조정한다. 블록 필터의 가장자리는 400/500/600/700 nm.</div>
+    </div>
+
+    <div class="callout">
+      <p><b>공학자 관점 — "RGB의 보색이 CMY"는 근사다.</b> 이상 블록 색료라면 시안 농도 = 1 − R처럼 쓸 수 있지만, 실제 잉크의 흡수 대역은 겹치고 불필요 흡수가 있으며 망점 인쇄는 면적률이 섞인다. 그래서 단순한 \( C = 1-R \) 공식은 <a href="#cmyk">8절</a>에서 보듯 ΔE00가 10을 넘게 틀린다. 인쇄 색 관리가 측정 기반 ICC 프로파일(<a href="management.html">16장</a>)을 쓰는 이유다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="beer">
+    <h2>베르–람베르트 법칙: 투명 색료</h2>
+    <p>염료 용액, 컬러 필터, 투명 잉크처럼 <strong>산란이 무시할 만한</strong> 매질에서 빛의 감쇠는 흡수만으로 결정된다. 두께 \( dl \)의 얇은 층이 흡수하는 비율은 들어온 세기에 비례하므로 \( dI/dl = -\alpha I \)이고, 적분하면 지수 감쇠가 된다. 이를 십진 로그 단위로 쓴 것이 <span class="term">베르–람베르트 법칙</span><span class="en">(Beer–Lambert law)</span>이다.</p>
+    <div class="formula">$$T(\lambda) = 10^{-A(\lambda)},\qquad A(\lambda) = \sum_i \varepsilon_i(\lambda)\,c_i\,l$$
+      <div class="where">\( A \): 흡광도<span class="en">(absorbance, optical density)</span>, \( \varepsilon_i \): 색료 \( i \)의 몰 흡광 계수 [L·mol⁻¹·cm⁻¹], \( c_i \): 농도, \( l \): 광로 길이. 흡광도는 <strong>더해지고</strong>(가산성), 투과율은 <strong>곱해진다</strong>. 층을 쌓는 것과 같은 층 안에서 색료를 섞는 것은 이 모델에서 동일하다.</div>
+    </div>
+    <p>핵심은 흡광도 공간에서는 모든 것이 선형이라는 점이다. 농도를 두 배로 하면 \( A \)가 두 배, 투과율은 제곱이 된다. 흡수 밴드 꼭대기에서 \( T=0.1 \)이던 필터를 두 배 진하게 하면 0.01이 되지만, 꼬리 부분(\( T=0.8 \))은 0.64가 될 뿐이다. 그 결과 농도가 올라갈수록 투과 대역이 <strong>좁아지고</strong> 색도가 움직이며, 이 궤적은 xy에서 직선이 아니라 곡선이다. 이 현상 때문에 같은 염료라도 진하게 하면 색상까지 바뀔 수 있다(예: 일부 노랑 염료는 진해질수록 주황으로 이동).</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="흡광도는 층마다 더해지고 투과율은 곱해진다">
+        <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <line x1="40" y1="120" x2="140" y2="120" class="s-line" marker-end="url(#ar2)"/>
+        <text x="40" y="105" class="t-mono">I₀(λ)</text>
+        <rect x="150" y="50" width="90" height="140" rx="4" fill="#1d9bd6" fill-opacity="0.35" stroke="var(--border)"/>
+        <rect x="250" y="50" width="90" height="140" rx="4" fill="#d6248a" fill-opacity="0.30" stroke="var(--border)"/>
+        <rect x="350" y="50" width="90" height="140" rx="4" fill="#e8c800" fill-opacity="0.40" stroke="var(--border)"/>
+        <text x="195" y="40" text-anchor="middle" class="t">C 층</text>
+        <text x="295" y="40" text-anchor="middle" class="t">M 층</text>
+        <text x="395" y="40" text-anchor="middle" class="t">Y 층</text>
+        <text x="195" y="125" text-anchor="middle" class="t-mono">A_C(λ)</text>
+        <text x="295" y="125" text-anchor="middle" class="t-mono">A_M(λ)</text>
+        <text x="395" y="125" text-anchor="middle" class="t-mono">A_Y(λ)</text>
+        <line x1="450" y1="120" x2="530" y2="120" class="s-line" marker-end="url(#ar2)"/>
+        <text x="540" y="112" class="t-mono">I(λ) = I₀·10^−(A_C+A_M+A_Y)</text>
+        <text x="540" y="138" class="t-dim">흡광도: 합 · 투과율: 곱</text>
+        <text x="300" y="222" text-anchor="middle" class="t-dim">반사 인쇄에서는 빛이 잉크층을 두 번(입사·반사) 지나므로 대략 R = R_paper·T²</text>
+        <text x="300" y="244" text-anchor="middle" class="t-dim">(종이 표면 반사·다중 반사는 무시한 1차 근사)</text>
+      </svg>
+      <figcaption><b>그림 17-2.</b> 투명 층의 적층. 흡광도가 가산적이므로 층 순서는 결과에 영향을 주지 않는다(산란이 없는 경우). 이 장의 인쇄 모델은 잉크층을 두 번 통과하는 이 근사를 기본으로 한다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-beer">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>베르–람베르트 다층 필터: 농도 → 투과 스펙트럼 → Lab</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-beer"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:#1d9bd6"></i>T_C</span><span><i style="background:#d6248a"></i>T_M</span><span><i style="background:#c9a400"></i>T_Y</span><span><i style="background:var(--text)"></i>합성 T(λ)</span><span><i style="background:var(--accent)"></i>두께 l 변화 궤적(xy)</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>시안 농도 c_C <output id="bl-c-out"></output></span><input type="range" id="bl-c" min="0" max="200" value="100"></label>
+          <label class="ctrl"><span>마젠타 농도 c_M <output id="bl-m-out"></output></span><input type="range" id="bl-m" min="0" max="200" value="0"></label>
+          <label class="ctrl"><span>옐로 농도 c_Y <output id="bl-y-out"></output></span><input type="range" id="bl-y" min="0" max="200" value="100"></label>
+          <label class="ctrl"><span>광로 길이 배율 l <output id="bl-l-out"></output></span><input type="range" id="bl-l" min="10" max="400" value="100"></label>
+          <label class="check"><input type="checkbox" id="bl-log"> 흡광도 A(λ)로 보기</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">견본 (D50 투과)</span><span class="v" id="o-bl-sw">—</span></div>
+        <div class="stat"><span class="k">L*a*b* (D50/2°)</span><span class="v" id="o-bl-lab">—</span></div>
+        <div class="stat"><span class="k">xy</span><span class="v" id="o-bl-xy">—</span></div>
+        <div class="stat"><span class="k">궤적의 직선 이탈</span><span class="v" id="o-bl-dev">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 기본값(C 1.0 + Y 1.0)은 초록이다. l을 0.1→4로 바꾸면 오른쪽 xy 그림에서 색도가 D50 백색점(+)에서 출발해 <b>곡선</b>을 그린다. 회색 점선은 백색과 현재 색을 잇는 직선(가산 혼합 경로)이다. ② "흡광도로 보기"를 켜면 세 곡선이 단순히 더해지는 것을 확인할 수 있다. ③ M만 0.5 넣으면 시안이 파랑 쪽으로 간다 — 마젠타의 파랑 쪽 불필요 흡수가 있어서 순수한 "빨강+초록 흡수"가 되지 않는다. 흡수 밴드는 가우시안 근사(교육용).</div>
+    </div>
+
+    <p>수치 예: 이 모델에서 시안+옐로(농도 1, l=1) 필터를 D50 아래에서 보면 Lab = (63.6, −59.4, 22.1), xy = (0.268, 0.492)이다. l을 2로 하면 (44.3, −78.4, 26.0), xy = (0.196, 0.597)이 되고, 4로 하면 L*은 23.3으로 떨어지면서 채도 C*ab가 오히려 줄어든다(−69.9, 21.6). 진해질수록 채도가 증가하다가 다시 감소하는 이 현상은 감산 색료의 일반적인 성질이며, 솔리드 잉크 농도에 "최적값"이 있는 이유다.</p>
+
+    <div class="callout deep">
+      <p><b>심화 — 베르–람베르트의 전제.</b> (1) 단색광, (2) 산란 없음, (3) 색료 분자 간 상호작용 없음(고농도에서는 회합으로 ε가 변한다), (4) 형광 없음. 분광광도계로 필터를 측정할 때는 표면 반사(굴절률 1.5 유리에서 면당 약 4%)를 따로 보정해야 내부 투과율 \( T_i \)를 얻는다. 흡광도를 "광학 농도(OD)"라고 부르는 인쇄·사진 분야에서는 \( D = -\log_{10}R \) 또는 \( -\log_{10}T \)가 농도계의 기본 출력이다(<a href="#standards">9절</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="km">
+    <h2>불투명 색료: 쿠벨카–뭉크 이론</h2>
+    <p>페인트, 플라스틱, 섬유, 종이 코팅은 안료 입자가 빛을 <strong>흡수하고 동시에 산란</strong>한다. 빛은 층을 한 번 통과하는 것이 아니라 안에서 수없이 방향을 바꾸다가 일부가 표면으로 돌아 나온다. 쿠벨카–뭉크<span class="en">(Kubelka–Munk, 1931)</span> 이론은 이 복잡한 복사 전달을 위쪽·아래쪽으로 가는 두 개의 확산 광속 \( i, j \)로 단순화한다(2광속 모델).</p>
+    <div class="formula">$$\frac{di}{dx} = -(K+S)\,i + S\,j,\qquad \frac{dj}{dx} = (K+S)\,j - S\,i$$
+      <div class="where">\( K \): 흡수 계수, \( S \): 산란 계수(모두 단위 두께당, 파장의 함수). 층이 충분히 두꺼워 바탕이 보이지 않는 경우(은폐, \( R_\infty \))의 해가 아래 식이다.</div>
+    </div>
+    <div class="formula">$$\frac{K}{S} = \frac{(1-R_\infty)^2}{2R_\infty},\qquad R_\infty = 1 + \frac{K}{S} - \sqrt{\left(\frac{K}{S}\right)^2 + 2\frac{K}{S}}$$
+      <div class="where">반사율은 \( K \)와 \( S \)의 <strong>비</strong>에만 의존한다. 흰 안료(TiO₂)는 \( S \)가 크고 \( K \)가 작으며, 카본 블랙은 \( K \)가 매우 크다.</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 270" role="img" aria-label="쿠벨카-뭉크 2광속 모델">
+        <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        <marker id="ar3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
+        <rect x="60" y="60" width="380" height="150" class="f-surface" stroke="var(--border)"/>
+        <line x1="60" y1="60" x2="440" y2="60" class="s-axis"/>
+        <text x="450" y="64" class="t-dim">표면 (x = 0)</text>
+        <text x="450" y="214" class="t-dim">바탕 (은폐 시 무관)</text>
+        <g fill="var(--text-faint)">
+          <circle cx="110" cy="100" r="5"/><circle cx="170" cy="140" r="4"/><circle cx="230" cy="95" r="6"/><circle cx="300" cy="170" r="5"/><circle cx="360" cy="115" r="4"/><circle cx="400" cy="180" r="5"/><circle cx="140" cy="185" r="4"/><circle cx="260" cy="130" r="3"/>
+        </g>
+        <line x1="120" y1="20" x2="120" y2="200" class="s-line" marker-end="url(#ar3)"/>
+        <text x="128" y="36" class="t-mono">i (아래로)</text>
+        <line x1="330" y1="200" x2="330" y2="22" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar3a)"/>
+        <text x="338" y="36" class="t-acc">j (위로)</text>
+        <path d="M230 95 q20 -10 40 5" fill="none" stroke="var(--text-dim)" stroke-dasharray="3 3"/>
+        <text x="560" y="100" class="t">K : 흡수 → 열</text>
+        <text x="560" y="124" class="t">S : 산란 → i ↔ j 교환</text>
+        <text x="560" y="160" class="t-dim">혼합: K, S 각각 농도 가중 합</text>
+        <text x="560" y="182" class="t-mono">K = Σ cᵢKᵢ, S = Σ cᵢSᵢ</text>
+        <text x="250" y="245" text-anchor="middle" class="t-dim">두께 방향 1차원, 확산광만 고려 — 표면 굴절률 경계는 Saunderson 보정으로 따로 다룬다</text>
+      </svg>
+      <figcaption><b>그림 17-3.</b> 쿠벨카–뭉크 2광속 모델. 흡수는 광속을 줄이고 산란은 아래로 가는 빛을 위로(또는 반대로) 돌린다. 반사율은 \( K/S \)로 결정되며, 혼합에서는 반사율이 아니라 \( K \)와 \( S \)가 선형으로 더해진다.</figcaption>
+    </figure>
+
+    <p>혼합 규칙이 이 이론의 실용적 핵심이다. 안료 \( i \)의 농도가 \( c_i \)이면 혼합물의 흡수와 산란은 각각 \( K = \sum c_iK_i \), \( S = \sum c_iS_i \)이다(2상수 모델). 모든 안료의 산란이 비슷하거나 공통 흰 바탕에 소량의 착색 안료를 넣는 경우에는 \( (K/S)_{\text{mix}} = \sum c_i (K/S)_i \)로 줄어든다(1상수 모델). 조색<span class="en">(color matching)</span> 소프트웨어는 이 식을 역으로 풀어 목표 반사 스펙트럼을 내는 안료 배합을 찾는다.</p>
+
+    <p><b>파랑 + 노랑 = 초록의 스펙트럼적 이유.</b> 파랑 페인트는 450–520 nm를 반사하고 빨강을 흡수한다. 노랑 페인트는 510 nm 이상을 반사하고 파랑을 흡수한다. 둘 다 흡수가 약한 곳은 500–550 nm 부근, 즉 초록뿐이다. KM 혼합에서는 각 파장의 \( K/S \)가 더해지므로 어느 한쪽이라도 강하게 흡수하는 파장은 어두워지고, 둘 다 반사하는 초록 대역만 남는다. 반면 두 반사율을 단순 평균하면(가산 혼합, 예: 회전 원판이나 아주 작은 점의 병치) 회색빛 연두가 된다.</p>
+
+    <div class="formula">$$R_m = k_1 + \frac{(1-k_1)(1-k_2)\,R_i}{1-k_2R_i}$$
+      <div class="where"><span class="term">Saunderson 보정</span>: 측정 반사율 \( R_m \)과 KM 이론이 다루는 내부 반사율 \( R_i \)의 관계. \( k_1 \): 외부 표면 정반사율(굴절률 1.5에서 \( ((n-1)/(n+1))^2 = 0.04 \), 정반사 포함 SCI 측정일 때), \( k_2 \): 내부에서 표면에 닿은 확산광이 안쪽으로 되반사되는 비율(대략 0.4–0.6). 조색에서는 측정값을 \( R_i \)로 바꾸어 KM 혼합을 하고 다시 \( R_m \)으로 돌린다.</div>
+    </div>
+
+    <div class="sim" id="sim-km">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>쿠벨카–뭉크 페인트 혼합</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-km"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--text-dim)"></i>페인트 A, B</span><span><i style="background:var(--accent)"></i>KM 혼합</span><span><i style="background:var(--warn)"></i>반사율 평균(가산)</span><span><i style="background:var(--accent-2)"></i>반사율 기하평균(투명층 근사)</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>페인트 쌍</span><div class="seg" id="km-pair"><button data-value="by" class="on">파랑+노랑</button><button data-value="rw">빨강+흰색</button><button data-value="kw">검정+흰색</button></div></div>
+          <label class="ctrl"><span>B의 비율 c <output id="km-c-out"></output></span><input type="range" id="km-c" min="0" max="100" value="50"></label>
+          <label class="check"><input type="checkbox" id="km-sa"> Saunderson 보정 (k₁=0.04, k₂=0.6)</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">KM 혼합 Lab</span><span class="v" id="o-km-lab">—</span></div>
+        <div class="stat"><span class="k">반사율 평균 Lab</span><span class="v" id="o-km-lin">—</span></div>
+        <div class="stat"><span class="k">ΔE00 (KM vs 평균)</span><span class="v" id="o-km-de">—</span></div>
+        <div class="stat"><span class="k">산란 비 S_B/S_A</span><span class="v" id="o-km-s">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 파랑+노랑 50:50에서 KM 곡선은 520–540 nm에 봉우리가 있는 초록이다. 주황 점선(반사율 평균)은 탁한 연두다. ② 빨강+흰색: 흰색을 섞을수록 L*이 오르고 채도가 떨어지는 틴트가 된다(c=0.5에서 Lab ≈ (67.1, 45.7, 29.6)). 흰색의 S가 4배라 KM 곡선이 반사율 평균보다 흰색 쪽으로 치우친다. ③ 검정+흰색: 흰색 90%에 검정 10%만 섞어도 L*이 96.0에서 79.7로 떨어진다 — 강한 흡수체 소량이 반사율을 크게 끌어내린다. ④ Saunderson을 켜면 같은 측정 곡선에서 출발해도 혼합색이 더 진하고 채도가 높게 예측된다. 반사율 곡선은 합성 모델(교육용).</div>
+    </div>
+
+    <p>수치 예(1상수, Saunderson 없음): 이 모델의 파랑 페인트 Lab = (49.0, −23.8, −44.3), 노랑 = (89.1, −0.8, 84.2)이다. 50:50 KM 혼합은 (54.4, −46.7, 12.3)의 초록이고, 530 nm 반사율이 0.37로 남는 반면 450 nm는 0.12, 620 nm는 0.09로 눌린다. 반사율을 그냥 평균하면 (73.6, −6.4, 21.1) — 노르스름한 회색이다. Saunderson 보정을 넣으면 KM 혼합은 (51.8, −55.3, 13.2)로 더 진해진다. 표면 정반사가 바닥값으로 깔리는 효과를 먼저 빼고 계산하기 때문이다.</p>
+
+    <div class="callout warn">
+      <p><b>흔한 실수 — RGB 값을 섞어 페인트 혼합을 흉내 내기.</b> sRGB 파랑(0,0,255)과 노랑(255,255,0)을 평균하면 회색(128,128,128)이 나온다. 이는 가산 혼합(그것도 감마 인코딩 값의 평균)이다. 페인트 혼합을 그럴듯하게 보이려면 적어도 스펙트럼 단위의 KM 계산이 필요하다. 3채널만으로 흉내 내는 방법들은 모두 근사다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="halftone">
+    <h2>하프톤: 망점과 스크리닝</h2>
+    <p>오프셋·플렉소·레이저 인쇄는 한 지점에 잉크를 "찍거나 안 찍거나" 둘 중 하나만 할 수 있다. 중간 톤은 잉크로 덮인 <span class="term">면적률</span><span class="en">(area coverage, dot area)</span> \( a \)를 바꿔서 만든다. 관찰 거리에서 눈이 망점을 분해하지 못하면, 우리가 보는 반사율은 망점과 종이의 공간 평균이다. 이 과정이 <span class="term">하프톤</span><span class="en">(halftoning, screening)</span>이다.</p>
+    <ul>
+      <li><b>AM 스크리닝</b><span class="en">(amplitude modulation)</span>: 일정 간격(스크린 선수, lpi)의 격자에 놓인 점의 <em>크기</em>를 바꾼다. 상업 오프셋은 코팅지에서 대략 150–175 lpi(60–70 l/cm), 신문은 85–100 lpi 근처를 쓴다. 점 모양(원형, 타원형, 유클리드형)에 따라 50% 부근의 점 연결 방식이 달라진다.</li>
+      <li><b>FM 스크리닝</b><span class="en">(frequency modulation, stochastic)</span>: 같은 크기의 작은 점(보통 20–30 μm)의 <em>개수</em>를 무작위적으로 바꾼다. 규칙 격자가 없으므로 모아레가 생기지 않고 미세 디테일이 좋지만, 점 둘레가 길어 도트 게인이 크고 공정 안정성 요구가 높다.</li>
+      <li><b>하이브리드</b>: 하이라이트·섀도는 FM, 중간 톤은 AM 같은 혼합 방식도 쓰인다.</li>
+    </ul>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="AM과 FM 스크리닝, 스크린 각도">
+        <text x="130" y="22" text-anchor="middle" class="t">AM: 크기 변조 (30%)</text>
+        <text x="400" y="22" text-anchor="middle" class="t">FM: 개수 변조 (30%)</text>
+        <text x="670" y="22" text-anchor="middle" class="t">흔한 스크린 각도</text>
+        <rect x="40" y="40" width="180" height="180" class="f-surface" stroke="var(--border)"/>
+        <g fill="var(--text)">
+          <circle cx="62" cy="62" r="12"/><circle cx="107" cy="62" r="12"/><circle cx="152" cy="62" r="12"/><circle cx="197" cy="62" r="12"/>
+          <circle cx="62" cy="107" r="12"/><circle cx="107" cy="107" r="12"/><circle cx="152" cy="107" r="12"/><circle cx="197" cy="107" r="12"/>
+          <circle cx="62" cy="152" r="12"/><circle cx="107" cy="152" r="12"/><circle cx="152" cy="152" r="12"/><circle cx="197" cy="152" r="12"/>
+          <circle cx="62" cy="197" r="12"/><circle cx="107" cy="197" r="12"/><circle cx="152" cy="197" r="12"/><circle cx="197" cy="197" r="12"/>
+        </g>
+        <text x="130" y="242" text-anchor="middle" class="t-dim">셀 크기 = 1/lpi, 점 반지름 ∝ √a</text>
+        <rect x="310" y="40" width="180" height="180" class="f-surface" stroke="var(--border)"/>
+        <g fill="var(--text)"><circle cx="356" cy="137" r="6"/><circle cx="378" cy="147" r="6"/><circle cx="421" cy="57" r="6"/><circle cx="318" cy="187" r="6"/><circle cx="360" cy="85" r="6"/><circle cx="483" cy="125" r="6"/><circle cx="457" cy="126" r="6"/><circle cx="423" cy="71" r="6"/><circle cx="423" cy="192" r="6"/><circle cx="404" cy="171" r="6"/><circle cx="443" cy="145" r="6"/><circle cx="367" cy="51" r="6"/><circle cx="437" cy="194" r="6"/><circle cx="382" cy="181" r="6"/><circle cx="391" cy="203" r="6"/><circle cx="464" cy="62" r="6"/><circle cx="339" cy="82" r="6"/><circle cx="421" cy="97" r="6"/><circle cx="401" cy="111" r="6"/><circle cx="460" cy="212" r="6"/><circle cx="468" cy="142" r="6"/><circle cx="436" cy="81" r="6"/><circle cx="331" cy="181" r="6"/><circle cx="385" cy="71" r="6"/><circle cx="365" cy="175" r="6"/><circle cx="437" cy="102" r="6"/><circle cx="401" cy="214" r="6"/><circle cx="349" cy="115" r="6"/><circle cx="369" cy="207" r="6"/><circle cx="467" cy="109" r="6"/><circle cx="393" cy="133" r="6"/><circle cx="424" cy="146" r="6"/><circle cx="410" cy="150" r="6"/><circle cx="388" cy="167" r="6"/><circle cx="408" cy="48" r="6"/><circle cx="319" cy="149" r="6"/><circle cx="421" cy="124" r="6"/><circle cx="435" cy="170" r="6"/><circle cx="320" cy="56" r="6"/><circle cx="430" cy="208" r="6"/></g>
+        <text x="400" y="242" text-anchor="middle" class="t-dim">점 크기 고정(≈20–30 μm), 밀도 ∝ a</text>
+        <g transform="translate(670,130)">
+          <line x1="0" y1="0" x2="90" y2="0" stroke="#c9a400" stroke-width="2.5"/>
+          <line x1="0" y1="0" x2="86.9" y2="-23.3" stroke="#1d9bd6" stroke-width="2.5"/>
+          <line x1="0" y1="0" x2="63.6" y2="-63.6" stroke="var(--text)" stroke-width="2.5"/>
+          <line x1="0" y1="0" x2="23.3" y2="-86.9" stroke="#d6248a" stroke-width="2.5"/>
+          <circle cx="0" cy="0" r="3" fill="var(--text)"/>
+          <text x="96" y="5" class="t-mono">Y 0°</text>
+          <text x="92" y="-24" class="t-mono">C 15°</text>
+          <text x="66" y="-66" class="t-mono">K 45°</text>
+          <text x="20" y="-94" class="t-mono">M 75°</text>
+          <text x="-110" y="40" class="t-dim">진한 세 판은 30°씩, 가장 눈에</text>
+          <text x="-110" y="60" class="t-dim">덜 띄는 Y는 15° 사이에 둔다</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 17-4.</b> AM과 FM 스크리닝, 그리고 흔히 쓰이는 CMYK 스크린 각도 배치(인쇄소·RIP마다 다르며 C 105°, M 75°, K 45°, Y 90° 같은 변형도 있다). 원형 점 격자는 90° 대칭이므로 각도는 0–90° 범위만 의미가 있다.</figcaption>
+    </figure>
+
+    <p>여러 색판을 겹치면 두 격자의 주파수 차이가 저주파의 맥놀이 무늬, 즉 <span class="term">모아레</span><span class="en">(moiré)</span>를 만든다. 같은 선수의 두 격자가 각도 \( \Delta\theta \)만큼 어긋나면 맥놀이 주기는 \( P_m = P/(2\sin(\Delta\theta/2)) \)이다. \( \Delta\theta \)가 작을수록 주기가 길어져 눈에 잘 띈다. 진한 세 판(C, M, K)을 서로 30° 떨어뜨리면 맥놀이 주기가 셀 크기의 약 2배로 짧아져, 모아레 대신 작은 꽃무늬인 <span class="term">로제트</span><span class="en">(rosette)</span>로 보인다. 옐로는 대비가 낮아 15° 차이를 감수한다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>각도차 Δθ</th><th>맥놀이 주기 P_m / P</th><th>150 lpi에서 P_m</th><th>보이는 정도</th></tr></thead>
+      <tbody>
+        <tr><td>2°</td><td>28.6</td><td>4.8 mm</td><td>뚜렷한 모아레</td></tr>
+        <tr><td>5°</td><td>11.5</td><td>1.9 mm</td><td>모아레</td></tr>
+        <tr><td>15°</td><td>3.83</td><td>0.65 mm</td><td>Y와 인접 판(대비 낮음)</td></tr>
+        <tr><td>30°</td><td>1.93</td><td>0.33 mm</td><td>로제트, 정상</td></tr>
+        <tr><td>45°</td><td>1.31</td><td>0.22 mm</td><td>로제트</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="sim" id="sim-ht">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>하프톤 렌더러: 스크리닝, 모아레, 종이 속 빛 번짐</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-ht"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>모드</span><div class="seg" id="ht-mode"><button data-value="am" class="on">AM</button><button data-value="fm">FM</button><button data-value="moire">모아레 (C+M)</button></div></div>
+          <label class="ctrl"><span>스크린 선수 <output id="ht-lpi-out"></output></span><input type="range" id="ht-lpi" min="60" max="200" step="5" value="150"></label>
+          <label class="ctrl"><span>스크린 각도 <output id="ht-ang-out"></output></span><input type="range" id="ht-ang" min="0" max="90" value="45"></label>
+          <label class="ctrl"><span>면적률 a <output id="ht-a-out"></output></span><input type="range" id="ht-a" min="0" max="100" value="50"></label>
+          <label class="ctrl"><span>종이 내 빛 번짐 σ <output id="ht-sig-out"></output></span><input type="range" id="ht-sig" min="0" max="80" value="30"></label>
+          <label class="ctrl"><span>두 판 각도차 Δθ (모아레) <output id="ht-dang-out"></output></span><input type="range" id="ht-dang" min="0" max="45" value="30"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">렌더 면적률</span><span class="v" id="o-ht-area">—</span></div>
+        <div class="stat"><span class="k">R/R_p: Murray–Davies / 산란 계산</span><span class="v" id="o-ht-r">—</span></div>
+        <div class="stat"><span class="k">겉보기 면적률 (광학 게인)</span><span class="v" id="o-ht-app">—</span></div>
+        <div class="stat"><span class="k">등가 Yule–Nielsen n</span><span class="v" id="o-ht-n">—</span></div>
+        <div class="stat"><span class="k">모아레 주기</span><span class="v" id="o-ht-moire">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① AM에서 왼쪽은 잉크 패턴(기하학적 반사율), 오른쪽은 빛이 종이 속에서 σ만큼 퍼진 뒤의 반사율이다. 점 주위에 생기는 어두운 그림자가 <b>광학 도트 게인</b>이다. ② σ=0이면 n=1(Murray–Davies 정확), σ를 키우면 n이 2에 접근한다 — 완전 확산이면 n=2가 이론값이다. ③ 같은 σ에서 선수를 85→200 lpi로 올리거나 FM으로 바꾸면 점 둘레가 길어져 광학 게인이 커진다. ④ 모아레 모드에서 Δθ를 0–5°로 하면 큰 맥놀이 무늬, 30°면 로제트가 보인다. 물리 격자 5 μm/px, 192×192(0.96 mm), 솔리드 농도 1.4(단일 패스 T=10^−0.7), 가우시안 점확산 근사.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="dotgain">
+    <h2>도트 게인: Murray–Davies와 Yule–Nielsen</h2>
+    <p>면적률 \( a \)인 망점의 반사율을 가장 단순하게 예측하는 식은 면적 가중 평균인 <span class="term">Murray–Davies 식</span>이다. 농도계는 반사율 대신 농도 \( D=-\log_{10}(R/R_p) \)를 출력하므로, 실무에서는 측정 농도에서 면적률을 역산하는 형태로 쓴다.</p>
+    <div class="formula">$$R = a\,R_{\text{ink}} + (1-a)\,R_p,\qquad a_{\text{app}} = \frac{1-10^{-D_t}}{1-10^{-D_s}}$$
+      <div class="where">\( R_p \): 종이 반사율, \( R_{\text{ink}} \): 솔리드(100%) 반사율, \( D_t \): 망점 패치의 (종이 기준) 농도, \( D_s \): 솔리드 농도. \( a_{\text{app}} \)는 겉보기 면적률<span class="en">(apparent dot area)</span>이다.</div>
+    </div>
+    <p>실제로 측정된 \( a_{\text{app}} \)는 판(필름)에 기록된 명목 면적률 \( a \)보다 크다. 이 차이를 <span class="term">톤 값 증가</span><span class="en">(TVI, tone value increase; 과거 명칭 dot gain)</span>라 하며 원인은 두 가지다.</p>
+    <ul>
+      <li><b>기계적 도트 게인</b>: 판에서 종이로 전이될 때 잉크가 눌려 퍼져서 점의 물리적 면적이 실제로 커진다. 블랭킷 압력, 잉크 점도, 종이 흡수성에 좌우된다.</li>
+      <li><b>광학적 도트 게인</b>: 점 사이의 맨 종이로 들어간 빛이 종이 속에서 옆으로 번져 점 아래로 빠져나오며 잉크에 흡수된다(앞 시뮬레이터의 그림자). 점이 물리적으로 커지지 않아도 더 어둡게 측정된다. 종이의 빛 확산 길이와 점의 둘레/면적 비에 좌우된다.</li>
+    </ul>
+    <p>Yule과 Nielsen(1951)은 광학 게인을 경험적 지수 \( n \) 하나로 흡수했다. 반사율의 \( 1/n \) 제곱을 면적 가중 평균한 뒤 다시 \( n \) 제곱한다.</p>
+    <div class="formula">$$R = \left[a\,R_{\text{ink}}^{1/n} + (1-a)\,R_p^{1/n}\right]^{n}$$
+      <div class="where">\( n=1 \)이면 Murray–Davies, 빛이 셀보다 훨씬 넓게 완전히 확산되면 \( n=2 \)가 이론적 극한이다(입사와 출사에서 각각 평균 투과율 \( \bar T \)를 거치므로 \( R=R_p\bar T^2 \)). 실측에 맞추면 \( n \)이 2를 넘기도 하는데, 이는 기계적 게인 등이 함께 흡수된 경험값이기 때문이다. 코팅지 오프셋에서 대략 1.5–2.5 범위가 흔하다.</div>
+    </div>
+
+    <div class="sim" id="sim-tvi">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>톤 값 증가(TVI) 곡선: 광학 게인 + 기계적 게인</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-tvi"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--text-dim)"></i>Murray–Davies (n=1)</span><span><i style="background:var(--accent-2)"></i>Yule–Nielsen (광학만)</span><span><i style="background:var(--accent)"></i>YN + 기계적 게인</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>솔리드 농도 D_s <output id="tv-d-out"></output></span><input type="range" id="tv-d" min="0.8" max="2.0" step="0.05" value="1.45"></label>
+          <label class="ctrl"><span>Yule–Nielsen n <output id="tv-n-out"></output></span><input type="range" id="tv-n" min="1" max="3" step="0.05" value="1.7"></label>
+          <label class="ctrl"><span>기계적 게인 (50%에서) <output id="tv-m-out"></output></span><input type="range" id="tv-m" min="0" max="20" step="0.5" value="4"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">TVI @25%</span><span class="v" id="o-tv-25">—</span></div>
+        <div class="stat"><span class="k">TVI @50%</span><span class="v" id="o-tv-50">—</span></div>
+        <div class="stat"><span class="k">TVI @75%</span><span class="v" id="o-tv-75">—</span></div>
+        <div class="stat"><span class="k">50% 패치 농도 D_t</span><span class="v" id="o-tv-d50">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① n=1, 기계적 게인 0이면 TVI는 0이다(정의상). ② n만 올리면 TVI 곡선이 50% 바로 아래에서 최대가 되는 종 모양이 된다. ③ D_s를 올리면 같은 n에서도 광학 게인이 커진다. ④ 기계적 게인은 a(1−a)에 비례한다고 가정했다(\( a' = a + 4g\,a(1-a) \)). 이 장의 모델이며, 실제 프레스의 TVI 곡선은 측정으로 얻는다.</div>
+    </div>
+
+    <p>수치 예: D_s=1.45, n=1.7, 기계적 게인 4%이면 50% 패치의 TVI는 약 18%(광학 성분 약 14%)로, 겉보기 면적률이 68% 근처로 측정된다. 코팅지 상업 오프셋의 50% TVI가 대략 10–20% 범위에 있다는 점과 비슷한 크기다. 특성 데이터(FOGRA39/51 등)는 각 데이터셋이 가정하는 TVI 곡선을 함께 정의하므로, 실제 목표값은 사용하는 데이터셋 문서를 따른다.</p>
+
+    <div class="callout">
+      <p><b>공학자 관점 — CTP 보정 곡선.</b> 프레스의 TVI가 목표보다 크면 판 출력(CTP) 단계에서 명목값을 미리 줄이는 보정 곡선을 건다. 예를 들어 50%를 판에 46%로 기록해 인쇄 후 목표 TVI에 맞춘다. 광학 게인은 종이와 선수에 묶여 있어 보정 곡선 외에는 줄일 방법이 거의 없다. 그래서 같은 판이라도 코팅지와 비코팅지의 데이터셋이 따로 있다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="neugebauer">
+    <h2>노이게바우어 모델</h2>
+    <p>CMY 세 잉크를 서로 다른 각도의 망점으로 겹쳐 찍으면, 종이 위의 미세 영역은 8가지 상태 중 하나다. 아무것도 없음(W), C, M, Y만 있는 곳, 두 잉크가 겹친 곳(B = C+M, G = C+Y, R = M+Y), 세 잉크가 모두 겹친 곳(3K). 이 8개를 <span class="term">노이게바우어 원색</span><span class="en">(Neugebauer primaries)</span>이라 한다. 각도가 다른 망점이 통계적으로 독립이라고 가정하면 각 원색의 면적 비율은 <span class="term">디머 식</span><span class="en">(Demichel equations)</span>으로 주어진다.</p>
+    <div class="formula">$$\begin{aligned}
+      w_W &= (1-c)(1-m)(1-y), & w_C &= c(1-m)(1-y), & w_M &= (1-c)m(1-y), & w_Y &= (1-c)(1-m)y,\\
+      w_B &= cm(1-y), & w_G &= c(1-m)y, & w_R &= (1-c)my, & w_{3K} &= cmy
+    \end{aligned}$$
+      <div class="where">8개 가중치의 합은 항상 1이다. K를 더하면 같은 방식으로 \( 2^4=16 \)개의 원색이 된다.</div>
+    </div>
+    <p>원래의 노이게바우어 모델(1937)은 3자극치를 가중 평균했다. 스펙트럼으로 하면 <span class="term">스펙트럴 노이게바우어</span>가 되고, 여기에 Yule–Nielsen 지수를 넣은 것이 인쇄 프린터 모델링의 표준적인 출발점인 <span class="term">YNSN</span><span class="en">(Yule–Nielsen modified spectral Neugebauer)</span> 모델이다.</p>
+    <div class="formula">$$R(\lambda) = \left[\sum_{i=1}^{2^k} w_i(c,m,y,\dots)\; R_i(\lambda)^{1/n}\right]^{n}$$
+      <div class="where">\( R_i(\lambda) \): 노이게바우어 원색 \( i \)의 솔리드 반사 스펙트럼(실무에서는 측정, 이 장에서는 아래 모델), \( w_i \): 디머 가중치. 정확도를 더 높이려면 커버리지 격자마다 원색을 추가로 측정하는 셀 분할(cellular) YNSN, 잉크별 유효 면적률 곡선 보정 등을 쓴다.</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="8개 노이게바우어 원색과 CMY 커버리지 큐브">
+        <g transform="translate(60,30)">
+          <polygon points="60,170 200,170 200,30 60,30" fill="none" class="s-line"/>
+          <polygon points="60,30 120,0 260,0 200,30" fill="none" class="s-line"/>
+          <polygon points="200,170 260,140 260,0" fill="none" class="s-line"/>
+          <line x1="60" y1="170" x2="120" y2="140" class="s-line" stroke-dasharray="4 3"/><line x1="120" y1="140" x2="260" y2="140" class="s-line" stroke-dasharray="4 3"/><line x1="120" y1="140" x2="120" y2="0" class="s-line" stroke-dasharray="4 3"/>
+          <circle cx="60" cy="170" r="11" fill="#eeeef2" stroke="var(--border)"/><text x="40" y="200" class="t-mono">W</text>
+          <circle cx="200" cy="170" r="11" fill="#009ae0"/><text x="198" y="200" class="t-mono">C</text>
+          <circle cx="120" cy="140" r="11" fill="#d52581"/><text x="88" y="137" class="t-mono">M</text>
+          <circle cx="60" cy="30" r="11" fill="#f9e500"/><text x="32" y="26" class="t-mono">Y</text>
+          <circle cx="260" cy="140" r="11" fill="#2a2d77"/><text x="276" y="146" class="t-mono">C+M</text>
+          <circle cx="200" cy="30" r="11" fill="#008d44"/><text x="196" y="58" class="t-mono">C+Y</text>
+          <circle cx="120" cy="0" r="11" fill="#d71d21"/><text x="80" y="-6" class="t-mono">M+Y</text>
+          <circle cx="260" cy="0" r="11" fill="#38252b"/><text x="276" y="5" class="t-mono">C+M+Y</text>
+          <text x="130" y="230" text-anchor="middle" class="t-dim">커버리지 큐브의 꼭짓점 = 원색</text>
+        </g>
+        <g transform="translate(470,40)">
+          <rect x="0" y="0" width="200" height="200" class="f-surface" stroke="var(--border)"/>
+          <rect x="0" y="0" width="120" height="200" fill="#009ae0" fill-opacity="0.55"/>
+          <rect x="0" y="0" width="200" height="80" fill="#d52581" fill-opacity="0.5"/>
+          <text x="60" y="140" text-anchor="middle" class="t">C</text>
+          <text x="160" y="40" text-anchor="middle" class="t">M</text>
+          <text x="60" y="40" text-anchor="middle" class="t">C+M</text>
+          <text x="160" y="140" text-anchor="middle" class="t">W</text>
+          <text x="100" y="225" text-anchor="middle" class="t-dim">c = 0.6, m = 0.4 → w_B = 0.24, w_C = 0.36,</text>
+          <text x="100" y="243" text-anchor="middle" class="t-dim">w_M = 0.16, w_W = 0.24 (독립 배치 가정)</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 17-5.</b> CMY 커버리지 공간의 8개 꼭짓점이 노이게바우어 원색이다(색은 이 장 모델의 sRGB 근사 표시). 오른쪽은 디머 식의 직관: 두 잉크가 무작위로 독립 배치되면 겹친 면적은 곱 \( cm \)이다.</figcaption>
+    </figure>
+
+    <p>이 장의 원색 모델은 다음과 같다. 종이 반사율 \( R_p(\lambda) \)는 약 0.86에 형광 증백제를 흉내 낸 450 nm 부근의 작은 봉우리를 더했다. 각 잉크는 가우시안 흡수 밴드(시안 610 nm, 마젠타 545 nm, 옐로 436 nm 중심 + 시안·마젠타의 청색 쪽 불필요 흡수)를 가지며, 겹친 원색은 흡광도를 더한 뒤 잉크층을 두 번 통과한다고 보고 \( R_i = r_s + (R_p - r_s)\,10^{-2\sum_k d_kA_k(\lambda)} \)로 계산한다(\( r_s=0.008 \): 표면 반사 바닥값). 파라미터는 ISO 12647-2 목표값(<a href="#standards">9절</a>)에 ΔE00 약 2 이내로 맞췄다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>원색</th><th>L*</th><th>a*</th><th>b*</th><th>원색</th><th>L*</th><th>a*</th><th>b*</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sw" style="background:#eeeef2"></span>W (종이)</td><td>94.3</td><td>0.4</td><td>−1.6</td><td><span class="sw" style="background:#2a2d77"></span>C+M</td><td>21.9</td><td>18.5</td><td>−43.7</td></tr>
+        <tr><td><span class="sw" style="background:#009ae0"></span>C</td><td>56.2</td><td>−36.0</td><td>−51.2</td><td><span class="sw" style="background:#008d44"></span>C+Y</td><td>49.3</td><td>−65.6</td><td>26.1</td></tr>
+        <tr><td><span class="sw" style="background:#d52581"></span>M</td><td>48.8</td><td>69.7</td><td>−5.7</td><td><span class="sw" style="background:#d71d21"></span>M+Y</td><td>47.1</td><td>68.0</td><td>49.2</td></tr>
+        <tr><td><span class="sw" style="background:#f9e500"></span>Y</td><td>90.5</td><td>−6.5</td><td>90.7</td><td><span class="sw" style="background:#38252b"></span>C+M+Y</td><td>17.2</td><td>10.3</td><td>−0.2</td></tr>
+        <tr><td><span class="sw" style="background:#282828"></span>K</td><td>15.9</td><td>0.1</td><td>−0.3</td><td><span class="sw" style="background:#171616"></span>C+M+Y+K</td><td>7.4</td><td>0.3</td><td>0.0</td></tr>
+      </tbody>
+    </table></div>
+    <p class="t-dim" style="font-size:.92em">표: 이 장의 모델로 계산한 노이게바우어 원색 (D50, 2°, 완전 확산 반사면 기준 절대 Lab). C+M+Y 3색 흑이 붉은 기(a* = 10)를 띠고 L*이 17에 머무는 것은 실제 프로세스 잉크에서도 흔한 경향이며, K 잉크가 필요한 이유 중 하나다.</p>
+
+    <div class="sim" id="sim-neu">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>스펙트럴 노이게바우어 + Yule–Nielsen (YNSN) 프린터 모델</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-nu-s"></canvas><canvas id="cv-nu-g"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--text)"></i>sRGB 가멋 경계 (D50 적응)</span><span><i style="background:var(--accent)"></i>CMY 모델 가멋 경계</span><span><i style="background:var(--warn)"></i>현재 색</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>C <output id="nu-c-out"></output></span><input type="range" id="nu-c" min="0" max="100" value="60"></label>
+          <label class="ctrl"><span>M <output id="nu-m-out"></output></span><input type="range" id="nu-m" min="0" max="100" value="40"></label>
+          <label class="ctrl"><span>Y <output id="nu-y-out"></output></span><input type="range" id="nu-y" min="0" max="100" value="40"></label>
+          <label class="ctrl"><span>K <output id="nu-k-out"></output></span><input type="range" id="nu-k" min="0" max="100" value="10"></label>
+          <label class="ctrl"><span>Yule–Nielsen n <output id="nu-n-out"></output></span><input type="range" id="nu-n" min="1" max="3" step="0.05" value="1.7"></label>
+          <div class="ctrl"><span>가멋 보기</span><div class="seg" id="nu-view"><button data-value="proj" class="on">a*b* 투영</button><button data-value="slice">L* 단면</button></div></div>
+          <label class="ctrl"><span>단면 L* <output id="nu-L-out"></output></span><input type="range" id="nu-L" min="20" max="90" value="50"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">L*a*b* (D50/2°)</span><span class="v" id="o-nu-lab">—</span></div>
+        <div class="stat"><span class="k">견본 / sRGB</span><span class="v" id="o-nu-rgb">—</span></div>
+        <div class="stat"><span class="k">TAC (총 잉크량)</span><span class="v" id="o-nu-tac">—</span></div>
+        <div class="stat"><span class="k">가장 큰 디머 가중치</span><span class="v" id="o-nu-w">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① C=50, 나머지 0에서 n을 1→2로 바꾸면 L*이 79.1→74.7로 내려간다(광학 게인). ② 위 그래프의 회색 점선은 같은 커버리지의 n=1(스펙트럴 노이게바우어) 결과다. ③ "L* 단면"에서 L*=70이면 인쇄 단면 넓이는 sRGB의 약 43%에 그치지만, L*을 50–60으로 내리면 색상각 150–250°(초록–시안) 방향에서 인쇄 경계가 sRGB 밖으로 나간다. ④ K를 올리면 같은 Lab 근처에서도 스펙트럼이 평탄해진다 — 조명이 바뀌어도 색이 덜 틀어지는 이유(메타머리즘 감소). 가멋 경계는 K=0인 CMY 큐브 표면을 샘플링해 색상각 5°마다 최대 채도로 그린다.</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="gamut">
+    <h2>인쇄 가멋과 sRGB 가멋</h2>
+    <p>인쇄 가멋과 디스플레이 가멋은 모양 자체가 다르다. 디스플레이는 원색이 가장 밝을 때(풀 드라이브) 가장 채도가 높고, 가멋 입체는 백색점까지 넓게 뻗는다. 감산 인쇄는 잉크를 더할수록 어두워지므로 가장 채도 높은 색이 <strong>중간 명도</strong>에 있고 밝은 영역은 좁다. 노랑은 L* 90에서도 채도가 높지만, 파랑(C+M)은 L* 22까지 내려가야 최대 채도에 이른다.</p>
+    <p>앞 시뮬레이터의 모델로 계산하면(n=1.7, D50 기준 Lab, sRGB는 Bradford로 D50 적응) a*b* 투영에서 CMY 인쇄 가멋의 넓이는 sRGB의 약 57%다. 그래도 인쇄 가멋의 약 4%는 sRGB 밖에 있다. 색상각 235° 부근(시안)에서 인쇄의 최대 채도는 C*ab ≈ 61, sRGB는 ≈ 49이다. 반대로 색상각 300° 부근(파랑–보라)에서 sRGB는 C*ab ≈ 131까지 가지만 인쇄는 ≈ 47에 그친다. 3차원으로 보면 CMY 큐브 표면 샘플의 약 18%가 sRGB 밖에 있다. 시안 솔리드와 C+Y 초록, 옐로 솔리드가 모두 sRGB 밖이다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>비교 (이 장 모델, D50)</th><th>CMY 인쇄 (n=1.7)</th><th>sRGB</th></tr></thead>
+      <tbody>
+        <tr><td>a*b* 투영 넓이 (상대)</td><td>0.57</td><td>1.00</td></tr>
+        <tr><td>최대 C*ab, 색상각 235° (시안)</td><td>≈ 61</td><td>≈ 49</td></tr>
+        <tr><td>최대 C*ab, 색상각 90° (노랑)</td><td>≈ 91</td><td>≈ 90</td></tr>
+        <tr><td>최대 C*ab, 색상각 150° (초록)</td><td>≈ 68</td><td>≈ 80</td></tr>
+        <tr><td>최대 C*ab, 색상각 300° (파랑)</td><td>≈ 47</td><td>≈ 131</td></tr>
+        <tr><td>최저 L* (CMY만 / +K)</td><td>17.2 / 7.4</td><td>0</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout tip">
+      <p><b>실무 요점.</b> 두 가멋이 서로를 포함하지 않으므로 RGB → CMYK 변환은 "압축"만이 아니라 "다른 모양으로의 사상"이다. 지각적(perceptual) 인텐트는 전체를 비례 압축하고, 상대 색도(relative colorimetric) 인텐트는 가멋 안의 색을 그대로 두고 밖의 색만 경계로 자른다(<a href="management.html">16장</a>). 소프트 프루핑에서 sRGB 화면으로는 인쇄 시안을 정확히 보여줄 수 없다는 점도 같은 이유다. 화면 견본은 클리핑된다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="cmyk">
+    <h2>CMYK 분해: K, UCR/GCR, 총 잉크량</h2>
+    <p>이론상 C+M+Y로 검정을 만들 수 있지만 실제 인쇄는 네 번째 잉크 K(Key, 블랙)를 쓴다.</p>
+    <ul>
+      <li><b>농도와 중성</b>: 3색 흑은 L* 17 근처의 붉거나 탁한 어두운 색이다(위 표). K를 더하면 더 깊은 검정(L* 10 이하)을 얻는다.</li>
+      <li><b>잉크량·건조·비용</b>: 같은 어두운 회색을 C+M+Y 각 70%(210%)로 만드는 대신 K 하나로 대체하면 잉크량이 줄어 건조와 뒷묻음(set-off) 위험이 줄고, 비싼 컬러 잉크를 아낀다.</li>
+      <li><b>중성 회색의 안정성</b>: CMY 회색은 세 잉크의 균형으로 유지되므로 한 판의 농도가 조금만 흔들려도 색이 틀어진다. K 회색은 한 판이라 공정 변동에 강하다.</li>
+      <li><b>텍스트와 정합</b>: 작은 검정 글자를 4판으로 찍으면 판 사이 정합 오차로 색 테두리가 생긴다. 텍스트는 K 100% 단독이 원칙이다.</li>
+    </ul>
+    <p>회색 성분을 K로 바꾸는 정도에 따라 두 전략이 있다. <span class="term">UCR</span><span class="en">(under color removal)</span>은 어두운 중성 영역에서만 CMY를 빼고 K로 대체한다. <span class="term">GCR</span><span class="en">(gray component replacement)</span>은 유채색을 포함한 모든 색의 회색 성분(세 잉크의 공통 부분)을 K로 대체하며, 대체 비율(light/medium/heavy GCR)을 조절한다. 결과 Lab은 같아도 잉크 조합이 다르다. 같은 색을 내는 CMYK 조합이 무수히 많다는 것(4 → 3 사상의 자유도 1)이 핵심이다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="GCR 수준에 따른 CMYK 잉크 조합">
+        <g transform="translate(70,20)">
+          <line x1="0" y1="180" x2="660" y2="180" class="s-axis"/>
+          <g>
+            <rect x="10" y="40" width="28" height="140" fill="#1d9bd6"/><rect x="42" y="68" width="28" height="112" fill="#d6248a"/><rect x="74" y="54" width="28" height="126" fill="#c9a400"/><rect x="106" y="180" width="28" height="0" fill="var(--text)"/>
+            <text x="72" y="205" text-anchor="middle" class="t">GCR 0%</text><text x="72" y="225" text-anchor="middle" class="t-dim">C+M+Y만</text>
+          </g>
+          <g transform="translate(230,0)">
+            <rect x="10" y="90" width="28" height="90" fill="#1d9bd6"/><rect x="42" y="110" width="28" height="70" fill="#d6248a"/><rect x="74" y="100" width="28" height="80" fill="#c9a400"/><rect x="106" y="96" width="28" height="84" fill="var(--text)"/>
+            <text x="72" y="205" text-anchor="middle" class="t">GCR 50%</text><text x="72" y="225" text-anchor="middle" class="t-dim">회색 성분 절반 → K</text>
+          </g>
+          <g transform="translate(460,0)">
+            <rect x="10" y="140" width="28" height="40" fill="#1d9bd6"/><rect x="42" y="160" width="28" height="20" fill="#d6248a"/><rect x="74" y="150" width="28" height="30" fill="#c9a400"/><rect x="106" y="40" width="28" height="140" fill="var(--text)"/>
+            <text x="72" y="205" text-anchor="middle" class="t">GCR 100%</text><text x="72" y="225" text-anchor="middle" class="t-dim">회색 성분 대부분 K</text>
+          </g>
+          <text x="180" y="20" class="t-dim">세 경우 모두 (거의) 같은 Lab — 총 잉크량과 공정 안정성이 다르다</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 17-6.</b> GCR 수준에 따른 잉크 조합(개념도). 회색 성분을 K로 대체할수록 총 잉크량이 줄고 회색 균형이 안정되지만, K 망점이 밝은 톤까지 들어가 하이라이트가 거칠어 보일 수 있다.</figcaption>
+    </figure>
+
+    <p><b>총 잉크량</b><span class="en">(TAC, total area coverage; TIL)</span>은 한 지점의 C+M+Y+K 백분율 합이다. 이론 최대 400%지만 종이가 받아들이고 건조할 수 있는 한계가 있어서, 코팅지 매엽 오프셋은 대략 300–350%, 신문 용지는 대략 220–260% 범위로 제한한다(정확한 값은 사용하는 특성 데이터·프로파일이 정한다). 분해 단계에서 TAC를 넘는 조합은 GCR을 높이거나 CMY를 줄여 맞춘다.</p>
+
+    <p>가장 흔히 인용되는 "순진한" 변환식은 다음과 같다.</p>
+    <div class="formula">$$C = 1-R',\; M = 1-G',\; Y = 1-B',\qquad K = g\cdot\min(C,M,Y),\qquad C \leftarrow \frac{C-K}{1-K}\;(\text{M, Y도 같게})$$
+      <div class="where">\( R',G',B' \): 0–1로 정규화한 (감마 인코딩된) sRGB 값, \( g \): GCR 비율. 문제점: (1) 감마 인코딩 값을 농도처럼 다룬다. (2) 잉크의 불필요 흡수, 비블록 스펙트럼, 도트 게인, 종이 백색을 전혀 모른다. (3) 같은 C=M=Y가 중성 회색이 된다고 가정하지만, 실제로는 회색 균형을 위해 C가 M, Y보다 더 많아야 한다. (4) 가멋 밖 색에 대한 전략이 없다.</div>
+    </div>
+
+    <div class="sim" id="sim-sep">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>CMYK 분해: 순진한 공식 vs 모델 역변환</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-sep"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>예시 색</span><div class="seg" id="sp-pre"><button data-value="gray" class="on">회색</button><button data-value="skin">살구색</button><button data-value="green">초록</button><button data-value="blue">하늘</button><button data-value="dark">진회색</button></div></div>
+          <label class="ctrl"><span>R <output id="sp-r-out"></output></span><input type="range" id="sp-r" min="0" max="255" value="128"></label>
+          <label class="ctrl"><span>G <output id="sp-g-out"></output></span><input type="range" id="sp-g" min="0" max="255" value="128"></label>
+          <label class="ctrl"><span>B <output id="sp-b-out"></output></span><input type="range" id="sp-b" min="0" max="255" value="128"></label>
+          <label class="ctrl"><span>GCR 비율 g <output id="sp-gcr-out"></output></span><input type="range" id="sp-gcr" min="0" max="100" value="50"></label>
+          <label class="ctrl"><span>TAC 한계 <output id="sp-tac-out"></output></span><input type="range" id="sp-tac" min="200" max="400" step="10" value="300"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">목표 Lab (sRGB→D50)</span><span class="v" id="o-sp-tgt">—</span></div>
+        <div class="stat"><span class="k">순진한 공식 CMYK · ΔE00</span><span class="v" id="o-sp-nv">—</span></div>
+        <div class="stat"><span class="k">모델 역변환 CMYK · ΔE00</span><span class="v" id="o-sp-md">—</span></div>
+        <div class="stat"><span class="k">모델 결과 TAC</span><span class="v" id="o-sp-tac">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 회색(128,128,128), g=0: 순진한 공식은 C=M=Y=50%를 주고 결과는 붉은 기가 도는 회색(ΔE00≈8.9)이다. 모델 역변환은 C 57 / M 45 / Y 48처럼 시안을 더 넣어 회색 균형을 맞춘다. ② g를 0→100%로 바꾸면 모델 결과의 Lab은 그대로인데 TAC가 151%→111%로 준다. ③ "초록"(0,170,80)은 인쇄 가멋 밖이라 모델 역변환도 ΔE00≈3.8이 남는다 — 가멋 매핑이 필요한 경우다. ④ "진회색"에서 g=0, TAC 300%이면 CMY만으로는 목표 L*에 닿지 못한다. g를 올려 K를 쓰면 해결된다. 모델 역변환: K를 정한 뒤 YNSN(n=1.7)을 감쇠 가우스–뉴턴으로 풀어 CMY를 찾는다.</div>
+    </div>
+
+    <div class="callout warn">
+      <p><b>흔한 실수 — "RGB 0,0,0 = C100 M100 Y100 K100".</b> 순진한 공식이나 일부 기본 변환은 화면의 순흑을 400%로 분해한다. 대부분의 인쇄 조건에서 TAC를 넘어 건조 불량과 뒷묻음을 일으킨다. 리치 블랙은 보통 K 100%에 C 40–60% 정도를 더하는 식으로 지정하고, 반드시 해당 인쇄 조건의 TAC 안에서 정한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="standards">
+    <h2>인쇄 표준과 공정 관리</h2>
+    <p>인쇄소마다 잉크·종이·프레스가 다르면 같은 CMYK 파일이 다른 색으로 나온다. 이를 막기 위해 <b>ISO 12647</b> 시리즈가 공정별(12647-2 오프셋, -3 신문, -4 그라비어, -6 플렉소, -7 교정쇄 등) 목표값을 정한다. 핵심은 "CMYK 수치가 어떤 Lab이 되는지"를 표준 <span class="term">특성 데이터</span><span class="en">(characterization data)</span>로 고정하는 것이다.</p>
+    <ul>
+      <li><b>FOGRA39</b>: ISO 12647-2:2004(+Amd.1) 코팅지 오프셋 조건의 특성 데이터. ICC 프로파일 "ISO Coated v2"의 기반이며, M0 측정 조건이다.</li>
+      <li><b>FOGRA51 / FOGRA52</b>: ISO 12647-2:2013 기준의 코팅지(PSO Coated v3)·비코팅지 데이터. 형광 증백제(OBA)가 들어간 종이를 반영하기 위해 <b>M1</b> 측정 조건을 쓴다.</li>
+      <li><b>GRACoL</b>(예: CRPC6, GRACoL 2013): 북미 상업 인쇄용 Idealliance 특성 데이터. G7 회색 균형 보정 방법과 함께 쓰인다.</li>
+    </ul>
+
+    <p>아래 표는 ISO 12647-2:2004(Amd.1)의 코팅지(용지 유형 1/2) 솔리드 목표 Lab으로 널리 인용되는 값과, 이 장의 모델 결과를 비교한 것이다(D50, 2°, 검정 바탕 측정 기준).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>패치</th><th>목표 L*, a*, b*</th><th>이 장 모델</th><th>ΔE00</th></tr></thead>
+      <tbody>
+        <tr><td>종이</td><td>95, 0, −2</td><td>94.3, 0.4, −1.6</td><td>0.8</td></tr>
+        <tr><td>K</td><td>16, 0, 0</td><td>15.9, 0.1, −0.3</td><td>0.3</td></tr>
+        <tr><td>C</td><td>55, −37, −50</td><td>56.2, −36.0, −51.2</td><td>1.3</td></tr>
+        <tr><td>M</td><td>48, 74, −3</td><td>48.8, 69.7, −5.7</td><td>1.7</td></tr>
+        <tr><td>Y</td><td>89, −5, 93</td><td>90.5, −6.5, 90.7</td><td>1.4</td></tr>
+        <tr><td>R (M+Y)</td><td>47, 68, 48</td><td>47.1, 68.0, 49.2</td><td>0.5</td></tr>
+        <tr><td>G (C+Y)</td><td>50, −65, 27</td><td>49.3, −65.6, 26.1</td><td>0.8</td></tr>
+        <tr><td>B (C+M)</td><td>24, 22, −46</td><td>21.9, 18.5, −43.7</td><td>2.1</td></tr>
+      </tbody>
+    </table></div>
+    <p>ISO 12647-2는 솔리드 허용차를 ΔE로 정하며(2004판은 ΔE*ab, 2013판은 ΔE00 기반 허용차를 도입), 실무에서 프레스 운용 허용차는 대략 ΔE00 2–5 범위다. 이 장의 교육용 모델이 목표에 ΔE00 2 안팎으로 맞는다는 것은 가우시안 흡수 밴드 몇 개로도 프로세스 잉크의 "1차 거동"은 잡힌다는 뜻이다. 다만 실제 잉크의 스펙트럼 모양까지 맞춘 것은 아니므로 메타머리즘 계산에는 쓰지 않는다.</p>
+
+    <h3>농도계와 Lab 기반 관리</h3>
+    <p>전통적인 프레스 관리는 <span class="term">반사 농도계</span><span class="en">(densitometer)</span>로 한다. 농도 \( D = -\log_{10}\bar R \)에서 \( \bar R \)은 잉크의 보색 필터(시안은 빨강 필터, 마젠타는 초록, 옐로는 파랑)로 가중한 반사율이다. 필터의 분광 응답은 ISO 5-3이 정하는 <b>상태</b><span class="en">(Status)</span>로 규정된다. <b>Status T</b>는 북미 그래픽 아트에서 쓰는 광대역 응답, <b>Status E</b>는 유럽식으로 특히 옐로(파랑) 필터 응답이 달라 같은 옐로 잉크라도 농도값이 다르게 나온다. 따라서 농도 수치를 비교할 때는 반드시 상태를 함께 적는다.</p>
+    <p>농도는 잉크막 두께를 관리하는 데 민감하고 빠르지만, 색 자체를 나타내지는 않는다(같은 농도라도 잉크 색상이 다를 수 있다). 현대 공정 관리는 분광광도계로 Lab을 측정해 솔리드·2차색·회색 균형을 ΔE로 관리하고, TVI는 농도(Murray–Davies) 또는 분광 데이터로 계산한다. 인라인 분광 측정 장치가 컨트롤 스트립을 읽고 잉크 키를 자동 조정하는 것이 일반적이다.</p>
+
+    <h3>종이 백색, OBA, 측정 조건 M0–M3</h3>
+    <p>사무용·코팅지 상당수에는 형광 증백제(OBA)가 들어 있다. OBA는 자외선(약 340–400 nm)을 흡수해 파란 빛(약 420–470 nm)으로 내보내 종이를 더 희게 보이게 한다. 그런데 측정기 광원의 UV 함량에 따라 측정되는 종이 b*가 크게 달라진다. 그래서 ISO 13655는 측정 조건을 M0(UV 함량 미규정, 대개 텅스텐 A), M1(D50과 일치하는 UV 함량), M2(UV 제외), M3(M2 + 편광)으로 구분한다. 관측 부스 조명은 ISO 3664의 D50 조건을 따른다. 자세한 측정 기하와 형광 문제는 <a href="measurement.html">11장</a>에서 다룬다.</p>
+
+    <div class="callout">
+      <p><b>공학자 관점 — 숫자로 확인하는 순서.</b> ① 종이 백색 Lab(M1)과 OBA 정도(M1 − M2 ΔE)를 기록한다. ② 솔리드 CMYK와 2차색 RGB의 Lab이 목표 대비 허용차 안인지 본다. ③ 25/50/75% TVI 곡선을 측정해 데이터셋 곡선과 비교하고 CTP 보정을 조정한다. ④ 회색 균형 패치(예: C50 M40 Y40)의 a*b*로 중간 톤 중성을 확인한다. ⑤ 최종 교정쇄는 Fogra Media Wedge 같은 제어 쐐기로 ISO 12647-7 허용차를 검증한다. 이 순서가 지켜지면 ICC 출력 프로파일(<a href="management.html">16장</a>)은 표준 특성 데이터 하나로 재사용할 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ summary -->
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>가산 혼합은 스펙트럼의 합이라 XYZ에서 선형이다. 감산 혼합은 파장별 투과율의 곱이라 3자극치로 닫히지 않고 스펙트럼이 필요하다. 색료 혼합의 색도 궤적은 xy에서 곡선이다.</li>
+      <li>베르–람베르트: \( T=10^{-A} \), \( A=\sum\varepsilon_ic_il \). 흡광도는 더해지고 투과율은 곱해진다. 농도를 높이면 투과 대역이 좁아져 채도가 증가하다가 다시 감소한다.</li>
+      <li>쿠벨카–뭉크: 불투명층의 \( R_\infty \)는 \( K/S \)로 정해지고, 혼합에서는 \( K \)와 \( S \)가 농도 가중으로 더해진다. 파랑+노랑이 초록이 되는 것은 둘 다 흡수가 약한 초록 대역만 남기 때문이다. Saunderson 보정은 표면 반사를 분리한다.</li>
+      <li>하프톤은 면적률로 톤을 만든다. AM은 크기, FM은 개수를 바꾼다. 판 사이 각도차가 작으면 맥놀이 주기 \( P/(2\sin(\Delta\theta/2)) \)의 모아레가 생기므로 진한 판을 30° 간격으로 둔다.</li>
+      <li>Murray–Davies는 면적 가중 평균, Yule–Nielsen은 \( R^{1/n} \)의 평균이다. 종이 속 빛 번짐이 광학 게인을 만들고, 완전 확산 극한은 \( n=2 \)이다. TVI는 광학 게인과 기계적 게인의 합이다.</li>
+      <li>YNSN 모델: 디머 가중치 × 노이게바우어 원색 스펙트럼을 \( 1/n \) 공간에서 더한다. 이 장의 모델은 ISO 12647-2 솔리드 목표에 ΔE00 약 2 이내로 맞는다.</li>
+      <li>인쇄 가멋은 중간 명도에서 가장 넓고 sRGB와 모양이 다르다. a*b* 투영 넓이는 sRGB의 약 57%지만 시안–초록은 sRGB 밖으로 나간다.</li>
+      <li>K는 깊은 검정, 잉크 절약, 회색 안정성, 텍스트 정합을 위해 쓴다. GCR은 같은 Lab을 더 적은 TAC로 만든다. 순진한 \( 1-RGB \) 공식은 회색에서도 ΔE00 9 가까이 틀린다.</li>
+      <li>공정 관리는 ISO 12647 + 특성 데이터(FOGRA39/51, GRACoL), 농도(Status T/E)와 Lab, M1 측정으로 한다.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ quiz -->
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>두 컬러 필터를 겹쳤을 때의 색을 각 필터의 XYZ만으로 정확히 계산할 수 없는 이유는?</p><div class="opts">
+        <button class="opt">XYZ는 음수가 될 수 있어서</button>
+        <button class="opt" data-correct>투과율이 파장별로 곱해지는데, 곱의 적분은 각 적분값으로 분해되지 않아서</button>
+        <button class="opt">필터는 형광을 내기 때문에</button>
+        <button class="opt">그라스만 법칙이 반사광에는 성립하지 않아서</button>
+      </div><div class="quiz-exp">XYZ는 스펙트럼의 선형 범함수다. 합에는 선형이지만 \( \int S\,T_1T_2\,\bar x \)는 \( \int S T_1\bar x \)와 \( \int S T_2 \bar x \)로 쓸 수 없다. 그래서 감산 혼합에는 스펙트럼이 필요하다.</div></div>
+
+      <div class="quiz-q"><p>흡수 밴드 꼭대기에서 T=0.1, 꼬리에서 T=0.8인 필터의 농도를 2배로 하면?</p><div class="opts">
+        <button class="opt">0.05와 0.4</button>
+        <button class="opt" data-correct>0.01과 0.64</button>
+        <button class="opt">0.2와 1.6</button>
+        <button class="opt">0.1과 0.8 (변화 없음)</button>
+      </div><div class="quiz-exp">\( A \)가 2배이므로 \( T \)는 제곱된다. 꼭대기는 급격히 어두워지지만 꼬리는 덜 변해서 투과 대역이 상대적으로 좁아지고 색도가 움직인다.</div></div>
+
+      <div class="quiz-q"><p>쿠벨카–뭉크 이론에서 두 페인트를 섞을 때 선형으로 더하는 양은?</p><div class="opts">
+        <button class="opt">반사율 R</button>
+        <button class="opt">농도 −log R</button>
+        <button class="opt" data-correct>흡수 계수 K와 산란 계수 S (농도 가중)</button>
+        <button class="opt">CIELAB 좌표</button>
+      </div><div class="quiz-exp">\( K=\sum c_iK_i \), \( S=\sum c_iS_i \)이고 반사율은 \( R_\infty = 1+K/S-\sqrt{(K/S)^2+2K/S} \)로 다시 계산한다. 반사율을 평균하면 가산(병치) 혼합이 된다.</div></div>
+
+      <div class="quiz-q"><p>R∞ = 0.25인 불투명 페인트의 K/S는?</p><div class="opts">
+        <button class="opt">0.75</button>
+        <button class="opt" data-correct>1.125</button>
+        <button class="opt">3.0</button>
+        <button class="opt">0.5625</button>
+      </div><div class="quiz-exp">\( K/S = (1-0.25)^2/(2\times0.25) = 0.5625/0.5 = 1.125 \).</div></div>
+
+      <div class="quiz-q"><p>같은 선수의 두 AM 스크린 사이 각도차를 5°에서 30°로 늘리면?</p><div class="opts">
+        <button class="opt">모아레 주기가 길어져 더 잘 보인다</button>
+        <button class="opt" data-correct>맥놀이 주기가 약 11.5P에서 약 1.9P로 짧아져 모아레 대신 로제트가 된다</button>
+        <button class="opt">각도는 모아레와 무관하고 선수만 중요하다</button>
+        <button class="opt">점 크기가 커져 도트 게인이 늘어난다</button>
+      </div><div class="quiz-exp">\( P_m = P/(2\sin(\Delta\theta/2)) \). 5°에서 11.5P, 30°에서 1.93P다. 짧은 주기의 무늬는 눈에 띄지 않는 로제트로 보인다.</div></div>
+
+      <div class="quiz-q"><p>Yule–Nielsen 식에서 n = 2가 이론적 극한이 되는 상황은?</p><div class="opts">
+        <button class="opt">종이 속 빛 번짐이 전혀 없을 때</button>
+        <button class="opt">잉크가 완전히 불투명할 때</button>
+        <button class="opt" data-correct>종이 속 빛이 셀 크기보다 훨씬 넓게 완전히 확산될 때</button>
+        <button class="opt">FM 스크린을 쓸 때만</button>
+      </div><div class="quiz-exp">완전 확산이면 입사·출사에서 각각 평균 투과율 \( \bar T = aT+(1-a) \)를 거치므로 \( R=R_p\bar T^2 \). 이는 \( n=2 \)인 YN 식과 같다. 번짐이 없으면 n=1(Murray–Davies)이다.</div></div>
+
+      <div class="quiz-q"><p>c = 0.5, m = 0.4, y = 0인 CMY 망점에서 C+M(파랑) 노이게바우어 원색의 디머 가중치는?</p><div class="opts">
+        <button class="opt">0.9</button>
+        <button class="opt">0.1</button>
+        <button class="opt" data-correct>0.2</button>
+        <button class="opt">0.3</button>
+      </div><div class="quiz-exp">\( w_B = c\,m\,(1-y) = 0.5\times0.4\times1 = 0.2 \). 나머지는 \( w_C=0.3 \), \( w_M=0.2 \), \( w_W=0.3 \)으로 합이 1이다.</div></div>
+
+      <div class="quiz-q"><p>GCR 비율을 높일 때 일반적으로 나타나는 변화가 <em>아닌</em> 것은?</p><div class="opts">
+        <button class="opt">총 잉크량(TAC)이 줄어든다</button>
+        <button class="opt">회색 균형이 공정 변동에 덜 민감해진다</button>
+        <button class="opt" data-correct>인쇄 가멋의 채도 최대값이 크게 넓어진다</button>
+        <button class="opt">K 망점이 밝은 톤까지 들어갈 수 있다</button>
+      </div><div class="quiz-exp">GCR은 같은 색을 다른 잉크 조합으로 만드는 것이라 채도 가멋을 넓히지 않는다. K는 어두운 영역을 깊게 할 뿐 고채도 색을 만들지 못한다.</div></div>
+
+      <div class="quiz-q"><p>FOGRA51과 FOGRA39의 중요한 차이로 맞는 것은?</p><div class="opts">
+        <button class="opt">FOGRA51은 신문 인쇄용이다</button>
+        <button class="opt" data-correct>FOGRA51은 ISO 12647-2:2013 기반이며 OBA 종이를 반영한 M1 측정 조건을 쓴다</button>
+        <button class="opt">FOGRA39는 D65 광원 기준이다</button>
+        <button class="opt">둘은 동일하며 이름만 다르다</button>
+      </div><div class="quiz-exp">FOGRA39는 ISO 12647-2:2004(Amd.1), M0 조건이다. FOGRA51은 2013판(PSO Coated v3)으로 M1 조건을 써서 형광 증백제가 든 종이의 백색을 D50 UV 조건에서 다룬다.</div></div>
+
+      <div class="quiz-q"><p>"C = 1 − R, M = 1 − G, Y = 1 − B, K = min(C,M,Y)" 공식의 문제점이 <em>아닌</em> 것은?</p><div class="opts">
+        <button class="opt">감마 인코딩된 RGB 값을 잉크량처럼 다룬다</button>
+        <button class="opt">잉크의 불필요 흡수와 도트 게인을 모른다</button>
+        <button class="opt">C=M=Y가 중성이라고 가정하지만 실제 회색 균형은 시안이 더 필요하다</button>
+        <button class="opt" data-correct>K 값이 항상 음수가 된다</button>
+      </div><div class="quiz-exp">K = min(C,M,Y)는 0–1 범위다. 나머지 셋은 모두 실제 문제로, 회색 128에서 이 장의 모델 기준 ΔE00 ≈ 9의 오차를 낸다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+"use strict";
+var WL = CB.wls(5), NW = WL.length, LOG10 = Math.LN10;
+function makeW(illum) {
+  var w = [], s = 0, wh = [0, 0, 0];
+  for (var i = 0; i < NW; i++) { var c = CB.cmf(WL[i]), e = illum(WL[i]); w.push([c[0] * e, c[1] * e, c[2] * e]); s += c[1] * e; }
+  var k = 100 / s;
+  for (var j = 0; j < NW; j++) { w[j][0] *= k; w[j][1] *= k; w[j][2] *= k; wh[0] += w[j][0]; wh[1] += w[j][1]; wh[2] += w[j][2]; }
+  return { w: w, white: wh };
+}
+var W50 = makeW(CB.illum("D50")), W65 = makeW(CB.D65);
+function sXYZ(R, W) { var X = 0, Y = 0, Z = 0, w = W.w; for (var i = 0; i < NW; i++) { X += R[i] * w[i][0]; Y += R[i] * w[i][1]; Z += R[i] * w[i][2]; } return [X, Y, Z]; }
+function sLab(R, W) { W = W || W50; return CB.XYZ2Lab(sXYZ(R, W), W.white); }
+function css50(XYZ) { return CB.XYZ2rgb8(CB.adapt(XYZ.map(function (v) { return v / 100; }), CB.whiteXYZ("D50"), CB.whiteXYZ("D65"))); }
+function lab2rgb8(lab) { return css50(CB.Lab2XYZ(lab, W50.white)); }
+function arr(f) { return WL.map(f); }
+var g = CB.gauss;
+var PAPER = arr(function (l) { return 0.858 + 0.031 * g(l, 445, 70) - (l < 420 ? 0.0015 * (420 - l) : 0); });
+var ABS = {
+  C: arr(function (l) { return g(l, 610, 108) + 0.34 * g(l, 422, 33); }),
+  M: arr(function (l) { return g(l, 545, 72) + 0.38 * g(l, 439, 70); }),
+  Y: arr(function (l) { return g(l, 436, 82); }),
+  K: arr(function (l) { return 1; })
+};
+var DSOL = { C: 0.76, M: 1.00, Y: 0.84, K: 0.91 }, RS = 0.008;
+var INKS = ["C", "M", "Y", "K"];
+function overprint(mask, nInk) {
+  var R = PAPER.slice();
+  for (var i = 0; i < NW; i++) { var A = 0; for (var k = 0; k < nInk; k++) if (mask & (1 << k)) A += DSOL[INKS[k]] * ABS[INKS[k]][i]; R[i] = RS + (R[i] - RS) * Math.pow(10, -2 * A); }
+  return R;
+}
+var NP4 = []; for (var m = 0; m < 16; m++) NP4.push(overprint(m, 4));
+function demichel(cov) {
+  var n = cov.length, w = [];
+  for (var m = 0; m < (1 << n); m++) { var p = 1; for (var k = 0; k < n; k++) p *= (m & (1 << k)) ? cov[k] : 1 - cov[k]; w.push(p); }
+  return w;
+}
+var YNC = { n: 0, P: null };
+function ynsn(cov, n) {
+  if (YNC.n !== n) { YNC.n = n; YNC.P = NP4.map(function (R) { return R.map(function (v) { return Math.pow(v, 1 / n); }); }); }
+  var w = demichel(cov), R = new Array(NW), P = YNC.P, i, m;
+  for (i = 0; i < NW; i++) R[i] = 0;
+  for (m = 0; m < w.length; m++) { var wm = w[m]; if (wm <= 0) continue; var pm = P[m]; for (i = 0; i < NW; i++) R[i] += wm * pm[i]; }
+  for (i = 0; i < NW; i++) R[i] = Math.pow(R[i], n);
+  return R;
+}
+function sig(x) { return 1 / (1 + Math.exp(-x)); }
+var PAINTS = {
+  blue: { name: "파랑", S: 1.0, R: arr(function (l) { return 0.045 + 0.5 * g(l, 470, 110); }) },
+  yellow: { name: "노랑", S: 1.0, R: arr(function (l) { return 0.06 + 0.8 * sig((l - 510) / 14); }) },
+  red: { name: "빨강", S: 1.0, R: arr(function (l) { return 0.05 + 0.78 * sig((l - 600) / 11); }) },
+  white: { name: "흰색", S: 4.0, R: arr(function (l) { return 0.9 - 0.75 * sig((410 - l) / 7); }) },
+  black: { name: "검정", S: 0.6, R: arr(function () { return 0.045; }) }
+};
+var SK1 = 0.04, SK2 = 0.6;
+function ks(R) { return (1 - R) * (1 - R) / (2 * R); }
+function rinf(q) { return 1 + q - Math.sqrt(q * q + 2 * q); }
+function saundIn(Rm) { var u = Math.max(Rm - SK1, 1e-5); return u / ((1 - SK1) * (1 - SK2) + SK2 * u); }
+function saundOut(Ri) { return SK1 + (1 - SK1) * (1 - SK2) * Ri / (1 - SK2 * Ri); }
+function kmMix(pa, pb, c, saund) {
+  var out = new Array(NW);
+  for (var i = 0; i < NW; i++) {
+    var ra = saund ? saundIn(pa.R[i]) : pa.R[i], rb = saund ? saundIn(pb.R[i]) : pb.R[i];
+    var K = (1 - c) * pa.S * ks(ra) + c * pb.S * ks(rb), S = (1 - c) * pa.S + c * pb.S;
+    var r = rinf(K / S);
+    out[i] = saund ? saundOut(r) : r;
+  }
+  return out;
+}
+var HT = { N: 192, px: 5 };
+var SPOT = (function () {
+  var a = [], M = 96;
+  for (var i = 0; i < M; i++) for (var j = 0; j < M; j++) { var x = -1 + (2 * i + 1) / M, y = -1 + (2 * j + 1) / M; a.push(spotFn(x, y)); }
+  return a.sort(function (p, q) { return q - p; });
+})();
+function spotFn(x, y) { var ax = Math.abs(x), ay = Math.abs(y); return ax + ay <= 1 ? 1 - (x * x + y * y) : (ax - 1) * (ax - 1) + (ay - 1) * (ay - 1) - 1; }
+function spotRank(s) { var lo = 0, hi = SPOT.length; while (lo < hi) { var mid = (lo + hi) >> 1; if (SPOT[mid] > s) lo = mid + 1; else hi = mid; } return lo / SPOT.length; }
+function amRank(x, y, period, ang) {
+  var c = Math.cos(ang), s = Math.sin(ang), u = (x * c + y * s) / period, v = (-x * s + y * c) / period;
+  return spotRank(spotFn(2 * (u - Math.floor(u)) - 1, 2 * (v - Math.floor(v)) - 1));
+}
+function amMap(N, pxum, lpi, angDeg, ox, oy) {
+  var period = 25400 / lpi, ang = angDeg * Math.PI / 180, out = new Float32Array(N * N);
+  for (var j = 0; j < N; j++) for (var i = 0; i < N; i++) out[j * N + i] = amRank((i + 0.5 + (ox || 0)) * pxum, (j + 0.5 + (oy || 0)) * pxum, period, ang);
+  return out;
+}
+function fmPattern(N, cell, a, seed) {
+  var n = Math.ceil(N / cell), e = new Float32Array(n * n), ink = new Uint8Array(n * n), rnd = mulberry(seed || 7);
+  for (var k = 0; k < n * n; k++) e[k] = a;
+  for (var y = 0; y < n; y++) {
+    var l2r = !(y & 1);
+    for (var t = 0; t < n; t++) {
+      var x = l2r ? t : n - 1 - t, k2 = y * n + x, v = e[k2], on = v > 0.5 + 0.08 * (rnd() - 0.5) ? 1 : 0, err = v - on, d = l2r ? 1 : -1;
+      ink[k2] = on;
+      if (x + d >= 0 && x + d < n) e[k2 + d] += err * 7 / 16;
+      if (y + 1 < n) { if (x - d >= 0 && x - d < n) e[k2 + n - d] += err * 3 / 16; e[k2 + n] += err * 5 / 16; if (x + d >= 0 && x + d < n) e[k2 + n + d] += err / 16; }
+    }
+  }
+  var out = new Uint8Array(N * N);
+  for (var j = 0; j < N; j++) for (var i = 0; i < N; i++) out[j * N + i] = ink[Math.floor(j / cell) * n + Math.floor(i / cell)];
+  return out;
+}
+function mulberry(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function blur(src, N, sig) {
+  if (sig < 0.3) return Float32Array.from(src);
+  var r = Math.ceil(3 * sig), k = [], s = 0;
+  for (var i = -r; i <= r; i++) { var v = Math.exp(-0.5 * i * i / (sig * sig)); k.push(v); s += v; }
+  k = k.map(function (v) { return v / s; });
+  var tmp = new Float32Array(N * N), out = new Float32Array(N * N);
+  for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) { var acc = 0; for (var q = -r; q <= r; q++) { var xx = x + q; xx = xx < 0 ? 0 : xx >= N ? N - 1 : xx; acc += k[q + r] * src[y * N + xx]; } tmp[y * N + x] = acc; }
+  for (var y2 = 0; y2 < N; y2++) for (var x2 = 0; x2 < N; x2++) { var acc2 = 0; for (var q2 = -r; q2 <= r; q2++) { var yy = y2 + q2; yy = yy < 0 ? 0 : yy >= N ? N - 1 : yy; acc2 += k[q2 + r] * tmp[yy * N + x2]; } out[y2 * N + x2] = acc2; }
+  return out;
+}
+function scatterSim(ink, N, Tink, sigPx) {
+  var T = new Float32Array(N * N); for (var i = 0; i < N * N; i++) T[i] = ink[i] ? Tink : 1;
+  var B = blur(T, N, sigPx), R = new Float32Array(N * N);
+  for (var j = 0; j < N * N; j++) R[j] = T[j] * B[j];
+  var m = Math.min(Math.ceil(3 * sigPx), Math.floor(N / 4)), sa = 0, sr = 0, cnt = 0;
+  for (var y = m; y < N - m; y++) for (var x = m; x < N - m; x++) { sa += ink[y * N + x]; sr += R[y * N + x]; cnt++; }
+  return { R: R, a: sa / cnt, Rm: sr / cnt };
+}
+function ynR(a, Ri, n) { return Math.pow(a * Math.pow(Ri, 1 / n) + (1 - a), n); }
+function solveN(a, Ri, Rm) {
+  if (a <= 0.001 || a >= 0.999 || Rm >= ynR(a, Ri, 1)) return 1;
+  var lo = 1, hi = 50; if (Rm <= ynR(a, Ri, hi)) return hi;
+  for (var it = 0; it < 60; it++) { var mid = 0.5 * (lo + hi); if (ynR(a, Ri, mid) > Rm) lo = mid; else hi = mid; }
+  return 0.5 * (lo + hi);
+}
+var A2D = CB.adaptMatrix(CB.whiteXYZ("D65"), CB.whiteXYZ("D50"), "bradford");
+function rgb8Lab(rgb) { var X = CB.mat.vec(A2D, CB.rgb82XYZ(rgb)); return CB.XYZ2Lab(X.map(function (v) { return v * 100; }), W50.white); }
+function linLab(lin) { var X = CB.mat.vec(A2D, CB.linRGB2XYZ(lin)); return CB.XYZ2Lab(X.map(function (v) { return v * 100; }), W50.white); }
+function inSRGB(lab) { var X = CB.adapt(CB.Lab2XYZ(lab, W50.white).map(function (v) { return v / 100; }), CB.whiteXYZ("D50"), CB.whiteXYZ("D65")); return CB.XYZ2linRGB(X).every(function (v) { return v > -0.002 && v < 1.002; }); }
+function printLab(cmyk, n) { return sLab(ynsn(cmyk, n)); }
+function naiveSep(rgb, gcr) {
+  var c = 1 - rgb[0] / 255, m = 1 - rgb[1] / 255, y = 1 - rgb[2] / 255, k = gcr * Math.min(c, m, y);
+  if (k > 0.9999) return [0, 0, 0, 1];
+  return [(c - k) / (1 - k), (m - k) / (1 - k), (y - k) / (1 - k), k];
+}
+function limitTAC(v, tac) {
+  var s = v[0] + v[1] + v[2] + v[3];
+  if (s <= tac) return v.slice();
+  var f = Math.max(0, (tac - v[3]) / (v[0] + v[1] + v[2]));
+  return [v[0] * f, v[1] * f, v[2] * f, v[3]];
+}
+function invertCMY(lab, k, n, x0) {
+  var x = x0.slice(0, 3), h = 1e-3;
+  var f = function (v) { return printLab([v[0], v[1], v[2], k], n); };
+  for (var it = 0; it < 30; it++) {
+    var L0 = f(x), r = [lab[0] - L0[0], lab[1] - L0[1], lab[2] - L0[2]];
+    if (Math.hypot(r[0], r[1], r[2]) < 0.02) break;
+    var J = [[], [], []];
+    for (var j = 0; j < 3; j++) { var xp = x.slice(); xp[j] = Math.min(1, xp[j] + h); var d = xp[j] - x[j] || -h; if (d < 0) xp[j] = x[j] - h; var Lp = f(xp); for (var i = 0; i < 3; i++) J[i][j] = (Lp[i] - L0[i]) / (xp[j] - x[j]); }
+    var JT = [[J[0][0], J[1][0], J[2][0]], [J[0][1], J[1][1], J[2][1]], [J[0][2], J[1][2], J[2][2]]];
+    var A = CB.mat.mul(JT, J), lam = 0.05 * (A[0][0] + A[1][1] + A[2][2]) / 3;
+    A[0][0] += lam; A[1][1] += lam; A[2][2] += lam;
+    var dx = CB.mat.vec(CB.mat.inv(A), CB.mat.vec(JT, r));
+    for (var q = 0; q < 3; q++) x[q] = CB.clamp(x[q] + dx[q], 0, 1);
+  }
+  return [x[0], x[1], x[2], k];
+}
+function modelSep(lab, gcr, n, tac) {
+  var x0 = invertCMY(lab, 0, n, [0.5, 0.5, 0.5, 0]);
+  var k = gcr * Math.min(x0[0], x0[1], x0[2]);
+  var x = k > 0 ? invertCMY(lab, k, n, x0) : x0;
+  return limitTAC(x, tac);
+}
+function hueBoundary(pts, bins, L0, tol) {
+  var b = new Array(bins).fill(0);
+  pts.forEach(function (p) {
+    if (L0 != null && Math.abs(p[0] - L0) > tol) return;
+    var C = Math.hypot(p[1], p[2]), h = Math.atan2(p[2], p[1]); if (h < 0) h += 2 * Math.PI;
+    var k = Math.floor(h / (2 * Math.PI) * bins) % bins; if (C > b[k]) b[k] = C;
+  });
+  return b;
+}
+function cubeSurface(steps, fn) {
+  var out = [];
+  for (var f = 0; f < 3; f++) for (var e = 0; e <= 1; e++) for (var i = 0; i <= steps; i++) for (var j = 0; j <= steps; j++) {
+    var v = [0, 0, 0]; v[f] = e; v[(f + 1) % 3] = i / steps; v[(f + 2) % 3] = j / steps; out.push(fn(v));
+  }
+  return out;
+}
+
+/* ---------------------------------------------------------------- UI helpers */
+var $ = function (id) { return document.getElementById(id); };
+var f1 = function (v) { return v.toFixed(1); };
+function labStr(L) { return f1(L[0]) + ", " + f1(L[1]) + ", " + f1(L[2]); }
+function sw(rgb) { return '<span class="sw" style="background:' + CB.rgb8css(rgb) + '"></span>'; }
+function adaptive(canvas, wide, narrow) {
+  return { get aspect() { var w = (canvas.parentElement && canvas.parentElement.clientWidth) || 600; return w >= 520 ? wide : narrow; } };
+}
+function split(w, h, frac) {
+  frac = frac || 0.5;
+  return w >= 520 ? { wide: true, a: { x: 0, y: 0, w: w * frac, h: h }, b: { x: w * frac, y: 0, w: w * (1 - frac), h: h } }
+    : { wide: false, a: { x: 0, y: 0, w: w, h: h * 0.5 }, b: { x: 0, y: h * 0.5, w: w, h: h * 0.5 } };
+}
+function cbox(r, l, b) { return { x: r.x + (l || 50), y: r.y + 14, w: r.w - (l || 50) - 14, h: r.h - (b || 50) }; }
+function label(ctx, txt, x, y, color, align) {
+  ctx.save(); ctx.font = "12px " + getComputedStyle(document.body).getPropertyValue("--font"); ctx.fillStyle = color || CB.palette().dim;
+  ctx.textAlign = align || "left"; ctx.textBaseline = "top"; ctx.fillText(txt, x, y); ctx.restore();
+}
+function series(R, scale) { return WL.map(function (l, i) { return [l, R[i] * (scale || 1)]; }); }
+var INKCOL = { C: "#1d9bd6", M: "#d6248a", Y: "#c9a400", K: "#555" };
+function chromCache() {
+  var off = null, key = "", D = null;
+  return function (ctx, w, h, box) {
+    var dpr = ctx.getTransform().a, k = [w, h, dpr, CB.isDark(), box.x, box.y, box.w].join("|");
+    if (k !== key) {
+      off = document.createElement("canvas"); off.width = Math.round(w * dpr); off.height = Math.round(h * dpr);
+      var o = off.getContext("2d"); o.setTransform(dpr, 0, 0, dpr, 0, 0);
+      D = CB.chromaticity(o, box, { fill: true, grid: true, labels: false, fillStep: 3 });
+      key = k;
+    }
+    ctx.drawImage(off, 0, 0, w, h);
+    return D;
+  };
+}
+
+/* ---------------------------------------------------------------- 1. additive vs subtractive */
+(function () {
+  var cv, mode, model, s1, s2, s3;
+  var redraw = function () { if (cv) cv.redraw(); };
+  mode = CB.seg("mx-mode", redraw); model = CB.seg("mx-model", redraw);
+  var pf = function (v) { return v + "%"; };
+  s1 = CB.range("mx-1", pf, redraw); s2 = CB.range("mx-2", pf, redraw); s3 = CB.range("mx-3", pf, redraw);
+  var WE = makeW(function () { return 1; });
+  var BANDS = [[600, 700], [500, 600], [400, 500]];
+  var inBand = function (l, b) { return l >= b[0] && l <= b[1] - (b[1] === 700 ? 0 : 5); };
+  var ADD = {}, SUBA = { ideal: null, real: [ABS.C, ABS.M, ABS.Y] };
+  ["ideal", "real"].forEach(function (md) {
+    var P = md === "ideal" ? BANDS.map(function (b) { return arr(function (l) { return inBand(l, b) ? 1 : 0; }); })
+      : [arr(function (l) { return g(l, 625, 20); }), arr(function (l) { return g(l, 530, 35); }), arr(function (l) { return g(l, 455, 25); })];
+    var X = P.map(function (p) { return sXYZ(p, WE); });
+    var M = [[X[0][0], X[1][0], X[2][0]], [X[0][1], X[1][1], X[2][1]], [X[0][2], X[1][2], X[2][2]]];
+    var k = CB.mat.vec(CB.mat.inv(M), CB.whiteXYZ("D65", 100));
+    ADD[md] = { P: P, X: X, k: k };
+  });
+  function filt(md, i, s) {
+    if (md === "ideal") return arr(function (l) { return inBand(l, BANDS[i]) ? 1 - s : 1; });
+    var A = SUBA.real[i], d = 2 * DSOL["CMY"[i]];
+    return A.map(function (a) { return Math.pow(10, -s * d * a); });
+  }
+  function regionXYZ(mask, add, md, s) {
+    if (add) {
+      var A = ADD[md], o = [0, 0, 0];
+      for (var i = 0; i < 3; i++) if (mask & (1 << i)) for (var c = 0; c < 3; c++) o[c] += s[i] * A.k[i] * A.X[i][c] / 100;
+      return o;
+    }
+    var R = arr(function () { return 1; });
+    for (var j = 0; j < 3; j++) if (mask & (1 << j)) { var T = filt(md, j, s[j]); for (var q = 0; q < NW; q++) R[q] *= T[q]; }
+    return sXYZ(R, W65).map(function (v) { return v / 100; });
+  }
+  var off = document.createElement("canvas");
+  function draw(ctx, w, h) {
+    var P = CB.palette(), add = mode() === "add", md = model(), s = [s1() / 100, s2() / 100, s3() / 100];
+    var lay = split(w, h, 0.46), A = lay.a, S = Math.min(A.w, A.h) - 8;
+    var ox = A.x + (A.w - S) / 2, oy = A.y + (A.h - S) / 2, r = S * 0.27, d = r * 0.66;
+    var C = [[0.5 * S, 0.5 * S - d], [0.5 * S - d * 0.866, 0.5 * S + d * 0.5], [0.5 * S + d * 0.866, 0.5 * S + d * 0.5]];
+    var cols = [], xyz = [];
+    for (var m = 0; m < 8; m++) { xyz[m] = regionXYZ(m, add, md, s); cols[m] = CB.XYZ2rgb8(xyz[m]); }
+    var dpr = ctx.getTransform().a, N = Math.max(1, Math.round(S * dpr));
+    off.width = N; off.height = N;
+    var o = off.getContext("2d"), img = o.createImageData(N, N), dd = img.data, sc = S / N;
+    for (var py = 0; py < N; py++) for (var px = 0; px < N; px++) {
+      var x = (px + 0.5) * sc, y = (py + 0.5) * sc, mk = 0;
+      for (var i = 0; i < 3; i++) { var dx = x - C[i][0], dy = y - C[i][1]; if (dx * dx + dy * dy < r * r) mk |= 1 << i; }
+      var c = cols[mk], kk = (py * N + px) * 4; dd[kk] = c[0]; dd[kk + 1] = c[1]; dd[kk + 2] = c[2]; dd[kk + 3] = 255;
+    }
+    o.putImageData(img, 0, 0);
+    ctx.drawImage(off, ox, oy, S, S);
+    ctx.strokeStyle = P.border; ctx.strokeRect(ox + 0.5, oy + 0.5, S - 1, S - 1);
+    var names = add ? ["R", "G", "B"] : ["C", "M", "Y"];
+    ctx.font = "12px " + getComputedStyle(document.body).getPropertyValue("--mono"); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var lp = [[0, -1.25], [-1.1, 0.75], [1.1, 0.75]];
+    for (var t = 0; t < 3; t++) { ctx.fillStyle = add ? "#ddd" : "#333"; ctx.fillText(names[t], ox + C[t][0] + lp[t][0] * r * 0.62, oy + C[t][1] + lp[t][1] * r * 0.62); }
+    var B = cbox(lay.b, 44, 46), ser = [], center = arr(function () { return add ? 0 : 1; });
+    var spC = add ? ["#e0443e", "#2fa84f", "#2f6fe0"] : [INKCOL.C, INKCOL.M, INKCOL.Y];
+    var mx = 0;
+    if (add) { for (var a = 0; a < 3; a++) ADD[md].P[a].forEach(function (v) { mx = Math.max(mx, v * ADD[md].k[a] * s[a]); }); }
+    for (var j = 0; j < 3; j++) {
+      var sp = add ? ADD[md].P[j].map(function (v) { return v * ADD[md].k[j] * s[j]; }) : filt(md, j, s[j]);
+      for (var q = 0; q < NW; q++) center[q] = add ? center[q] + sp[q] : center[q] * sp[q];
+      ser.push({ data: series(sp, add ? 1 / (mx || 1) : 1), color: spC[j], width: 1.6, dash: [5, 3] });
+    }
+    if (add) { var cm = Math.max.apply(null, center) || 1; ser.push({ data: series(center, 1 / cm), color: P.text, width: 2.4 }); }
+    else ser.push({ data: series(center), color: P.text, width: 2.4, fill: "rgba(128,128,128,0.15)" });
+    CB.chart(ctx, B, { x: [380, 780], y: [0, 1.05], xLabel: "파장 (nm)", series: ser });
+    label(ctx, add ? "원색 SPD (정규화) · 굵은 선 = 중앙 합" : "필터 투과율 · 굵은 선 = 중앙 곱", B.x + 4, B.y - 12);
+    var Yc = xyz[7][1] * 100, xy = CB.XYZ2xy(xyz[7]);
+    CB.stat("o-mx-c", sw(cols[7]) + CB.rgb2hex(cols[7]) + (cols[7].clipped ? " (클리핑)" : ""));
+    CB.stat("o-mx-y", f1(Yc));
+    CB.stat("o-mx-xy", Yc > 0.05 ? xy[0].toFixed(3) + ", " + xy[1].toFixed(3) : "—");
+    CB.stat("o-mx-p", sw(cols[5]) + CB.rgb2hex(cols[5]) + " · Y " + f1(xyz[5][1] * 100));
+  }
+  var el = $("cv-mix");
+  cv = CB.canvas(el, draw, adaptive(el, 0.5, 1.1));
+})();
+
+/* ---------------------------------------------------------------- 2. Beer-Lambert */
+(function () {
+  var cv, redraw = function () { if (cv) cv.redraw(); };
+  var cf = function (v) { return (v / 100).toFixed(2); };
+  var rc = CB.range("bl-c", cf, redraw), rm = CB.range("bl-m", cf, redraw), ry = CB.range("bl-y", cf, redraw);
+  var rl = CB.range("bl-l", cf, redraw), logv = $("bl-log");
+  logv.addEventListener("change", redraw);
+  var chrom = chromCache();
+  function Aof(c, i) { return c[0] * ABS.C[i] + c[1] * ABS.M[i] + c[2] * ABS.Y[i]; }
+  function Tspec(c, l) { return WL.map(function (_, i) { return Math.pow(10, -l * Aof(c, i)); }); }
+  function draw(ctx, w, h) {
+    var P = CB.palette(), c = [rc() / 100, rm() / 100, ry() / 100], l = rl() / 100, lay = split(w, h, 0.56), useA = logv.checked;
+    var B = cbox(lay.a, 44, 46), ser = [], cols = [INKCOL.C, INKCOL.M, INKCOL.Y], absK = ["C", "M", "Y"];
+    for (var j = 0; j < 3; j++) {
+      if (!c[j]) continue;
+      var A = ABS[absK[j]];
+      ser.push({ data: WL.map(function (wl, i) { var a = c[j] * l * A[i]; return [wl, useA ? a : Math.pow(10, -a)]; }), color: cols[j], width: 1.5, dash: [5, 3] });
+    }
+    var T = Tspec(c, l), Atot = WL.map(function (_, i) { return l * Aof(c, i); });
+    ser.push({ data: useA ? WL.map(function (wl, i) { return [wl, Atot[i]]; }) : series(T), color: P.text, width: 2.4, fill: useA ? null : "rgba(128,128,128,0.15)" });
+    var ymax = useA ? Math.max(0.5, Math.ceil(Math.max.apply(null, Atot) * 2) / 2) : 1.05;
+    CB.chart(ctx, B, { x: [380, 780], y: [0, ymax], xLabel: "파장 (nm)", series: ser });
+    label(ctx, useA ? "흡광도 A(λ) — 합" : "투과율 T(λ) — 곱", B.x + 4, B.y - 12);
+    var Rb = lay.b, bw = Math.min(Rb.w - 56, (Rb.h - 40) * 0.8 / 0.9), box = { x: Rb.x + 40, y: Rb.y + 10, w: bw, h: bw * 0.9 / 0.8 };
+    var D = chrom(ctx, w, h, box);
+    var path = [], ls = [];
+    for (var k = 0; k <= 60; k++) ls.push(0.02 * Math.pow(200, k / 60));
+    var white = CB.XYZ2xy(W50.white);
+    ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+    ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(D.X(white[0]), D.Y(white[1]));
+    ls.forEach(function (ll) { var xy = CB.XYZ2xy(sXYZ(Tspec(c, ll), W50)); path.push([ll, xy]); ctx.lineTo(D.X(xy[0]), D.Y(xy[1])); });
+    ctx.stroke();
+    var XYZ = sXYZ(T, W50), xy0 = CB.XYZ2xy(XYZ);
+    ctx.strokeStyle = P.dim; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(D.X(white[0]), D.Y(white[1])); ctx.lineTo(D.X(xy0[0]), D.Y(xy0[1])); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(D.X(white[0]) - 5, D.Y(white[1])); ctx.lineTo(D.X(white[0]) + 5, D.Y(white[1])); ctx.moveTo(D.X(white[0]), D.Y(white[1]) - 5); ctx.lineTo(D.X(white[0]), D.Y(white[1]) + 5); ctx.stroke();
+    ctx.fillStyle = P.warn; ctx.beginPath(); ctx.arc(D.X(xy0[0]), D.Y(xy0[1]), 5, 0, 7); ctx.fill();
+    ctx.restore();
+    var lab = CB.XYZ2Lab(XYZ, W50.white), rgb = css50(XYZ);
+    var dx = xy0[0] - white[0], dy = xy0[1] - white[1], len = Math.hypot(dx, dy), dev = 0;
+    if (len > 1e-4) path.forEach(function (p) { if (p[0] <= l + 1e-9) dev = Math.max(dev, Math.abs((p[1][0] - white[0]) * dy - (p[1][1] - white[1]) * dx) / len); });
+    CB.stat("o-bl-sw", sw(rgb) + CB.rgb2hex(rgb) + (rgb.clipped ? " (클리핑)" : ""));
+    CB.stat("o-bl-lab", labStr(lab));
+    CB.stat("o-bl-xy", xy0[0].toFixed(3) + ", " + xy0[1].toFixed(3));
+    CB.stat("o-bl-dev", len > 1e-4 ? "Δxy " + dev.toFixed(4) : "—");
+  }
+  var el = $("cv-beer");
+  cv = CB.canvas(el, draw, adaptive(el, 0.5, 1.2));
+})();
+
+/* ---------------------------------------------------------------- 3. Kubelka-Munk */
+(function () {
+  var cv, redraw = function () { if (cv) cv.redraw(); };
+  var PAIRS = { by: ["blue", "yellow"], rw: ["red", "white"], kw: ["black", "white"] };
+  var pair = CB.seg("km-pair", redraw), rc = CB.range("km-c", function (v) { return (v / 100).toFixed(2); }, redraw), sa = $("km-sa");
+  sa.addEventListener("change", redraw);
+  function draw(ctx, w, h) {
+    var P = CB.palette(), pr = PAIRS[pair()], A = PAINTS[pr[0]], Bp = PAINTS[pr[1]], c = rc() / 100, useS = sa.checked;
+    var km = kmMix(A, Bp, c, useS), lin = A.R.map(function (v, i) { return (1 - c) * v + c * Bp.R[i]; });
+    var geo = A.R.map(function (v, i) { return Math.pow(v, 1 - c) * Math.pow(Bp.R[i], c); });
+    var lay = split(w, h, 0.68), B = cbox(lay.a, 44, 46);
+    CB.chart(ctx, B, { x: [380, 780], y: [0, 1], xLabel: "파장 (nm)", series: [
+      { data: series(A.R), color: P.dim, width: 1.4, dash: [6, 3] }, { data: series(Bp.R), color: P.dim, width: 1.4, dash: [2, 3] },
+      { data: series(lin), color: P.warn, width: 1.6, dash: [5, 3] }, { data: series(geo), color: P.accent2, width: 1.6, dash: [2, 2] },
+      { data: series(km), color: P.accent, width: 2.6 }] });
+    label(ctx, "반사율 R(λ)  ·  A=" + A.name + ", B=" + Bp.name, B.x + 4, B.y - 12);
+    var items = [["A " + A.name, sLab(A.R)], ["B " + Bp.name, sLab(Bp.R)], ["KM 혼합", sLab(km)], ["반사율 평균", sLab(lin)]];
+    var R2 = lay.b, cols = lay.wide ? 1 : 4, cw = (R2.w - 16) / cols, sz = Math.min(lay.wide ? (R2.h - 30) / 4 - 22 : cw - 10, 64);
+    items.forEach(function (it, i) {
+      var col = i % cols, row = Math.floor(i / cols);
+      var x = R2.x + 8 + col * cw + (cw - sz) / 2, y = R2.y + 14 + row * (sz + 24);
+      ctx.fillStyle = CB.rgb8css(lab2rgb8(it[1])); ctx.fillRect(x, y, sz, sz); ctx.strokeStyle = P.border; ctx.strokeRect(x + 0.5, y + 0.5, sz - 1, sz - 1);
+      label(ctx, it[0], x + sz / 2, y + sz + 4, P.dim, "center");
+    });
+    var Lk = sLab(km), Ll = sLab(lin);
+    CB.stat("o-km-lab", labStr(Lk));
+    CB.stat("o-km-lin", labStr(Ll));
+    CB.stat("o-km-de", CB.dE2000(Lk, Ll).toFixed(1));
+    CB.stat("o-km-s", (Bp.S / A.S).toFixed(2));
+  }
+  var el = $("cv-km");
+  cv = CB.canvas(el, draw, adaptive(el, 0.5, 1.1));
+})();
+
+/* ---------------------------------------------------------------- 4. halftone renderer */
+(function () {
+  var cv, pending = false, res = null, mapKey = "", amCache = null;
+  var schedule = function () { if (pending) return; pending = true; requestAnimationFrame(function () { pending = false; compute(); if (cv) cv.redraw(); }); };
+  var mode = CB.seg("ht-mode", schedule);
+  var lpi = CB.range("ht-lpi", function (v) { return v + " lpi"; }, schedule), ang = CB.range("ht-ang", function (v) { return v + "°"; }, schedule);
+  var cov = CB.range("ht-a", function (v) { return v + "%"; }, schedule), sig = CB.range("ht-sig", function (v) { return v + " μm"; }, schedule);
+  var dang = CB.range("ht-dang", function (v) { return v + "°"; }, schedule);
+  var N = HT.N, Tink = Math.pow(10, -0.7), Ri = Tink * Tink;
+  function compute() {
+    var a = cov() / 100, ink;
+    if (mode() === "fm") ink = fmPattern(N, 4, a, 7);
+    else {
+      var key = lpi() + "|" + ang();
+      if (key !== mapKey) { amCache = amMap(N, HT.px, lpi(), ang()); mapKey = key; }
+      ink = new Uint8Array(N * N); for (var i = 0; i < N * N; i++) ink[i] = amCache[i] < a ? 1 : 0;
+    }
+    var r = scatterSim(ink, N, Tink, sig() / HT.px);
+    r.ink = ink; res = r;
+    var md = 1 - r.a * (1 - Ri), app = (1 - r.Rm) / (1 - Ri);
+    CB.stat("o-ht-area", (r.a * 100).toFixed(1) + "%");
+    CB.stat("o-ht-r", md.toFixed(3) + " / " + r.Rm.toFixed(3));
+    CB.stat("o-ht-app", (app * 100).toFixed(1) + "% (+" + ((app - r.a) * 100).toFixed(1) + ")");
+    CB.stat("o-ht-n", solveN(r.a, Ri, r.Rm).toFixed(2));
+    var dt = dang() * Math.PI / 180, Pmm = 25.4 / lpi();
+    CB.stat("o-ht-moire", mode() !== "moire" ? "—" : dt < 1e-6 ? "∞ (위상 정렬)" : (Pmm / (2 * Math.sin(dt / 2))).toFixed(2) + " mm");
+  }
+  var off = document.createElement("canvas"), PRIM = [0, 1, 2, 3].map(function (m) { return lab2rgb8(sLab(NP4[m])); });
+  function grayImg(vals, toR) {
+    off.width = N; off.height = N;
+    var o = off.getContext("2d"), img = o.createImageData(N, N), d = img.data;
+    for (var i = 0; i < N * N; i++) { var v = Math.round(255 * CB.srgbEncode(CB.clamp(toR(vals[i]), 0, 1))); d[4 * i] = d[4 * i + 1] = d[4 * i + 2] = v; d[4 * i + 3] = 255; }
+    o.putImageData(img, 0, 0);
+    return off;
+  }
+  function draw(ctx, w, h) {
+    var P = CB.palette();
+    if (!res) compute();
+    if (mode() === "moire") {
+      var a = cov() / 100, pxum = 12, per = 25400 / lpi(), t1 = ang() * Math.PI / 180, t2 = (ang() + dang()) * Math.PI / 180;
+      var W = Math.floor(w), H = Math.floor(h), mo = document.createElement("canvas"); mo.width = W; mo.height = H;
+      var o = mo.getContext("2d"), img = o.createImageData(W, H), d = img.data;
+      for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+        var X = (x + 0.5) * pxum, Y = (y + 0.5) * pxum;
+        var m = (amRank(X, Y, per, t1) < a ? 1 : 0) | (amRank(X + 37, Y + 11, per, t2) < a ? 2 : 0), c = PRIM[m], k = (y * W + x) * 4;
+        d[k] = c[0]; d[k + 1] = c[1]; d[k + 2] = c[2]; d[k + 3] = 255;
+      }
+      o.putImageData(img, 0, 0); ctx.drawImage(mo, 0, 0, w, h);
+      ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(6, 6, 236, 22);
+      label(ctx, "C " + ang() + "° · M " + (ang() + dang()) + "° · 12 μm/px", 12, 10, "#fff");
+      return;
+    }
+    var lay = split(w, h, 0.5), panels = [[lay.a, "잉크 패턴 (기하학적 반사율)", res.ink, function (v) { return v ? Ri : 1; }], [lay.b, "종이 속 빛 번짐 후 반사율", res.R, function (v) { return v; }]];
+    panels.forEach(function (pn) {
+      var r = pn[0], S = Math.min(r.w - 16, r.h - 30), x = r.x + (r.w - S) / 2, y = r.y + 6;
+      var im = grayImg(pn[2], pn[3]);
+      ctx.imageSmoothingEnabled = false; ctx.drawImage(im, x, y, S, S); ctx.imageSmoothingEnabled = true;
+      ctx.strokeStyle = P.border; ctx.strokeRect(x + 0.5, y + 0.5, S - 1, S - 1);
+      label(ctx, pn[1], x + S / 2, y + S + 6, P.dim, "center");
+    });
+  }
+  var el = $("cv-ht");
+  compute();
+  cv = CB.canvas(el, draw, adaptive(el, 0.5, 1.9));
+})();
+
+/* ---------------------------------------------------------------- 5. TVI curves */
+(function () {
+  var cv, redraw = function () { if (cv) cv.redraw(); };
+  var rd = CB.range("tv-d", function (v) { return v.toFixed(2); }, redraw), rn = CB.range("tv-n", function (v) { return v.toFixed(2); }, redraw);
+  var rm = CB.range("tv-m", function (v) { return v.toFixed(1) + "%"; }, redraw);
+  function model(a, Ri, n, gm) { var am = CB.clamp(a + 4 * gm * a * (1 - a), 0, 1); return ynR(am, Ri, n); }
+  function draw(ctx, w, h) {
+    var P = CB.palette(), Ds = rd(), n = rn(), gm = rm() / 100, Ri = Math.pow(10, -Ds);
+    var as = []; for (var k = 0; k <= 100; k++) as.push(k / 100);
+    var md = as.map(function (a) { return [a * 100, 1 - a * (1 - Ri)]; }), yn = as.map(function (a) { return [a * 100, ynR(a, Ri, n)]; }), tot = as.map(function (a) { return [a * 100, model(a, Ri, n, gm)]; });
+    var tv = function (R, a) { return ((1 - R) / (1 - Ri) - a) * 100; };
+    var lay = split(w, h, 0.5), B1 = cbox(lay.a, 46, 46), B2 = cbox(lay.b, 46, 46);
+    CB.chart(ctx, B1, { x: [0, 100], y: [0, 1], xLabel: "명목 면적률 a (%)", series: [{ data: md, color: P.dim, width: 1.6, dash: [5, 3] }, { data: yn, color: P.accent2, width: 2 }, { data: tot, color: P.accent, width: 2.4 }] });
+    label(ctx, "R / R_p", B1.x + 4, B1.y - 12);
+    var t1 = as.map(function (a, i) { return [a * 100, tv(yn[i][1], a)]; }), t2 = as.map(function (a, i) { return [a * 100, tv(tot[i][1], a)]; });
+    var ymax = Math.max(10, Math.ceil(Math.max.apply(null, t2.map(function (p) { return p[1]; })) / 5) * 5 + 5);
+    CB.chart(ctx, B2, { x: [0, 100], y: [0, ymax], xLabel: "명목 면적률 a (%)", series: [{ data: t1, color: P.accent2, width: 2 }, { data: t2, color: P.accent, width: 2.4 }], vlines: [{ x: 50, color: P.faint }] });
+    label(ctx, "TVI (%p)", B2.x + 4, B2.y - 12);
+    var at = function (a) { return tv(model(a, Ri, n, gm), a); };
+    CB.stat("o-tv-25", at(0.25).toFixed(1) + "%");
+    CB.stat("o-tv-50", at(0.5).toFixed(1) + "% (광학 " + tv(ynR(0.5, Ri, n), 0.5).toFixed(1) + ")");
+    CB.stat("o-tv-75", at(0.75).toFixed(1) + "%");
+    CB.stat("o-tv-d50", (-Math.log10(model(0.5, Ri, n, gm))).toFixed(2));
+  }
+  var el = $("cv-tvi");
+  cv = CB.canvas(el, draw, adaptive(el, 0.45, 1.2));
+})();
+
+/* ---------------------------------------------------------------- 6. YNSN + gamut */
+(function () {
+  var cvS, cvG, timer = 0, gamN = -1, ptsPrint = null;
+  var ptsSRGB = cubeSurface(24, function (v) { return linLab(v); });
+  var both = function () { if (cvS) cvS.redraw(); if (cvG) cvG.redraw(); };
+  var pf = function (v) { return v + "%"; };
+  var rc = CB.range("nu-c", pf, both), rm = CB.range("nu-m", pf, both), ry = CB.range("nu-y", pf, both), rk = CB.range("nu-k", pf, both);
+  var rn = CB.range("nu-n", function (v) { return v.toFixed(2); }, function () { if (cvS) cvS.redraw(); clearTimeout(timer); timer = setTimeout(function () { if (cvG) cvG.redraw(); }, 160); });
+  var view = CB.seg("nu-view", both), rL = CB.range("nu-L", function (v) { return v; }, both);
+  var NM = ["W", "C", "M", "C+M", "Y", "C+Y", "M+Y", "C+M+Y"];
+  function mname(m) { return (NM[m & 7] === "W" && (m & 8) ? "" : NM[m & 7]) + (m & 8 ? (m & 7 ? "+K" : "K") : ""); }
+  function cur() { return [rc() / 100, rm() / 100, ry() / 100, rk() / 100]; }
+  function drawS(ctx, w, h) {
+    var P = CB.palette(), cv = cur(), n = rn(), R = ynsn(cv, n), R1 = ynsn(cv, 1), lab = sLab(R), rgb = lab2rgb8(lab);
+    var sz = Math.min(76, h * 0.35), B = { x: 50, y: 18, w: w - 50 - 24 - sz - 10, h: h - 18 - 46 };
+    CB.chart(ctx, B, { x: [380, 780], y: [0, 1], xLabel: "파장 (nm)", series: [{ data: series(PAPER), color: P.faint, width: 1.2, dash: [2, 3] }, { data: series(R1), color: P.dim, width: 1.4, dash: [5, 3] }, { data: series(R), color: P.accent, width: 2.6 }] });
+    label(ctx, "반사율 R(λ): YNSN n=" + n.toFixed(2) + " · 점선 n=1 · 점점선 종이", B.x + 4, B.y - 14);
+    var x = w - sz - 14, y = B.y + 4;
+    ctx.fillStyle = CB.rgb8css(rgb); ctx.fillRect(x, y, sz, sz); ctx.strokeStyle = P.border; ctx.strokeRect(x + 0.5, y + 0.5, sz - 1, sz - 1);
+    var w8 = demichel(cv), best = 0; for (var m = 1; m < 16; m++) if (w8[m] > w8[best]) best = m;
+    var inside = inSRGB(lab);
+    CB.stat("o-nu-lab", labStr(lab));
+    CB.stat("o-nu-rgb", sw(rgb) + CB.rgb2hex(rgb) + (inside ? "" : " (sRGB 밖, 클리핑)"));
+    CB.stat("o-nu-tac", Math.round((cv[0] + cv[1] + cv[2] + cv[3]) * 100) + "%");
+    CB.stat("o-nu-w", mname(best) + " " + (w8[best] * 100).toFixed(1) + "%");
+  }
+  function gamut() {
+    var n = rn();
+    if (n !== gamN) { ptsPrint = cubeSurface(24, function (v) { return printLab([v[0], v[1], v[2]], n); }); gamN = n; }
+  }
+  function drawG(ctx, w, h) {
+    var P = CB.palette(), slice = view() === "slice", L0 = rL();
+    gamut();
+    var bins = 72, bp = hueBoundary(ptsPrint, bins, slice ? L0 : null, 2.5), bs = hueBoundary(ptsSRGB, bins, slice ? L0 : null, 2.5);
+    var S = Math.min(w - 20, h - 20), cx = w / 2, cy = h / 2, sc = S / 2 / 130;
+    var X = function (a) { return cx + a * sc; }, Y = function (b) { return cy - b * sc; };
+    ctx.save(); ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+    ctx.strokeStyle = P.grid; ctx.fillStyle = P.dim; ctx.lineWidth = 1;
+    for (var v = -120; v <= 120; v += 40) { ctx.beginPath(); ctx.moveTo(X(v), Y(-125)); ctx.lineTo(X(v), Y(125)); ctx.moveTo(X(-125), Y(v)); ctx.lineTo(X(125), Y(v)); ctx.stroke(); }
+    ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(X(-125), Y(0)); ctx.lineTo(X(125), Y(0)); ctx.moveTo(X(0), Y(-125)); ctx.lineTo(X(0), Y(125)); ctx.stroke();
+    ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("+a*", X(108), Y(-2)); ctx.fillText("+b*", X(3), Y(125));
+    ctx.fillText(slice ? "L* = " + L0 + " ± 2.5 단면" : "a*b* 투영 (모든 L*)", X(-125), Y(125));
+    function poly(b, color, dash, fill) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash || []); ctx.beginPath();
+      var started = false, first = null;
+      for (var k = 0; k <= bins; k++) {
+        var kk = k % bins, C = b[kk], h2 = (kk + 0.5) / bins * 2 * Math.PI;
+        if (C <= 0) { started = false; continue; }
+        var px = X(C * Math.cos(h2)), py = Y(C * Math.sin(h2));
+        if (started) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+        started = true;
+      }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    poly(bs, P.text, [5, 4]); poly(bp, P.accent);
+    var lab = sLab(ynsn(cur(), rn()));
+    for (var m = 0; m < 8; m++) { var L = sLab(NP4[m]); if (slice && Math.abs(L[0] - L0) > 6) continue; ctx.fillStyle = CB.rgb8css(lab2rgb8(L)); ctx.strokeStyle = P.text; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X(L[1]), Y(L[2]), 4.5, 0, 7); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = P.warn; ctx.strokeStyle = P.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(lab[1]), Y(lab[2]), 6, 0, 7); ctx.stroke(); ctx.fill();
+    ctx.restore();
+  }
+  var elS = $("cv-nu-s"), elG = $("cv-nu-g");
+  cvS = CB.canvas(elS, drawS, { aspect: 0.42, minHeight: 200, maxHeight: 300 });
+  cvG = CB.canvas(elG, drawG, { aspect: 0.9, maxHeight: 440 });
+})();
+
+/* ---------------------------------------------------------------- 7. separation */
+(function () {
+  var cv, redraw = function () { if (cv) cv.redraw(); };
+  var rr = CB.range("sp-r", String, redraw), rg = CB.range("sp-g", String, redraw), rb = CB.range("sp-b", String, redraw);
+  var rgcr = CB.range("sp-gcr", function (v) { return v + "%"; }, redraw), rtac = CB.range("sp-tac", function (v) { return v + "%"; }, redraw);
+  var PRE = { gray: [128, 128, 128], skin: [224, 172, 140], green: [0, 170, 80], blue: [90, 170, 230], dark: [40, 40, 40] };
+  CB.seg("sp-pre", function (v) { var c = PRE[v]; rr.set(c[0]); rg.set(c[1]); rb.set(c[2]); });
+  var NN = 1.7, pct = function (v) { return v.map(function (x) { return Math.round(x * 100); }).join("/"); };
+  function draw(ctx, w, h) {
+    var P = CB.palette(), rgb = [rr(), rg(), rb()], gcr = rgcr() / 100, tac = rtac() / 100;
+    var tgt = rgb8Lab(rgb), nv = limitTAC(naiveSep(rgb, gcr), tac), mv = modelSep(tgt, gcr, NN, tac);
+    var ln = printLab(nv, NN), lm = printLab(mv, NN);
+    var lay = split(w, h, 0.5), A = lay.a, items = [["목표 (sRGB)", rgb], ["순진한 공식", lab2rgb8(ln)], ["모델 역변환", lab2rgb8(lm)]];
+    var cw = (A.w - 16) / 3, sz = Math.min(cw - 10, A.h - 50);
+    items.forEach(function (it, i) {
+      var x = A.x + 8 + i * cw + (cw - sz) / 2, y = A.y + (A.h - sz - 24) / 2;
+      ctx.fillStyle = CB.rgb8css(it[1]); ctx.fillRect(x, y, sz, sz); ctx.strokeStyle = P.border; ctx.strokeRect(x + 0.5, y + 0.5, sz - 1, sz - 1);
+      label(ctx, it[0], x + sz / 2, y + sz + 6, P.dim, "center");
+    });
+    var B = cbox(lay.b, 40, 40), inks = ["C", "M", "Y", "K"], gw = B.w / 4;
+    CB.chart(ctx, B, { x: [0, 4], y: [0, 100], xTicks: [], series: [] });
+    inks.forEach(function (k, i) {
+      [nv, mv].forEach(function (v, j) {
+        var bw = gw * 0.32, x = B.x + i * gw + gw * 0.16 + j * (bw + gw * 0.04), hh = v[i] * B.h;
+        ctx.fillStyle = INKCOL[k]; ctx.globalAlpha = j ? 1 : 0.45; ctx.fillRect(x, B.y + B.h - hh, bw, hh); ctx.globalAlpha = 1;
+      });
+      label(ctx, k, B.x + i * gw + gw / 2, B.y + B.h + 6, P.text, "center");
+    });
+    label(ctx, "잉크 % — 옅은 막대: 순진한 공식, 진한 막대: 모델", B.x + 4, B.y - 12);
+    CB.stat("o-sp-tgt", labStr(tgt));
+    CB.stat("o-sp-nv", pct(nv) + " · " + CB.dE2000(tgt, ln).toFixed(1));
+    CB.stat("o-sp-md", pct(mv) + " · " + CB.dE2000(tgt, lm).toFixed(1));
+    CB.stat("o-sp-tac", Math.round((mv[0] + mv[1] + mv[2] + mv[3]) * 100) + "% (순진: " + Math.round((nv[0] + nv[1] + nv[2] + nv[3]) * 100) + "%)");
+  }
+  var el = $("cv-sep");
+  cv = CB.canvas(el, draw, adaptive(el, 0.45, 1.0));
+})();
+})();
+</script>
+</body>
+</html>

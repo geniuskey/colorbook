@@ -1,0 +1,1325 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>UI와 데이터 시각화의 색 · ColorBook</title>
+<meta name="description" content="대시보드·GUI·플롯을 만드는 엔지니어를 위한 색 설계: WCAG 대비비와 APCA, Machado 색각 이상 시뮬레이션, 컬러맵의 명도 단조성과 ΔE00 균일성, 범주형 팔레트 진단과 다크 모드 조정을 계산으로 다룬다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/dataviz.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="UI와 데이터 시각화의 색 · ColorBook">
+<meta property="og:description" content="대시보드·GUI·플롯을 만드는 엔지니어를 위한 색 설계: WCAG 대비비와 APCA, Machado 색각 이상 시뮬레이션, 컬러맵의 명도 단조성과 ΔE00 균일성, 범주형 팔레트 진단과 다크 모드 조정을 계산으로 다룬다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/dataviz.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"UI와 데이터 시각화의 색","name":"UI와 데이터 시각화의 색 · ColorBook","url":"https://colorbook.euiyun.com/chapters/dataviz.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/dataviz.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":18,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"대시보드·GUI·플롯을 만드는 엔지니어를 위한 색 설계: WCAG 대비비와 APCA, Machado 색각 이상 시뮬레이션, 컬러맵의 명도 단조성과 ΔE00 균일성, 범주형 팔레트 진단과 다크 모드 조정을 계산으로 다룬다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"18 UI와 데이터 시각화의 색","item":"https://colorbook.euiyun.com/chapters/dataviz.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sim-view canvas { touch-action: pan-y; }
+  .ctrl input[type="color"] { width: 100%; height: 36px; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
+  .ctrl textarea { font-family: var(--mono); font-size: 13px; line-height: 1.5; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); resize: vertical; min-height: 84px; width: 100%; }
+  .hexout { font-family: var(--mono); font-size: 12px; line-height: 1.6; padding: 10px 18px 14px; color: var(--text-dim); word-break: break-all; border-top: 1px solid var(--border); }
+  .hexout b { color: var(--text); font-weight: 600; }
+  .sw { display: inline-block; width: .95em; height: .95em; border-radius: 3px; vertical-align: -.1em; border: 1px solid var(--border); margin-right: 2px; }
+</style>
+</head>
+<body data-chapter="dataviz">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 18</div>
+    <h1>UI와 데이터 시각화의 색</h1>
+    <p class="lead">대시보드, 측정 GUI, 시뮬레이션 결과 플롯의 색은 장식이 아니라 <strong>데이터를 눈으로 전달하는 신호 채널</strong>이다. 채널의 품질은 취향으로 정하지 않는다. 텍스트는 휘도 대비로, 컬러맵은 명도의 단조성과 인접 색차의 균일성으로, 범주형 팔레트는 색각 이상 시뮬레이션 뒤에도 남는 최소 색차로 측정한다. 이 장은 그 기준들을 앞 장들의 측색 도구(상대 휘도, CIELAB, ΔE00, OKLab) 위에서 계산 가능한 형태로 정리한다.</p>
+    <ul class="objectives">
+      <li>WCAG 2.x 상대 휘도와 대비비를 계산하고 4.5:1·3:1·7:1 기준의 의미와 한계(극성, 다크 모드, 폰트 굵기)를 설명한다.</li>
+      <li>APCA의 Lc 값이 WCAG 대비비와 어떻게 다르게 행동하는지 실제 수치로 비교한다.</li>
+      <li>Machado(2009) 행렬을 선형 sRGB에 적용해 1형·2형·3형 색각을 시뮬레이션하고, 감마 인코딩 값에 적용하면 왜 틀리는지 보인다.</li>
+      <li>jet·무지개 컬러맵의 명도 비단조성과 ΔE00 불균일을 계산으로 진단하고, OKLCh 경로로 지각 균일 컬러맵을 직접 설계한다.</li>
+      <li>범주형 팔레트를 최소 쌍별 ΔE00로 평가·최적화하고, 다크 모드와 UI 상태 색에 적용한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="channel">
+    <h2>색은 측정 가능한 신호 채널이다</h2>
+    <p>그래프에서 색은 값(연속량)이나 범주(이산량)를 부호화한다. 이 부호화가 제대로 전달되는지는 세 가지 물리·지각량으로 판정할 수 있다. 첫째, <span class="term">휘도 대비</span><span class="en">(luminance contrast)</span> — 글자와 얇은 선이 배경에서 분리되는가. 둘째, <span class="term">지각 색차</span><span class="en">(perceptual color difference)</span> — 인접한 두 값 또는 두 범주의 색이 얼마나 다르게 보이는가(<a href="uniform.html">7장</a>의 ΔE00). 셋째, <span class="term">관측자 강건성</span><span class="en">(observer robustness)</span> — 색각이 다른 관측자에게도 그 차이가 남는가.</p>
+    <p>세 기준이 모두 필요한 이유는 사람의 시각 채널이 대칭적이지 않기 때문이다. <a href="vision.html">2장</a>에서 본 반대색 처리에서 무채색(명도) 채널은 공간 해상도가 가장 높고, 적–녹·황–청 채널은 해상도가 낮다. 따라서 가는 글자·얇은 선·작은 마커의 판독성은 거의 <strong>명도 차이</strong>로 결정되고, 색상 차이만으로 구분한 정보는 작은 크기에서 쉽게 사라진다. 또 남성의 약 8%가 적–녹 채널이 약하거나 없다. 그 사람들에게 남는 정보도 주로 명도와 청–황 방향의 차이다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="명도, 채도, 색상의 세 축으로 같은 데이터를 부호화한 띠 비교">
+        <defs>
+          <linearGradient id="g-L"><stop offset="0" stop-color="#1b1b1b"/><stop offset="1" stop-color="#f2f2f2"/></linearGradient>
+          <linearGradient id="g-C"><stop offset="0" stop-color="#8e8e8e"/><stop offset="1" stop-color="#d4473c"/></linearGradient>
+          <linearGradient id="g-h"><stop offset="0" stop-color="#da8282"/><stop offset=".25" stop-color="#a3a44e"/><stop offset=".5" stop-color="#2bb3b9"/><stop offset=".75" stop-color="#9d92de"/><stop offset="1" stop-color="#da8282"/></linearGradient>
+        </defs>
+        <text x="40" y="44" class="t">명도 L 만 변화</text>
+        <rect x="200" y="26" width="440" height="34" rx="5" fill="url(#g-L)"/>
+        <text x="660" y="40" class="t-acc">공간 해상도 최고</text>
+        <text x="660" y="58" class="t-dim">순서가 자명함</text>
+        <text x="40" y="134" class="t">채도 C 만 변화</text>
+        <rect x="200" y="116" width="440" height="34" rx="5" fill="url(#g-C)"/>
+        <text x="660" y="130" class="t">해상도 중간</text>
+        <text x="660" y="148" class="t-dim">단계 수가 적음</text>
+        <text x="40" y="224" class="t">색상 h 만 변화</text>
+        <rect x="200" y="206" width="440" height="34" rx="5" fill="url(#g-h)"/>
+        <text x="660" y="220" class="t">해상도 낮음</text>
+        <text x="660" y="238" class="t-dim">순서 없음 → 범주용</text>
+        <text x="40" y="62" class="t-dim">(C=0)</text>
+        <text x="40" y="152" class="t-dim">(L 고정)</text>
+        <text x="40" y="242" class="t-dim">(OKLab L≈0.70)</text>
+        <line x1="200" y1="272" x2="640" y2="272" class="s-axis"/>
+        <text x="200" y="290" class="t-mono">0</text><text x="628" y="290" class="t-mono">1</text>
+        <text x="420" y="290" text-anchor="middle" class="t-dim">부호화할 데이터 값</text>
+      </svg>
+      <figcaption><b>그림 18-1.</b> 같은 데이터 값을 색의 세 좌표 중 하나로만 부호화한 경우. 색상 띠는 OKLCh에서 L=0.70, C=0.11로 고정해 계산한 순환 경로다(CIELAB L*는 63.5–66.8). 명도 축만이 크기 순서를 자연스럽게 전달하고, 가장 작은 공간 주파수까지 살아남는다.</figcaption>
+    </figure>
+
+    <p>이 장의 계산은 모두 sRGB(IEC 61966-2-1) 디스플레이를 가정하고, 색차는 D65 백색 기준 CIELAB의 CIEDE2000(CIE 015:2018, ISO/CIE 11664-6)으로 잰다. 즉 화면의 8비트 코드값 \(\to\) 디코딩 \(\to\) 선형 RGB \(\to\) XYZ \(\to\) L*a*b*라는 <a href="transfer.html">6장</a>·<a href="uniform.html">7장</a>의 파이프라인이 그대로 쓰인다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>색각 유형</th><th>원추세포</th><th>남성 유병률(대략)</th><th>혼동이 큰 축</th><th>이 장의 시뮬레이션</th></tr></thead>
+      <tbody>
+        <tr><td>1형 2색각 / 1형 이상 3색각 <span class="en">(protanopia / protanomaly)</span></td><td>L 결손/이상</td><td class="num">≈1% / ≈1%</td><td>적–녹, 빨강이 어둡게 보임</td><td>Machado P, severity 1.0</td></tr>
+        <tr><td>2형 2색각 / 2형 이상 3색각 <span class="en">(deuteranopia / deuteranomaly)</span></td><td>M 결손/이상</td><td class="num">≈1% / ≈5%</td><td>적–녹</td><td>Machado D, severity 1.0</td></tr>
+        <tr><td>3형 <span class="en">(tritanopia)</span></td><td>S 결손</td><td class="num">≈0.01% 미만</td><td>청–황</td><td>Machado T, severity 1.0</td></tr>
+      </tbody>
+    </table></div>
+    <p>유병률은 북유럽계 집단의 조사 수치로, 적–녹 색각 이상 전체가 남성 약 8%, 여성 약 0.5%다. 집단마다 다르지만 "사용자 열 명 중 한 명 가까이"라는 규모는 설계 기준으로 삼기에 충분하다.</p>
+    <div class="callout tip"><strong>공학자 관점</strong>
+      <p>색 설계 리뷰를 "보기 좋은가"에서 "숫자가 기준을 넘는가"로 바꾸면 논쟁이 사라진다. 이 장에서 쓰는 지표는 다섯 개다: WCAG 대비비, APCA Lc, 컬러맵 L* 반전 수, 인접 ΔE00의 변동계수(CV), 팔레트의 CVD 후 최소 쌍별 ΔE00. 모두 CI에서 자동 검사할 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="wcag">
+    <h2>텍스트 대비: WCAG 2.x 대비비</h2>
+    <p>WCAG 2.x<span class="en">(Web Content Accessibility Guidelines, W3C)</span>는 텍스트 판독성을 <span class="term">상대 휘도</span><span class="en">(relative luminance)</span>의 비로 정의한다. 상대 휘도는 sRGB 코드값을 디코딩한 선형 값의 가중합, 즉 BT.709/sRGB 원색의 \(Y\) 행이다.</p>
+    <div class="formula">$$Y = 0.2126\,R_{\text{lin}} + 0.7152\,G_{\text{lin}} + 0.0722\,B_{\text{lin}},\qquad C_{\text{lin}} = \begin{cases} C/12.92 & C \le 0.04045 \\ \left(\dfrac{C+0.055}{1.055}\right)^{2.4} & C > 0.04045\end{cases}$$
+    $$\text{CR} = \frac{Y_{\max} + 0.05}{Y_{\min} + 0.05},\qquad 1 \le \text{CR} \le 21$$
+    <div class="where">여기서 \(C = \text{코드값}/255\). WCAG 2.x 원문은 문턱값을 0.03928로 적었으나 IEC 61966-2-1의 0.04045와 8비트 코드에서 결과 차이는 없다. 분모·분자의 0.05는 백색 Y=1 대비 5%의 주변 반사광(플레어)을 더한 것이다.</div></div>
+    <p>대비비는 플레어를 더한 휘도의 <strong>비</strong>이므로 로그 휘도 축 위의 거리다. 흑(Y=0)과 백(Y=1)이 1.05/0.05 = 21:1을 만든다. 기준값은 다음과 같다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>WCAG 2.x 성공 기준</th><th>대상</th><th class="num">최소 대비비</th></tr></thead>
+      <tbody>
+        <tr><td>1.4.3 대비(최소), AA</td><td>본문 텍스트</td><td class="num">4.5 : 1</td></tr>
+        <tr><td>1.4.3 대비(최소), AA</td><td>대형 텍스트: 18 pt(24 px) 이상, 또는 14 pt(약 18.7 px) 이상 굵게</td><td class="num">3 : 1</td></tr>
+        <tr><td>1.4.6 대비(강화), AAA</td><td>본문 텍스트 / 대형 텍스트</td><td class="num">7 : 1 / 4.5 : 1</td></tr>
+        <tr><td>1.4.11 비텍스트 대비, AA (2.1부터)</td><td>UI 컴포넌트 경계, 상태 표시, 그래프의 필수 요소</td><td class="num">3 : 1</td></tr>
+        <tr><td>1.4.1 색의 사용, A</td><td>색만으로 정보를 전달하지 말 것</td><td class="num">—</td></tr>
+      </tbody>
+    </table></div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="플레어를 더한 휘도의 로그 축 위에서 대비비 기준을 나타낸 그림">
+        <line x1="60" y1="120" x2="740" y2="120" class="s-axis"/>
+        <!-- log10(Y+0.05) from log10(0.05)=-1.301 to log10(1.05)=0.0212 ; x = 60 + 680*(v+1.301)/1.3222 -->
+        <circle cx="60" cy="120" r="7" fill="#000" stroke="var(--axis)"/>
+        <text x="60" y="146" text-anchor="middle" class="t-mono">Y=0</text>
+        <circle cx="740" cy="120" r="7" fill="#fff" stroke="var(--axis)"/>
+        <text x="740" y="146" text-anchor="middle" class="t-mono">Y=1</text>
+        <!-- white bg: 4.5 → Y = 1.05/4.5-0.05 = 0.1833 ; log10(0.2333)=-0.632 → x=404 -->
+        <line x1="404" y1="70" x2="404" y2="130" class="s-acc"/>
+        <text x="404" y="62" text-anchor="middle" class="t-acc">4.5:1 (Y=0.183, #767676)</text>
+        <!-- 3:1 → Y=0.30 ; log10(.35)=-0.456 → x=495 -->
+        <line x1="495" y1="92" x2="495" y2="130" class="s-line"/>
+        <text x="520" y="88" class="t">3:1 (Y=0.300)</text>
+        <!-- 7:1 → Y=0.10 ; log10(.15)=-0.824 → x=305 -->
+        <line x1="305" y1="92" x2="305" y2="130" class="s-line"/>
+        <text x="300" y="88" text-anchor="end" class="t">7:1 (Y=0.100)</text>
+        <path d="M404 170 L740 170" class="s-acc" marker-end="url(#ar18a)"/>
+        <defs><marker id="ar18a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs>
+        <text x="572" y="192" text-anchor="middle" class="t-dim">흰 배경과 log 거리 = log₁₀(4.5)</text>
+        <text x="400" y="230" text-anchor="middle" class="t-dim">가로축: log₁₀(Y + 0.05) — 대비비는 이 축 위의 거리의 지수</text>
+      </svg>
+      <figcaption><b>그림 18-2.</b> 흰 배경(Y=1)에서 AA 본문(4.5:1)을 통과하려면 글자 휘도가 Y ≤ 0.1833이어야 한다. 이는 회색 #767676(Y=0.181, 4.54:1)에 해당한다. #777777은 4.48:1로 아깝게 떨어진다.</figcaption>
+    </figure>
+
+    <p>아래 검사기는 <code>CB.relLum</code>, <code>CB.contrast</code>로 대비비를 계산하고, 같은 쌍의 APCA Lc 값(다음 절)도 함께 보여 준다. 아래쪽 두 그래프는 글자색을 고정하고 배경을 회색 0→255로 훑었을 때 두 지표가 어떻게 변하는지를 그린다.</p>
+
+    <div class="sim" id="sim-contrast">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>대비 검사기: WCAG 대비비와 APCA Lc</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-contrast"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>글자색 <output id="ct-fg-out"></output></span><input type="color" id="ct-fg" value="#767676"></label>
+          <label class="ctrl"><span>배경색 <output id="ct-bg-out"></output></span><input type="color" id="ct-bg" value="#ffffff"></label>
+          <div class="ctrl"><span>예제</span><div class="seg" id="ct-pre">
+            <button data-value="#767676|#ffffff" class="on">회색/흰</button><button data-value="#000000|#777777">검정/회색</button><button data-value="#ffffff|#777777">흰/회색</button><button data-value="#ffffff|#e69f00">흰/주황</button><button data-value="#000000|#e69f00">검정/주황</button><button data-value="#0072b2|#121212">파랑/다크</button>
+          </div></div>
+          <button class="btn" id="ct-swap">글자 ↔ 배경 교환</button>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">WCAG 대비비</span><span class="v" id="o-ct-ratio">—</span></div>
+        <div class="stat"><span class="k">AA 본문 4.5</span><span class="v" id="o-ct-aa">—</span></div>
+        <div class="stat"><span class="k">AA 대형·UI 3.0</span><span class="v" id="o-ct-aal">—</span></div>
+        <div class="stat"><span class="k">AAA 본문 7.0</span><span class="v" id="o-ct-aaa">—</span></div>
+        <div class="stat"><span class="k">APCA Lc</span><span class="v" id="o-ct-lc">—</span></div>
+        <div class="stat"><span class="k">Y 글자 / 배경</span><span class="v" id="o-ct-y">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① "검정/회색"과 "흰/회색"을 비교하라. WCAG는 검정 글자(4.69)가 흰 글자(4.48)보다 낫다고 판정하지만, APCA는 흰 글자(Lc −76.6)가 검정 글자(Lc 33.0)보다 훨씬 읽기 쉽다고 본다. 화면의 견본을 직접 비교해 보라. ② 아래 그래프에서 검정·흰 글자 곡선이 교차하는 배경 회색 값을 읽어라. WCAG는 코드값 118 부근, APCA는 164 부근이다. ③ "파랑/다크"는 3.61:1로 대형 텍스트만 통과한다 — 같은 #0072b2가 흰 배경에서는 5.19:1이다.</div>
+    </div>
+
+    <div class="callout warn"><strong>흔한 실수</strong>
+      <p>(1) 감마 인코딩된 코드값의 평균이나 HSL의 L로 "밝기"를 비교하는 것. HSL L은 #0000ff와 #ffff00을 같은 50%로 주지만 상대 휘도는 0.072 대 0.928, L*는 32.3 대 97.1이다. (2) 반투명 전경색을 그대로 넣는 것. 대비는 알파 합성 <strong>후</strong>의 불투명 색으로 계산해야 하고, 합성 자체도 원칙적으로 선형광에서 해야 한다(브라우저의 기본 합성은 인코딩 값에서 일어나므로 실제 화면 색을 기준으로 잰다). (3) 안티앨리어싱된 1 px 선이나 얇은 서체는 실제로 표시되는 대비가 계산값보다 낮다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="apca">
+    <h2>대비비의 한계와 APCA</h2>
+    <p>WCAG 2.x 공식은 단순하고 재현 가능하다는 큰 장점이 있지만, 지각과 어긋나는 세 가지 구조적 한계가 있다.</p>
+    <ul>
+      <li><strong>극성 무시</strong><span class="en">(polarity)</span>: CR은 두 휘도의 비이므로 글자/배경을 바꿔도 같다. 그러나 밝은 배경의 어두운 글자와 어두운 배경의 밝은 글자는 같은 비에서도 판독성이 다르다(빛 번짐, 순응 상태 차이).</li>
+      <li><strong>어두운 영역의 과대평가</strong>: +0.05 플레어 항이 고정되어 있어 어두운 색끼리의 비가 실제 지각 차이보다 크게 나온다. 다크 모드에서 "기준은 통과했는데 읽기 힘든" 조합이 생기는 주원인이다.</li>
+      <li><strong>공간 주파수 무시</strong>: 폰트 크기와 굵기는 "대형 텍스트" 하나의 이진 구분으로만 반영된다. 실제 필요한 대비는 획 두께에 따라 연속적으로 변한다.</li>
+    </ul>
+    <p>WCAG 3의 후보로 개발 중인 <span class="term">APCA</span><span class="en">(Accessible Perceptual Contrast Algorithm)</span>는 휘도에 극성별로 다른 지수를 적용한 차이로 <span class="term">명도 대비 Lc</span><span class="en">(lightness contrast)</span>를 정의한다. 아래는 공개 구현 0.0.98G-4g의 상수 그대로다.</p>
+    <div class="formula">$$Y_s = 0.2126729\,(R/255)^{2.4} + 0.7151522\,(G/255)^{2.4} + 0.0721750\,(B/255)^{2.4},\qquad Y_s \leftarrow Y_s + (0.022 - Y_s)^{1.414}\ \ (Y_s < 0.022)$$
+    $$S = \begin{cases} 1.14\,\big(Y_{bg}^{0.56} - Y_{txt}^{0.57}\big) & Y_{bg} > Y_{txt}\ \text{(밝은 배경)} \\ 1.14\,\big(Y_{bg}^{0.65} - Y_{txt}^{0.62}\big) & Y_{bg} < Y_{txt}\ \text{(어두운 배경)} \end{cases}
+    \qquad L_c = 100\times\begin{cases} 0 & |S| < 0.1 \\ S - 0.027 & S > 0 \\ S + 0.027 & S < 0 \end{cases}$$
+    <div class="where">\(|Y_{bg}-Y_{txt}| < 0.0005\)이면 Lc = 0. 지수 2.4는 sRGB 구간 함수가 아닌 단순 거듭제곱이고, 흑 근처의 소프트 클램프(0.022, 1.414)가 플레어 역할을 한다. 부호는 극성을 나타낸다: 양수 = 밝은 배경의 어두운 글자, 음수 = 반대.</div></div>
+    <p>검증 수치: 흰 배경의 검정 글자는 Lc 106.04, 검정 배경의 흰 글자는 Lc −107.88이다. #888888 글자/흰 배경은 Lc 63.1, 흰 글자/#888888 배경은 Lc −68.5로, WCAG가 둘 다 3.54:1로 같게 보는 쌍을 APCA는 구별한다.</p>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th class="num">|Lc|</th><th>APCA 문서가 제시하는 대략적 용도(단순화 기준)</th></tr></thead>
+      <tbody>
+        <tr><td class="num">90</td><td>본문 텍스트 권장(작은 글자 포함)</td></tr>
+        <tr><td class="num">75</td><td>본문 텍스트 최소</td></tr>
+        <tr><td class="num">60</td><td>본문 외 콘텐츠 텍스트, 대략 24 px 일반 / 16 px 굵게</td></tr>
+        <tr><td class="num">45</td><td>대형 제목, 큰 아이콘·필수 비텍스트 요소</td></tr>
+        <tr><td class="num">30</td><td>판독이 필수가 아닌 부가 텍스트, 비활성 요소, 플레이스홀더의 하한</td></tr>
+        <tr><td class="num">15</td><td>비텍스트 요소(구분선 등)가 보이기 위한 하한</td></tr>
+      </tbody>
+    </table></div>
+    <p>APCA의 실제 권장값은 폰트 크기·굵기별 조회표로 주어지며 버전에 따라 바뀌어 왔다. 위 표는 개념 이해용 요약이고, 규정 준수 판단은 여전히 WCAG 2.x(현재 법령·조달 기준이 참조하는 문서)로 해야 한다.</p>
+
+    <div class="callout deep"><strong>심화: 두 지표의 교차점이 다른 이유</strong>
+      <p>배경이 회색일 때 검정 글자와 흰 글자 중 어느 쪽이 나은가? WCAG에서는 \((Y+0.05)/0.05 = 1.05/(Y+0.05)\)에서 \(Y = \sqrt{1.05\times0.05} - 0.05 = 0.179\), 즉 코드값 약 118의 회색이 경계다. APCA는 극성마다 지수가 달라 경계가 코드값 약 164(APCA의 \(Y_s\)≈0.35)로 밝은 쪽으로 이동한다. 코드값 118–164 사이의 중간 회색·주황·밝은 파랑 배경에서 두 지표는 반대 결론을 낸다. 실무에서 "흰 글자 버튼이 더 읽기 쉬운데 WCAG 검사기는 검정을 추천한다"는 불일치가 바로 이 구간이다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="cvd">
+    <h2>색각 이상 시뮬레이션</h2>
+    <p>2색각자는 원추세포 한 종류가 없어 색 공간이 3차원에서 2차원으로 줄어든다. LMS 공간에서 결손된 원추 축 방향으로 놓인 색들은 모두 같게 보이며, 이 직선들을 <span class="term">혼동선</span><span class="en">(confusion lines)</span>이라 한다(<a href="vision.html">2장</a>). 시뮬레이션은 각 색을 혼동선을 따라 "2색각자가 보는 2차원 면" 위로 사영해, 정상 3색각자에게 같은 인상을 주는 색을 찾는 문제다.</p>
+    <ul>
+      <li><strong>Brettel–Viénot–Mollon(1997)</strong>: LMS 공간에서 결손 축을 따라, 2색각자도 정상으로 지각한다고 알려진 단색광(1형·2형은 475/575 nm, 3형은 485/660 nm)과 무채색 축이 이루는 두 개의 반평면 위로 사영한다. 가장 근거가 탄탄한 고전 방법이다.</li>
+      <li><strong>Viénot–Brettel–Mollon(1999)</strong>: 1형·2형에 대해 위 두 반평면을 하나의 평면으로 근사해 3×3 행렬 하나로 만든 빠른 판(디스플레이 RGB용).</li>
+      <li><strong>Machado–Oliveira–Fernandes(2009)</strong>: 원추 감도 곡선의 이동(이상 3색각)을 단계적 severity로 모델링한 생리학 기반 모델. severity 1.0이 2색각에 해당하며, 결과는 선형 RGB에 곱하는 3×3 행렬이다.</li>
+    </ul>
+    <p>이 장은 Machado 2009의 severity 1.0 행렬을 쓴다.</p>
+    <div class="formula">$$\mathbf{M}_P=\begin{bmatrix}0.152286&1.052583&-0.204868\\0.114503&0.786281&0.099216\\-0.003882&-0.048116&1.051998\end{bmatrix}\quad
+    \mathbf{M}_D=\begin{bmatrix}0.367322&0.860646&-0.227968\\0.280085&0.672501&0.047413\\-0.011820&0.042940&0.968881\end{bmatrix}$$
+    $$\mathbf{M}_T=\begin{bmatrix}1.255528&-0.076749&-0.178779\\-0.078411&0.930809&0.147602\\0.004733&0.691367&0.303900\end{bmatrix},\qquad
+    \mathbf{c}'_{\text{lin}} = \operatorname{clip}_{[0,1]}\!\big(\mathbf{M}\,\mathbf{c}_{\text{lin}}\big)$$
+    <div class="where">각 행의 합은 1(소수점 6자리 반올림 범위)이므로 백색과 무채색 축은 보존된다. \(\mathbf{c}_{\text{lin}}\)은 sRGB 코드값을 <strong>디코딩한 선형 RGB</strong>다.</div></div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="색각 이상 시뮬레이션 파이프라인과 잘못된 경로">
+        <defs><marker id="ar18b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="40" width="120" height="56" rx="8" class="f-elev" stroke="var(--border)"/>
+        <text x="80" y="64" text-anchor="middle" class="t">sRGB 8비트</text><text x="80" y="84" text-anchor="middle" class="t-mono">#d62728</text>
+        <rect x="180" y="40" width="130" height="56" rx="8" class="f-acc-soft"/>
+        <text x="245" y="64" text-anchor="middle" class="t">디코딩</text><text x="245" y="84" text-anchor="middle" class="t-dim">IEC 61966-2-1</text>
+        <rect x="350" y="40" width="120" height="56" rx="8" class="f-surface"/>
+        <text x="410" y="64" text-anchor="middle" class="t">선형 RGB</text><text x="410" y="84" text-anchor="middle" class="t-mono">.672 .020 .021</text>
+        <rect x="510" y="40" width="110" height="56" rx="8" class="f-acc-soft"/>
+        <text x="565" y="64" text-anchor="middle" class="t">M_D · c</text><text x="565" y="84" text-anchor="middle" class="t-dim">+ clip</text>
+        <rect x="660" y="40" width="120" height="56" rx="8" class="f-elev" stroke="var(--border)"/>
+        <text x="720" y="64" text-anchor="middle" class="t">인코딩</text><text x="720" y="84" text-anchor="middle" class="t-mono">#8b7c1f</text>
+        <line x1="140" y1="68" x2="176" y2="68" class="s-line" marker-end="url(#ar18b)"/>
+        <line x1="310" y1="68" x2="346" y2="68" class="s-line" marker-end="url(#ar18b)"/>
+        <line x1="470" y1="68" x2="506" y2="68" class="s-line" marker-end="url(#ar18b)"/>
+        <line x1="620" y1="68" x2="656" y2="68" class="s-line" marker-end="url(#ar18b)"/>
+        <path d="M80 96 C 80 190, 520 190, 560 120" fill="none" stroke="var(--bad)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ar18b)"/>
+        <text x="300" y="196" text-anchor="middle" fill="var(--bad)" style="font-size:13px">잘못된 경로: 코드값/255에 바로 M을 곱함 → #675826</text>
+        <rect x="200" y="214" width="34" height="26" rx="4" fill="#d62728"/><text x="244" y="232" class="t-dim">원색</text>
+        <rect x="320" y="214" width="34" height="26" rx="4" fill="#8b7c1f"/><text x="364" y="232" class="t-dim">올바른 D</text>
+        <rect x="470" y="214" width="34" height="26" rx="4" fill="#675826"/><text x="514" y="232" class="t-dim">감마 오류 D (ΔE00 15.1)</text>
+      </svg>
+      <figcaption><b>그림 18-3.</b> 시뮬레이션 행렬은 선형광(원추 흥분량에 비례하는 양) 사이의 관계이므로 반드시 디코딩한 값에 적용한다. tab10의 빨강 #d62728을 2형으로 변환할 때 인코딩 값에 곱하면 결과가 ΔE00 15.1만큼 어긋나 실제보다 훨씬 어둡게 나온다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-cvd">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>CVD 시뮬레이터: 정상 / 1형 / 2형 / 3형</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cvd"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>테스트 이미지</span><div class="seg" id="cv-scene">
+            <button data-value="chart" class="on">선 차트</button><button data-value="swatch">견본 그리드</button><button data-value="heat">히트맵</button><button data-value="ui">UI 상태</button>
+          </div></div>
+          <label class="ctrl"><span>severity (1.0 미만은 근사) <output id="cv-sev-out"></output></span><input type="range" id="cv-sev" min="0" max="100" value="100" step="5"></label>
+          <label class="check"><input type="checkbox" id="cv-wrong"> 잘못된 방법: 인코딩 값에 행렬 적용</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">핵심색 최소 ΔE00 · 정상</span><span class="v" id="o-cv-n">—</span></div>
+        <div class="stat"><span class="k">1형</span><span class="v" id="o-cv-p">—</span></div>
+        <div class="stat"><span class="k">2형</span><span class="v" id="o-cv-d">—</span></div>
+        <div class="stat"><span class="k">3형</span><span class="v" id="o-cv-t">—</span></div>
+        <div class="stat"><span class="k">감마 오류 평균 ΔE00 (2형)</span><span class="v" id="o-cv-err">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① "선 차트"(matplotlib tab10 앞 6색)를 1형으로 보면 주황·초록·빨강·갈색 선의 구분이 거의 사라진다. 최소 ΔE00가 정상 16대에서 한 자릿수 초반으로 떨어지는 것을 확인하라. ② "히트맵" 왼쪽(jet)은 2형에서 노랑–초록 영역이 평탄해지고, 오른쪽(viridis 근사)은 명도 기울기가 그대로 남는다. ③ severity를 낮추면 이상 3색각을 근사한다. 이 장의 중간 severity는 Machado 원 논문의 단계별 행렬이 아니라 단위 행렬과 severity 1.0 행렬의 선형 보간이므로 정성적으로만 쓴다. ④ 감마 오류를 켜면 채도 높은 색일수록 결과가 크게 어긋난다.</div>
+    </div>
+
+    <div class="callout tip"><strong>공학자 관점</strong>
+      <p>CVD 시뮬레이션은 "그 사람이 보는 색"을 재현하는 것이 아니라 "정상 관측자에게 같은 정보를 남기는 색"을 만드는 것이다. 설계 검증 용도로는 이것으로 충분하다: 시뮬레이션 후의 ΔE00가 작으면 실제로도 구별이 어렵다. 2색각 시뮬레이션은 가장 심한 경우이므로, 이것을 통과한 팔레트는 훨씬 흔한 이상 3색각(2형 이상 약 5%)에도 안전하다. 3형은 드물지만 청–황 축을 쓰는 발산형 컬러맵을 검사할 때 확인한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="colormaps">
+    <h2>컬러맵의 네 가지 유형과 품질 지표</h2>
+    <p>컬러맵<span class="en">(colormap)</span>은 스칼라 \(t\in[0,1]\)을 색으로 보내는 곡선 \(\mathbf{c}(t)\)다. 데이터의 구조에 따라 곡선이 가져야 할 모양이 다르다.</p>
+    <ul>
+      <li><strong>순차형</strong><span class="en">(sequential)</span>: 크기에 순서만 있는 양(밀도, 온도, 강도). 명도가 단조 증가(또는 감소)해야 한다.</li>
+      <li><strong>발산형</strong><span class="en">(diverging)</span>: 의미 있는 중심값(0, 기준값)이 있는 양(오차, 상관계수, 편차). 중심에서 명도가 극값이고 양쪽 팔은 서로 다른 색상이며, 양쪽 팔의 명도 프로파일이 대칭이어야 한다.</li>
+      <li><strong>순환형</strong><span class="en">(cyclic)</span>: 위상, 각도, 풍향, 시각. 양 끝이 같은 색으로 이어져야 한다. 명도 대칭이 필요하고 순서 판단은 색상에 의존하게 된다.</li>
+      <li><strong>범주형</strong><span class="en">(qualitative)</span>: 순서 없는 이산 범주. 연속 곡선이 아니라 서로 최대한 먼 점들의 집합이다(7절).</li>
+    </ul>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="순차형, 발산형, 순환형, 범주형 컬러맵의 띠와 명도 프로파일">
+        <defs>
+          <linearGradient id="g-seq"><stop offset="0" stop-color="#2c1c44"/><stop offset=".125" stop-color="#2d3373"/><stop offset=".25" stop-color="#005494"/><stop offset=".375" stop-color="#007695"/><stop offset=".5" stop-color="#00959c"/><stop offset=".625" stop-color="#00b798"/><stop offset=".75" stop-color="#71d088"/><stop offset=".875" stop-color="#c2df90"/><stop offset="1" stop-color="#f9f0b8"/></linearGradient>
+          <linearGradient id="g-div"><stop offset="0" stop-color="#0053a5"/><stop offset=".125" stop-color="#3c7bc7"/><stop offset=".25" stop-color="#76a3dc"/><stop offset=".375" stop-color="#b0cbed"/><stop offset=".5" stop-color="#f1f1f1"/><stop offset=".625" stop-color="#eabbb3"/><stop offset=".75" stop-color="#d6897c"/><stop offset=".875" stop-color="#bc5647"/><stop offset="1" stop-color="#9e170c"/></linearGradient>
+          <linearGradient id="g-cyc"><stop offset="0" stop-color="#da8282"/><stop offset=".125" stop-color="#cd8f50"/><stop offset=".25" stop-color="#a3a44e"/><stop offset=".375" stop-color="#61b380"/><stop offset=".5" stop-color="#2bb3b9"/><stop offset=".625" stop-color="#5fa5de"/><stop offset=".75" stop-color="#9d92de"/><stop offset=".875" stop-color="#c984ba"/><stop offset="1" stop-color="#da8282"/></linearGradient>
+        </defs>
+        <g transform="translate(20,20)">
+          <text x="0" y="14" class="t">순차형</text>
+          <rect x="0" y="24" width="170" height="30" rx="4" fill="url(#g-seq)"/>
+          <rect x="0" y="70" width="170" height="90" class="f-surface" rx="4"/>
+          <polyline points="6,152 164,78" fill="none" class="s-acc" stroke-width="2.5"/>
+          <text x="0" y="180" class="t-dim">L* 단조 증가</text>
+          <text x="0" y="198" class="t-dim">예: 밀도, 강도</text>
+        </g>
+        <g transform="translate(215,20)">
+          <text x="0" y="14" class="t">발산형</text>
+          <rect x="0" y="24" width="170" height="30" rx="4" fill="url(#g-div)"/>
+          <rect x="0" y="70" width="170" height="90" class="f-surface" rx="4"/>
+          <polyline points="6,140 85,78 164,140" fill="none" class="s-acc" stroke-width="2.5"/>
+          <text x="0" y="180" class="t-dim">중심에서 L* 최대, 대칭</text>
+          <text x="0" y="198" class="t-dim">예: 오차, 상관계수</text>
+        </g>
+        <g transform="translate(410,20)">
+          <text x="0" y="14" class="t">순환형</text>
+          <rect x="0" y="24" width="170" height="30" rx="4" fill="url(#g-cyc)"/>
+          <rect x="0" y="70" width="170" height="90" class="f-surface" rx="4"/>
+          <polyline points="6,112 164,112" fill="none" class="s-acc" stroke-width="2.5"/>
+          <text x="0" y="180" class="t-dim">양 끝 같은 색, L* 일정</text>
+          <text x="0" y="198" class="t-dim">예: 위상, 풍향</text>
+        </g>
+        <g transform="translate(605,20)">
+          <text x="0" y="14" class="t">범주형</text>
+          <rect x="0" y="24" width="21" height="30" fill="#e69f00"/><rect x="21" y="24" width="21" height="30" fill="#56b4e9"/><rect x="42" y="24" width="21" height="30" fill="#009e73"/><rect x="63" y="24" width="21" height="30" fill="#f0e442"/><rect x="84" y="24" width="21" height="30" fill="#0072b2"/><rect x="105" y="24" width="21" height="30" fill="#d55e00"/><rect x="126" y="24" width="21" height="30" fill="#cc79a7"/><rect x="147" y="24" width="21" height="30" fill="#000000"/>
+          <rect x="0" y="70" width="170" height="90" class="f-surface" rx="4"/>
+          <circle cx="20" cy="96" r="6" class="f-acc"/><circle cx="62" cy="140" r="6" class="f-acc"/><circle cx="104" cy="88" r="6" class="f-acc"/><circle cx="146" cy="126" r="6" class="f-acc"/>
+          <text x="0" y="180" class="t-dim">점 집합, 최소 ΔE 최대화</text>
+          <text x="0" y="198" class="t-dim">예: 계열, 클래스</text>
+        </g>
+        <text x="400" y="262" text-anchor="middle" class="t-dim">아래 상자: 가로축 t, 세로축 L* (개념도)</text>
+      </svg>
+      <figcaption><b>그림 18-4.</b> 네 유형의 컬러맵과 명도 프로파일. 순차·발산·순환 띠는 이 장의 OKLCh 생성기로 계산한 실제 색이고, 범주형은 Okabe–Ito 팔레트다.</figcaption>
+    </figure>
+
+    <p>연속 컬러맵의 품질은 두 곡선으로 진단한다. 하나는 명도 프로파일 \(L^*(t)\), 다른 하나는 \(t\)를 \(N\)등분했을 때 인접 견본 사이의 색차 \(\Delta E_{00}(t_i, t_{i+1})\)다.</p>
+    <div class="formula">$$\text{단조성: } \operatorname{sign}\!\Big(\tfrac{dL^*}{dt}\Big)=\text{const},\qquad
+    \text{균일성: } \mathrm{CV} = \frac{\sigma(\Delta E_{00,i})}{\overline{\Delta E_{00,i}}},\qquad
+    \text{분해능: } \textstyle\sum_i \Delta E_{00,i}$$
+    <div class="where">인접 ΔE가 일정하면(CV→0) 같은 데이터 차이가 어디서나 같은 지각 차이로 보인다. 합 \(\sum\Delta E_{00}\)은 곡선의 지각 길이로, 구별 가능한 단계 수에 비례한다.</div></div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="jet와 viridis 근사의 L* 프로파일 비교">
+        <defs>
+          <linearGradient id="g-jet"><stop offset="0" stop-color="#000080"/><stop offset=".0625" stop-color="#0000c8"/><stop offset=".125" stop-color="#0000ff"/><stop offset=".1875" stop-color="#0040ff"/><stop offset=".25" stop-color="#0080ff"/><stop offset=".3125" stop-color="#00bfff"/><stop offset=".375" stop-color="#15ffe2"/><stop offset=".4375" stop-color="#48ffaf"/><stop offset=".5" stop-color="#7bff7b"/><stop offset=".5625" stop-color="#afff48"/><stop offset=".625" stop-color="#e2ff15"/><stop offset=".6875" stop-color="#ffd200"/><stop offset=".75" stop-color="#ff9700"/><stop offset=".8125" stop-color="#ff5c00"/><stop offset=".875" stop-color="#ff2100"/><stop offset=".9375" stop-color="#c80000"/><stop offset="1" stop-color="#800000"/></linearGradient>
+          <linearGradient id="g-vir"><stop offset="0" stop-color="#440154"/><stop offset=".125" stop-color="#472d7b"/><stop offset=".25" stop-color="#3b528b"/><stop offset=".375" stop-color="#2c728e"/><stop offset=".5" stop-color="#21908c"/><stop offset=".625" stop-color="#27ad81"/><stop offset=".75" stop-color="#5dc863"/><stop offset=".875" stop-color="#aadc32"/><stop offset="1" stop-color="#fde725"/></linearGradient>
+        </defs>
+        <line x1="80" y1="230" x2="760" y2="230" class="s-axis"/><line x1="80" y1="40" x2="80" y2="230" class="s-axis"/>
+        <line x1="80" y1="135" x2="760" y2="135" stroke="var(--grid)"/><line x1="80" y1="40" x2="760" y2="40" stroke="var(--grid)"/>
+        <text x="70" y="234" text-anchor="end" class="t-mono">0</text><text x="70" y="139" text-anchor="end" class="t-mono">50</text><text x="70" y="44" text-anchor="end" class="t-mono">100</text>
+        <text x="24" y="140" class="t-dim">L*</text>
+        <rect x="335" y="40" width="191" height="190" fill="var(--accent-soft)"/>
+        <text x="430" y="34" text-anchor="middle" class="t-acc">L* ≈ 90–95 평탄 구간</text>
+        <polyline points="80.0,205.5 101.3,194.5 122.5,184.0 143.8,173.8 165.0,168.6 186.3,164.4 207.5,155.3 228.8,142.0 250.0,126.3 271.3,109.4 292.5,92.1 313.8,74.6 335.0,58.2 356.3,59.0 377.5,59.2 398.8,59.0 420.0,58.2 441.3,56.9 462.5,54.8 483.8,52.3 505.0,49.3 526.3,53.5 547.5,67.2 568.8,80.7 590.0,93.6 611.3,105.0 632.5,114.7 653.8,121.9 675.0,126.6 696.3,136.1 717.5,151.0 738.8,166.0 760.0,181.7" fill="none" stroke="var(--bad)" stroke-width="2.5"/>
+        <polyline points="80.0,201.7 101.3,196.6 122.5,191.4 143.8,186.3 165.0,181.2 186.3,176.4 207.5,171.7 228.8,166.9 250.0,162.2 271.3,157.8 292.5,153.4 313.8,148.9 335.0,144.5 356.3,140.1 377.5,135.8 398.8,131.4 420.0,127.0 441.3,122.7 462.5,118.5 483.8,114.1 505.0,109.7 526.3,105.4 547.5,101.0 568.8,96.4 590.0,92.1 611.3,87.7 632.5,83.3 653.8,79.0 675.0,74.6 696.3,70.2 717.5,66.0 738.8,61.7 760.0,57.3" fill="none" stroke="var(--accent-2)" stroke-width="2.5"/>
+        <text x="650" y="200" fill="var(--bad)" style="font-size:13px">jet</text>
+        <text x="600" y="62" fill="var(--accent-2)" style="font-size:13px">viridis(근사)</text>
+        <rect x="80" y="246" width="680" height="14" fill="url(#g-jet)"/>
+        <rect x="80" y="264" width="680" height="14" fill="url(#g-vir)"/>
+        <text x="420" y="296" text-anchor="middle" class="t-dim">t (데이터 값)</text>
+      </svg>
+      <figcaption><b>그림 18-5.</b> 계산된 L* 프로파일(33점). jet는 t≈0.38–0.66에서 L*가 90–95로 거의 평탄하다가 t≈0.66 이후 급락한다. 평탄 구간에서는 데이터가 변해도 명도가 변하지 않아 구조가 묻히고, 꺾이는 지점(t≈0.38, 0.66 부근)에서는 데이터에 없는 경계가 보인다. viridis(9개 공개 기준점을 OKLab 보간한 근사)는 L*가 14.9→90.9로 거의 직선이다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-cmap">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>컬러맵 분석기: 색 띠, L* 프로파일, 인접 ΔE00</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cmap"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>컬러맵</span><div class="seg" id="cm-map">
+            <button data-value="gray">gray</button><button data-value="jet" class="on">jet</button><button data-value="rainbow">HSV 무지개</button><button data-value="viridis">viridis(근사)</button><button data-value="seq">OKLCh 순차</button><button data-value="div">OKLCh 발산</button><button data-value="cyc">OKLCh 순환</button>
+          </div></div>
+          <div class="ctrl"><span>지표 계산 관측자</span><div class="seg" id="cm-view">
+            <button data-value="normal" class="on">정상</button><button data-value="protan">1형</button><button data-value="deutan">2형</button><button data-value="tritan">3형</button>
+          </div></div>
+          <label class="ctrl"><span>샘플 수 N <output id="cm-n-out"></output></span><input type="range" id="cm-n" min="16" max="128" value="64" step="8"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">L* 범위</span><span class="v" id="o-cm-l">—</span></div>
+        <div class="stat"><span class="k">L* 반전 수</span><span class="v" id="o-cm-rev">—</span></div>
+        <div class="stat"><span class="k">인접 ΔE00 최소/최대</span><span class="v" id="o-cm-de">—</span></div>
+        <div class="stat"><span class="k">CV</span><span class="v" id="o-cm-cv">—</span></div>
+        <div class="stat"><span class="k">ΣΔE00 (지각 길이)</span><span class="v" id="o-cm-tot">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① jet에서 ΔE00 그래프가 0.1 부근까지 떨어지는 구간(평탄)과 10 가까이 튀는 구간(가짜 경계)을 찾아라. 같은 데이터 차이가 지각적으로 100배 다르게 보인다는 뜻이다. ② 관측자를 2형으로 바꾸면 jet의 ΣΔE00가 234→177로 줄고, OKLCh 순환 맵은 최소 ΔE00가 0.03까지 떨어진다(명도가 일정해 색상 정보만 남기 때문). ③ gray도 CV가 0.22로 완전히 균일하지 않다. sRGB 인코딩은 L*와 비슷하지만 같지 않고, ΔE00의 명도 가중 \(S_L\)이 L*=50에서 멀수록 차이를 작게 평가하기 때문이다.</div>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>컬러맵 (65점)</th><th class="num">L* 범위</th><th class="num">L* 반전</th><th class="num">인접 ΔE00 최소–최대</th><th class="num">CV</th><th class="num">ΣΔE00 정상</th><th class="num">ΣΔE00 2형</th></tr></thead>
+      <tbody>
+        <tr><td>gray</td><td class="num">0–100</td><td class="num">0</td><td class="num">0.63–1.58</td><td class="num">0.22</td><td class="num">75.2</td><td class="num">75.2</td></tr>
+        <tr><td>jet</td><td class="num">12.9–95.8</td><td class="num">3</td><td class="num">0.09–9.87</td><td class="num">0.49</td><td class="num">234.3</td><td class="num">177.0</td></tr>
+        <tr><td>HSV 무지개 (240°→0°)</td><td class="num">32.3–97.1</td><td class="num">3</td><td class="num">0.13–6.19</td><td class="num">0.63</td><td class="num">198.9</td><td class="num">137.6</td></tr>
+        <tr><td>viridis (9점 근사)</td><td class="num">14.9–90.9</td><td class="num">0</td><td class="num">1.24–2.41</td><td class="num">0.16</td><td class="num">119.7</td><td class="num">89.7</td></tr>
+        <tr><td>OKLCh 순차 (이 장)</td><td class="num">14.5–94.4</td><td class="num">0</td><td class="num">1.41–2.08</td><td class="num">0.12</td><td class="num">113.0</td><td class="num">89.2</td></tr>
+        <tr><td>OKLCh 발산 (이 장)</td><td class="num">33.9–95.1</td><td class="num">1 (중심)</td><td class="num">1.53–4.23</td><td class="num">0.24</td><td class="num">121.4</td><td class="num">113.9</td></tr>
+      </tbody>
+    </table></div>
+    <p>jet의 ΣΔE00(234)가 viridis(120)의 두 배라는 점은 흥미롭다. "jet가 더 많은 색을 쓰니 더 많은 단계를 구별한다"는 주장은 숫자로 보면 일부 맞다. 문제는 그 길이가 <strong>고르게 분배되지 않고</strong>(CV 0.49), 명도가 데이터 순서와 무관하게 오르내린다는 데 있다. 판독자는 명도 변화를 값의 변화로, 색상 경계를 데이터의 경계로 읽는다.</p>
+    <div class="callout warn"><strong>흔한 실수</strong>
+      <p>MATLAB은 2014b에서 기본 컬러맵을 jet에서 parula로, matplotlib은 2.0에서 viridis로 바꿨다. 그러나 오래된 스크립트, 열화상 카메라 GUI, CFD 후처리 도구의 기본값에는 여전히 jet·rainbow가 많다. 리포트에 jet를 쓰면 흑백 인쇄 시에도 값의 순서가 사라진다(양 끝이 모두 어둡다: L* 12.9와 25.4).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="field">
+    <h2>같은 데이터, 다른 그림: 가짜 경계와 숨은 구조</h2>
+    <p>컬러맵의 결함은 실제 2차원 데이터에서 가장 잘 드러난다. 아래 시뮬레이터는 매끄러운 합성 필드(두 개의 넓은 가우시안 언덕 + 선형 경사)에 진폭이 작은 좁은 봉우리 하나를 더한 것을 두 컬러맵으로 나란히 그린다. 데이터는 어디에도 불연속이 없다.</p>
+    <div class="formula">$$f(x,y) = 0.6\,e^{-\frac{(x-0.3)^2+(y-0.45)^2}{2(0.22)^2}} + 0.45\,e^{-\frac{(x-0.75)^2+(y-0.7)^2}{2(0.16)^2}} + 0.25\,x + a\,e^{-\frac{(x-0.62)^2+(y-0.28)^2}{2(0.045)^2}}$$
+    <div class="where">\(a\)는 "찾아야 할 작은 구조"의 진폭. 표시 범위는 \(a=0\)일 때의 최소–최대로 고정하고 넘치는 값은 잘라낸다.</div></div>
+
+    <div class="sim" id="sim-field">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>합성 2D 필드 렌더 비교</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-field"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>왼쪽 컬러맵</span><select id="fl-a"><option value="jet" selected>jet</option><option value="rainbow">HSV 무지개</option><option value="gray">gray</option><option value="viridis">viridis(근사)</option><option value="seq">OKLCh 순차</option><option value="div">OKLCh 발산</option><option value="cyc">OKLCh 순환</option></select></label>
+          <label class="ctrl"><span>오른쪽 컬러맵</span><select id="fl-b"><option value="jet">jet</option><option value="rainbow">HSV 무지개</option><option value="gray">gray</option><option value="viridis" selected>viridis(근사)</option><option value="seq">OKLCh 순차</option><option value="div">OKLCh 발산</option><option value="cyc">OKLCh 순환</option></select></label>
+          <label class="ctrl"><span>숨은 봉우리 진폭 a <output id="fl-amp-out"></output></span><input type="range" id="fl-amp" min="0" max="0.12" value="0.04" step="0.005"></label>
+          <div class="ctrl"><span>관측자</span><div class="seg" id="fl-view">
+            <button data-value="normal" class="on">정상</button><button data-value="protan">1형</button><button data-value="deutan">2형</button>
+          </div></div>
+          <label class="check"><input type="checkbox" id="fl-iso"> 등간격 등고선(10단계) 겹치기</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">봉우리 중심 데이터 값 t</span><span class="v" id="o-fl-t">—</span></div>
+        <div class="stat"><span class="k">봉우리 ΔE00 · 왼쪽</span><span class="v" id="o-fl-da">—</span></div>
+        <div class="stat"><span class="k">봉우리 ΔE00 · 오른쪽</span><span class="v" id="o-fl-db">—</span></div>
+        <div class="stat"><span class="k">봉우리 ΔL* 왼쪽 / 오른쪽</span><span class="v" id="o-fl-dl">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① jet 쪽에서 청록·노랑 띠가 마치 날카로운 등고선처럼 보이는지 확인하고, 등고선을 겹쳐 실제 데이터 간격과 비교하라. ② 진폭 a를 0.02로 줄여 봉우리가 어느 쪽에서 먼저 사라지는지 보라. 봉우리가 놓인 값 근처에서 컬러맵의 국소 ΔE00/Δt가 작을수록 구조가 묻힌다. 읽음값의 ΔE00가 1 근처면 사실상 보이지 않는다. ③ 2형으로 바꾸면 jet의 녹–황–적 구간이 한 덩어리로 합쳐진다.</div>
+    </div>
+    <p>국소 가시성은 컬러맵의 기울기 \(\|d\mathbf{c}/dt\|\)(지각 단위)와 데이터 진폭의 곱이다. 균일 컬러맵은 이 기울기가 어디서나 같아 "어느 값 근처의 구조든 같은 크기로 보인다"는 보장을 준다. 반대로 jet는 특정 값 대역(청록 0.3–0.4, 주황 0.7–0.8)을 확대하고 녹–황 대역을 압축하는 비선형 확대경과 같다. 의도적으로 특정 대역을 강조하고 싶다면 그것은 컬러맵이 아니라 데이터 변환(예: 로그, 히스토그램 평활화)으로 하고, 그 사실을 범례에 밝혀야 한다.</p>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="design">
+    <h2>지각 균일 컬러맵 설계: OKLCh 경로</h2>
+    <p>지각 균일 컬러맵을 직접 만드는 가장 간단한 방법은 균등 색공간 안에서 곡선을 그리는 것이다. OKLab(<a href="uniform.html">7장</a>)의 극좌표 OKLCh에서 명도 \(L\)을 \(t\)에 선형으로, 색상 \(h\)를 일정 속도로 돌리고, 채도 \(C\)는 양 끝에서 줄인다(아주 어둡거나 밝은 영역에서는 sRGB 가멋이 좁기 때문).</p>
+    <div class="formula">$$L(t) = L_0 + (L_1 - L_0)\,t,\qquad h(t) = h_0 + (h_1 - h_0)\,t,\qquad C(t) = C_{\max}\,\sin\!\big(\pi(0.15 + 0.7t)\big)$$
+    $$\mathbf{c}(t) = \text{OKLab}^{-1}\big(L,\ C\cos h,\ C\sin h\big),\qquad \text{가멋 밖이면 } C \leftarrow \max\{C' \le C : \mathbf{c}\in[0,1]^3\}$$
+    <div class="where">가멋 매핑은 \(L\)과 \(h\)를 유지한 채 채도만 이분 탐색으로 줄인다. 명도 단조성은 보존되지만 ΔE 균일성은 깨질 수 있으므로, 필요하면 누적 ΔE00로 \(t\)를 재매개화한다.</div></div>
+    <p><strong>ΔE 등간격 재매개화</strong>: 곡선을 촘촘히(256점) 샘플링하고 누적 지각 길이 \(s(t)=\sum_{j\le i}\Delta E_{00,j}\)를 구한 뒤, \(s\)가 등간격이 되도록 \(t\)를 다시 정한다. 결과 맵은 인접 ΔE00가 거의 일정해진다. 다만 ΔE00 자체가 작은 색차용 공식이므로, 재매개화는 "같은 거리 = 같은 지각 차이"의 1차 근사다.</p>
+
+    <div class="sim" id="sim-gen">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>지각 균일 컬러맵 생성기 (OKLCh)</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-gen"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>유형</span><div class="seg" id="gn-mode"><button data-value="seq" class="on">순차형</button><button data-value="div">발산형</button></div></div>
+          <label class="ctrl"><span id="gn-l0-lab">시작 명도 L₀ <output id="gn-l0-out"></output></span><input type="range" id="gn-l0" min="0.15" max="0.6" value="0.27" step="0.01"></label>
+          <label class="ctrl"><span id="gn-l1-lab">끝 명도 L₁ <output id="gn-l1-out"></output></span><input type="range" id="gn-l1" min="0.6" max="0.98" value="0.95" step="0.01"></label>
+          <label class="ctrl"><span>시작 색상각 h₀ <output id="gn-h0-out"></output></span><input type="range" id="gn-h0" min="0" max="360" value="300" step="5"></label>
+          <label class="ctrl"><span>끝 색상각 h₁ <output id="gn-h1-out"></output></span><input type="range" id="gn-h1" min="0" max="360" value="100" step="5"></label>
+          <label class="ctrl"><span>최대 채도 C <output id="gn-c-out"></output></span><input type="range" id="gn-c" min="0.02" max="0.3" value="0.16" step="0.01"></label>
+          <label class="check"><input type="checkbox" id="gn-long"> 순차형: 색상환을 반대 방향으로 돌기</label>
+          <label class="check"><input type="checkbox" id="gn-eq"> ΔE00 등간격 재매개화</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">가멋 매핑된 샘플</span><span class="v" id="o-gn-gam">—</span></div>
+        <div class="stat"><span class="k">L* 범위 / 반전</span><span class="v" id="o-gn-l">—</span></div>
+        <div class="stat"><span class="k">인접 ΔE00 CV</span><span class="v" id="o-gn-cv">—</span></div>
+        <div class="stat"><span class="k">ΣΔE00 정상 / 2형</span><span class="v" id="o-gn-tot">—</span></div>
+        <div class="stat"><span class="k">대칭점 t=0.25↔0.75 ΔE00 정상 / 2형</span><span class="v" id="o-gn-end">—</span></div>
+      </div>
+      <div class="hexout" id="gn-hex">—</div>
+      <div class="sim-note">해볼 것: ① 기본값(h 300°→100°, 보라→노랑)은 viridis와 비슷한 경로다. ΣΔE00가 2형에서도 크게 줄지 않는지 확인하라 — 명도가 정보를 대부분 실어 나르기 때문이다. ② 최대 채도를 0.3까지 올리면 가멋 매핑 비율이 커지고 ΔE CV가 나빠진다. 재매개화를 켜서 CV가 얼마나 회복되는지 보라. ③ 발산형에서 중심 대칭인 두 점(t=0.25, 0.75)은 명도가 같으므로 색상만으로 부호(+/−)를 구별해야 한다. h₀=255°(파랑), h₁=30°(빨강)이면 2형에서도 이 ΔE00가 38 정도로 남지만, h₀=140°(초록)로 바꾸면 정상 43에서 2형 0.6으로 붕괴한다 — 양수와 음수가 같은 색이 된다. 발산형의 두 팔은 청–황(또는 청–적) 축으로 고른다. ④ 아래 hex 목록은 matplotlib <code>LinearSegmentedColormap.from_list</code> 등에 그대로 넣을 수 있는 9개 기준점이다.</div>
+    </div>
+    <div class="callout tip"><strong>공학자 관점</strong>
+      <p>컬러맵을 직접 만들 때의 체크리스트: (1) L* 단조(순차) 또는 대칭(발산), 반전 0; (2) 인접 ΔE00 CV ≲ 0.2; (3) 2형 시뮬레이션 후 ΣΔE00가 정상의 70% 이상; (4) 흑백 인쇄 시 순서 유지(= 조건 1); (5) 가장 어두운 끝이 배경과 구별될 것 — 다크 테마에서는 L₀를 올리거나 밝은→어두운 방향으로 뒤집는다. 이 장의 기본 OKLCh 순차 맵은 (1)–(4)를 만족한다(CV 0.12, 2형 ΣΔE00 79%).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="palette">
+    <h2>범주형 팔레트 설계와 진단</h2>
+    <p>범주형 팔레트는 \(n\)개의 색 \(\{\mathbf{c}_k\}\)로, 목표는 <strong>가장 비슷한 두 색의 차이를 최대화</strong>하는 것이다. 평균 색차가 아니라 최솟값이 판독 오류를 결정하기 때문이다. 관측자 집합 \(\mathcal{V}\)=\{정상, 1형, 2형\}에 대해 강건하게 쓰면 다음과 같다.</p>
+    <div class="formula">$$\max_{\{\mathbf{c}_k\}}\ \min_{v\in\mathcal{V}}\ \min_{i<j}\ \Delta E_{00}\big(\mathrm{Lab}(\mathbf{M}_v\mathbf{c}_i),\ \mathrm{Lab}(\mathbf{M}_v\mathbf{c}_j)\big)\quad \text{s.t.}\ \ \mathbf{c}_k\in\text{sRGB},\ \ \text{CR}(\mathbf{c}_k,\text{bg})\ge 3$$
+    <div class="where">마지막 제약은 WCAG 1.4.11(그래프의 필수 요소는 배경과 3:1). 이 문제는 최대-최소 거리 배치(max-min dispersion)로 NP-난해이지만, 탐욕적 최원점 선택(farthest-point)이 실용적으로 충분히 좋은 해를 준다.</div></div>
+    <p>설계 원칙은 계산 결과에서 바로 나온다. (1) <strong>명도를 다양화</strong>하라. CVD 시뮬레이션 후 남는 차이의 대부분은 명도와 청–황 방향이므로, 모든 색을 같은 명도에 두면(HSL에서 L만 고정한 팔레트처럼) 2형에서 붕괴한다. (2) 빨강과 초록을 같은 명도로 짝짓지 마라. (3) 색 수를 줄여라. sRGB 가멋 안에서 세 관측자 모두에 대해 최소 ΔE00 ≥ 15를 유지할 수 있는 색은 대략 8개 안팎이다(아래 최적화기로 직접 확인할 수 있다). 그 이상은 모양·선 종류·직접 레이블과 결합해야 한다.</p>
+
+    <div class="sim" id="sim-pal">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>팔레트 진단기: 쌍별 ΔE00 행렬</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-pal"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>hex 목록 (쉼표·공백 구분, 최대 12)</span><textarea id="pl-in" rows="3" spellcheck="false">#1f77b4 #ff7f0e #2ca02c #d62728 #9467bd #8c564b #e377c2 #7f7f7f #bcbd22 #17becf</textarea></label>
+          <div class="ctrl"><span>예제</span><div class="seg" id="pl-pre">
+            <button data-value="tab10" class="on">tab10</button><button data-value="okabe">Okabe–Ito</button><button data-value="rg">신호등</button><button data-value="prim">원색</button>
+          </div></div>
+          <div class="ctrl"><span>행렬 표시 관측자</span><div class="seg" id="pl-view">
+            <button data-value="normal" class="on">정상</button><button data-value="protan">1형</button><button data-value="deutan">2형</button><button data-value="tritan">3형</button>
+          </div></div>
+          <label class="ctrl"><span>최적화 색 수 n <output id="pl-n-out"></output></span><input type="range" id="pl-n" min="3" max="10" value="8" step="1"></label>
+          <label class="check"><input type="checkbox" id="pl-w3"> 흰 배경 대비 3:1 이상 후보만</label>
+          <button class="btn primary" id="pl-opt">최대-최소 팔레트 생성</button>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">최소 ΔE00 · 정상</span><span class="v" id="o-pl-n">—</span></div>
+        <div class="stat"><span class="k">1형</span><span class="v" id="o-pl-p">—</span></div>
+        <div class="stat"><span class="k">2형</span><span class="v" id="o-pl-d">—</span></div>
+        <div class="stat"><span class="k">3형</span><span class="v" id="o-pl-t">—</span></div>
+        <div class="stat"><span class="k">L* 범위</span><span class="v" id="o-pl-l">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① tab10을 1형으로 보면 주황 #ff7f0e와 초록 #2ca02c의 ΔE00가 1.25로 사실상 같은 색이다. ② Okabe–Ito(색각 이상을 고려해 설계된 8색)는 세 관측자 모두 최소 11 이상을 유지한다. ③ "최대-최소 팔레트 생성"은 OKLCh 격자(L 0.42–0.86, C 0.06–0.22, h 12° 간격)의 후보 중에서 정상·1형·2형 최솟값을 동시에 최대화하는 색을 탐욕적으로 고른다. n=8에서 세 관측자 최소 약 18.5를 얻는다. 3:1 제약을 켜면 밝은 후보가 빠져 최솟값이 내려간다 — 대비와 구별성의 트레이드오프다. 행렬 칸의 빨간 테두리는 ΔE00 &lt; 10이다.</div>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>팔레트</th><th class="num">n</th><th class="num">최소 ΔE00 정상</th><th class="num">1형</th><th class="num">2형</th><th class="num">3형</th><th>최악 쌍(1형/2형)</th></tr></thead>
+      <tbody>
+        <tr><td>matplotlib tab10</td><td class="num">10</td><td class="num">16.2</td><td class="num">1.3</td><td class="num">3.3</td><td class="num">9.5</td><td><span class="sw" style="background:#ff7f0e"></span><span class="sw" style="background:#2ca02c"></span> / <span class="sw" style="background:#ff7f0e"></span><span class="sw" style="background:#bcbd22"></span></td></tr>
+        <tr><td>Okabe–Ito</td><td class="num">8</td><td class="num">21.7</td><td class="num">12.3</td><td class="num">11.6</td><td class="num">10.9</td><td><span class="sw" style="background:#0072b2"></span><span class="sw" style="background:#cc79a7"></span> / <span class="sw" style="background:#e69f00"></span><span class="sw" style="background:#f0e442"></span></td></tr>
+        <tr><td>빨강·주황·초록 신호등</td><td class="num">3</td><td class="num">26.5</td><td class="num">1.3</td><td class="num">4.6</td><td class="num">14.5</td><td><span class="sw" style="background:#ff7f0e"></span><span class="sw" style="background:#2ca02c"></span> / <span class="sw" style="background:#d62728"></span><span class="sw" style="background:#2ca02c"></span></td></tr>
+        <tr><td>원색 6색 (#ff0000 …)</td><td class="num">6</td><td class="num">23.4</td><td class="num">4.1</td><td class="num">8.7</td><td class="num">9.3</td><td><span class="sw" style="background:#00ff00"></span><span class="sw" style="background:#ffff00"></span></td></tr>
+        <tr><td>탐욕 최대-최소 (이 장)</td><td class="num">8</td><td class="num">18.8</td><td class="num">18.9</td><td class="num">18.5</td><td class="num">6.1</td><td>3형은 목적함수에서 제외</td></tr>
+      </tbody>
+    </table></div>
+    <p>"ΔE00가 얼마면 범주로 구별되는가"에 대한 표준값은 없다. ΔE00 1–3은 인쇄·디스플레이 허용차 영역이고(<a href="uniform.html">7장</a>), 범주 판독은 훨씬 큰 차이를 요구하며 마커 크기에 강하게 의존한다. 이 장에서는 작은 마커·얇은 선 기준으로 <strong>ΔE00 ≥ 10을 경고 문턱, ≥ 15를 목표</strong>로 쓰는 경험적 기준을 채택한다.</p>
+
+    <h3>색에만 의존하지 말 것: 중복 부호화</h3>
+    <p>WCAG 1.4.1은 색을 정보 전달의 <strong>유일한</strong> 수단으로 쓰지 말라고 요구한다. 그래프에서는 계열마다 마커 모양·선 종류를 다르게 하고, 범례 대신 선 끝에 직접 레이블을 다는 것이 가장 효과적이다. 범례 대조는 작업 기억을 쓰지만 직접 레이블은 색 구별 자체가 필요 없다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="색만으로 구분한 선 그래프와 모양·레이블로 중복 부호화한 선 그래프 비교">
+        <g transform="translate(30,20)">
+          <text x="0" y="14" class="t">색만 사용</text>
+          <rect x="0" y="26" width="340" height="180" class="f-surface" rx="6"/>
+          <polyline points="20,170 90,140 160,120 230,90 300,70" fill="none" stroke="#ff7f0e" stroke-width="3"/>
+          <polyline points="20,160 90,150 160,110 230,100 300,80" fill="none" stroke="#2ca02c" stroke-width="3"/>
+          <polyline points="20,120 90,125 160,140 230,130 300,150" fill="none" stroke="#d62728" stroke-width="3"/>
+          <text x="20" y="226" class="t-dim">범례 대조 필요, 1형에서 세 선 혼동</text>
+        </g>
+        <g transform="translate(420,20)">
+          <text x="0" y="14" class="t">색 + 모양 + 선 종류 + 직접 레이블</text>
+          <rect x="0" y="26" width="350" height="180" class="f-surface" rx="6"/>
+          <polyline points="20,170 90,140 160,120 230,90 300,70" fill="none" stroke="#e69f00" stroke-width="3"/>
+          <polyline points="20,160 90,150 160,110 230,100 300,80" fill="none" stroke="#0072b2" stroke-width="3" stroke-dasharray="9 5"/>
+          <polyline points="20,120 90,125 160,140 230,130 300,150" fill="none" stroke="#000" stroke-width="3" stroke-dasharray="2 4"/>
+          <g fill="#e69f00"><circle cx="90" cy="140" r="5"/><circle cx="230" cy="90" r="5"/></g>
+          <g fill="#0072b2"><rect x="85" y="145" width="10" height="10"/><rect x="225" y="95" width="10" height="10"/></g>
+          <g fill="#000"><path d="M90 119 l6 10 h-12z"/><path d="M230 124 l6 10 h-12z"/></g>
+          <text x="306" y="66" class="t" style="font-size:12px">A</text>
+          <text x="306" y="88" class="t" style="font-size:12px">B</text>
+          <text x="306" y="156" class="t" style="font-size:12px">C</text>
+          <text x="20" y="226" class="t-dim">어떤 색각에서도, 흑백 인쇄에서도 판독 가능</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 18-6.</b> 중복 부호화. 오른쪽은 Okabe–Ito의 주황·파랑·검정을 쓰고, 계열마다 마커 모양과 선 종류를 달리하며, 선 끝에 레이블을 붙였다.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="ui">
+    <h2>UI 상태 색과 다크 모드</h2>
+    <p>오류/경고/성공/정보의 관습적 색인 빨강/주황/초록/파랑은 색각 이상의 최악 축 위에 놓여 있다. 흔히 쓰이는 상태색 예 #d32f2f(오류)와 #2e7d32(성공)는 정상 관측자에게 ΔE00 70 이상 떨어져 있지만, L*가 47.1과 46.3으로 거의 같아 2형 시뮬레이션 후 ΔE00 9.1, 1형 후 10.7로 줄어든다. 작은 아이콘이나 얇은 테두리라면 구별이 어렵다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 220" role="img" aria-label="상태 표시를 아이콘, 텍스트, 명도 차이로 중복 부호화하는 패턴">
+        <g transform="translate(30,20)">
+          <text x="0" y="14" class="t">나쁜 예: 색 점만</text>
+          <circle cx="16" cy="48" r="9" fill="#d32f2f"/><text x="34" y="53" class="t">서버 A</text>
+          <circle cx="16" cy="84" r="9" fill="#2e7d32"/><text x="34" y="89" class="t">서버 B</text>
+          <circle cx="16" cy="120" r="9" fill="#2e7d32"/><text x="34" y="125" class="t">서버 C</text>
+          <text x="0" y="168" class="t-dim">2형: 점 세 개가 거의 같은 갈색</text>
+        </g>
+        <g transform="translate(300,20)">
+          <text x="0" y="14" class="t">좋은 예: 모양 + 텍스트 + 색</text>
+          <path d="M16 38 l11 20 h-22z" fill="#d32f2f"/><text x="16" y="55" text-anchor="middle" fill="#fff" style="font-size:11px;font-weight:700">!</text><text x="36" y="53" class="t">서버 A · 오류</text>
+          <circle cx="16" cy="84" r="10" fill="#2e7d32"/><path d="M11 84 l4 4 l7 -8" fill="none" stroke="#fff" stroke-width="2.2"/><text x="36" y="89" class="t">서버 B · 정상</text>
+          <circle cx="16" cy="120" r="10" fill="#2e7d32"/><path d="M11 120 l4 4 l7 -8" fill="none" stroke="#fff" stroke-width="2.2"/><text x="36" y="125" class="t">서버 C · 정상</text>
+          <text x="0" y="168" class="t-dim">아이콘 형태와 단어가 1차 정보</text>
+        </g>
+        <g transform="translate(570,20)">
+          <text x="0" y="14" class="t">색 쌍 바꾸기</text>
+          <rect x="0" y="34" width="86" height="28" rx="6" fill="#0072b2"/><text x="43" y="53" text-anchor="middle" fill="#fff" style="font-size:12px">▲ +3.2%</text>
+          <rect x="96" y="34" width="86" height="28" rx="6" fill="#d55e00"/><text x="139" y="53" text-anchor="middle" fill="#fff" style="font-size:12px">▼ −1.4%</text>
+          <text x="0" y="90" class="t-dim">상승/하락에 파랑/주황</text>
+          <text x="0" y="110" class="t-dim">2형 ΔE00 56.6</text>
+          <text x="0" y="168" class="t-dim">기호(▲▼)도 함께</text>
+        </g>
+      </svg>
+      <figcaption><b>그림 18-7.</b> 상태 표시의 해결 패턴. (1) 아이콘 형태(삼각형 경고, 원 안 체크)와 텍스트를 1차 정보로, 색은 보조로; (2) 대립 쌍이 꼭 필요하면 빨강–초록 대신 파랑–주황(#0072b2/#d55e00: 2형 후 ΔE00 56.6); (3) 빨강–초록을 유지해야 하면 명도를 크게 벌린다(어두운 빨강 + 밝은 초록).</figcaption>
+    </figure>
+
+    <p><strong>다크 모드</strong>에서는 같은 색이 다른 대비를 갖는다. 흰 배경에서 대비를 확보하려고 어둡게 만든 색은 어두운 배경(#121212, Y=0.006)에서 대비가 떨어진다. 위 상태색은 흰 배경에서 3.1–5.1:1이지만 #121212 위에서는 오류 3.76, 성공 3.65로 본문 기준(4.5)을 밑돈다. 반대로 흰 배경에서 3.11인 주황은 다크에서 6.02다. 대비비는 배경을 기준으로 한 <strong>명도 거리</strong>이므로, 배경 명도가 뒤집히면 팔레트의 명도 배치도 뒤집어야 한다.</p>
+    <p>표준적인 처방은 OKLCh에서 색상각 \(h\)는 유지하고 명도를 올리며 채도를 낮추는 것이다. 어두운 주변에서는 밝은 고채도 색이 눈부시게 보이고(<a href="appearance.html">9장</a>의 주변 효과), 밝은 영역의 sRGB 가멋은 채도 여유가 적어 어차피 채도를 줄여야 한다.</p>
+    <div class="formula">$$L' = \max(L,\ L_{\min}),\qquad C' = k\,C,\qquad h' = h,\qquad \text{가멋 밖이면 } C' \text{ 축소}$$
+    <div class="where">\(L_{\min}\)=0.72, \(k\)=0.8이면 네 상태색이 #121212 위에서 모두 7:1 이상(오류 #f9786d 7.08, 경고 #ed854b 7.19, 성공 #7ab679 7.85, 정보 #5eace8 7.62)이 된다. 대신 이 색들은 흰 배경에서 2.4–2.7:1로 떨어지므로 테마별로 별도 토큰을 둔다.</div></div>
+
+    <div class="sim" id="sim-dark">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>다크 모드 팔레트 조정기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-dark"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>팔레트</span><div class="seg" id="dk-pal">
+            <button data-value="status" class="on">상태색</button><button data-value="tab10">tab10</button><button data-value="okabe">Okabe–Ito</button>
+          </div></div>
+          <label class="ctrl"><span>최소 OKLab 명도 L_min <output id="dk-l-out"></output></span><input type="range" id="dk-l" min="0.4" max="0.9" value="0.72" step="0.01"></label>
+          <label class="ctrl"><span>채도 배율 k <output id="dk-c-out"></output></span><input type="range" id="dk-c" min="0.4" max="1" value="0.8" step="0.05"></label>
+          <label class="ctrl"><span>다크 배경 명도(코드값) <output id="dk-bg-out"></output></span><input type="range" id="dk-bg" min="0" max="60" value="18" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">최소 대비 · 라이트 원본</span><span class="v" id="o-dk-lo">—</span></div>
+        <div class="stat"><span class="k">다크 원본</span><span class="v" id="o-dk-do">—</span></div>
+        <div class="stat"><span class="k">다크 조정</span><span class="v" id="o-dk-da">—</span></div>
+        <div class="stat"><span class="k">평균 이동 ΔE00 (원본→조정)</span><span class="v" id="o-dk-shift">—</span></div>
+        <div class="stat"><span class="k">조정 후 최소 쌍별 ΔE00 (정상/2형)</span><span class="v" id="o-dk-pair">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 상태색을 그대로 다크 배경에 두면 오류·성공이 4.5를 밑돈다. L_min을 0.72로 올리면 모두 7 이상이 된다. ② L_min을 0.9까지 올리면 대비는 계속 오르지만 색들이 서로 가까워져(모두 밝은 파스텔) 쌍별 ΔE00가 줄어든다. 대비와 범주 구별성 사이의 최적점을 찾아라. ③ 다크 배경을 0(순흑)으로 내리면 대비비는 오르지만, APCA 관점에서는 순흑 배경의 밝은 글자가 번져 보이는 할레이션이 생기므로 실무에서는 #121212 안팎의 짙은 회색을 쓴다.</div>
+    </div>
+    <div class="callout tip"><strong>공학자 관점</strong>
+      <p>디자인 토큰은 "red-500" 같은 색 이름이 아니라 "status-error-fg-on-surface" 같은 <strong>역할</strong>로 정의하고, 테마마다 대비비를 검사한 값을 넣는다. CI에서 모든 (전경 토큰, 배경 토큰) 쌍에 대해 <code>contrast ≥ 4.5</code>(텍스트)와 <code>≥ 3</code>(아이콘·테두리)를 단위 테스트로 돌리면 테마 추가 시 회귀를 막을 수 있다. 그래프 팔레트도 같은 방식으로 CVD 후 최소 ΔE00를 테스트한다.</p>
+    </div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>WCAG 2.x 대비비는 \((Y_{\max}+0.05)/(Y_{\min}+0.05)\)이며 \(Y\)는 디코딩한 선형 sRGB의 가중합이다. 본문 4.5:1(AA), 대형 텍스트·UI 컴포넌트 3:1, 본문 AAA 7:1. 흰 배경 위 AA의 경계는 #767676(4.54:1)이다.</li>
+      <li>WCAG 대비비는 극성을 무시하고 어두운 색끼리의 대비를 과대평가한다. APCA Lc는 극성별 지수를 써서 흰 바탕 검정 106.0, 검정 바탕 흰색 −107.9를 준다. 검정/흰 글자 선택의 경계 회색은 WCAG 코드값 약 118, APCA 약 164다.</li>
+      <li>색각 이상 시뮬레이션(Machado 2009 등)은 선형 RGB에 3×3 행렬을 곱하는 것이다. 인코딩 값에 곱하면 tab10 빨강에서 ΔE00 15 오차가 난다.</li>
+      <li>컬러맵은 L* 프로파일(단조성)과 인접 ΔE00(CV)로 진단한다. jet는 L* 반전 3회, 인접 ΔE00 0.09–9.87(CV 0.49)로 가짜 경계와 평탄 구간을 만든다. viridis 근사와 OKLCh 순차 맵은 반전 0, CV 0.12–0.16이다.</li>
+      <li>OKLCh에서 L을 선형, h를 일정 속도로 바꾸고 채도만 줄이는 가멋 매핑을 하면 지각 균일 맵을 직접 만들 수 있다. 누적 ΔE00 재매개화로 균일성을 더 높인다.</li>
+      <li>범주형 팔레트는 CVD 시뮬레이션 후의 <strong>최소</strong> 쌍별 ΔE00로 평가한다. tab10은 1형에서 1.3까지 떨어지고, Okabe–Ito는 세 관측자 모두 11 이상이다. 명도를 다양화하고, 8색 안팎을 넘으면 모양·레이블로 중복 부호화한다.</li>
+      <li>빨강–초록 상태색은 명도가 비슷하면 2형에서 ΔE00 9 수준으로 붕괴한다. 아이콘·텍스트를 1차 정보로, 대립 쌍은 파랑–주황으로, 다크 모드에서는 OKLCh 명도를 올리고 채도를 낮춘 별도 토큰을 쓴다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>흰 배경(#ffffff)에 회색 글자를 쓸 때 WCAG AA 본문 기준(4.5:1)을 만족하는 가장 밝은 회색에 가장 가까운 것은?</p><div class="opts">
+        <button class="opt">#999999</button>
+        <button class="opt">#888888</button>
+        <button class="opt" data-correct>#767676</button>
+        <button class="opt">#808080</button>
+      </div><div class="quiz-exp">4.5:1이 되려면 \(Y \le 1.05/4.5 - 0.05 = 0.183\). 코드값 118(#767676)은 Y=0.181로 4.54:1, 119(#777777)는 4.48:1로 떨어진다. #888888은 3.54:1로 대형 텍스트만 통과한다.</div></div>
+
+      <div class="quiz-q"><p>WCAG 2.x 대비비 공식의 분자·분모에 더해지는 0.05의 역할은?</p><div class="opts">
+        <button class="opt">sRGB 감마의 선형 구간을 보정한다</button>
+        <button class="opt" data-correct>화면 표면의 주변광 반사(플레어)를 근사해 0으로 나누는 것을 막고 흑 근처 비를 제한한다</button>
+        <button class="opt">D65 백색점의 Y 값 오차를 보정한다</button>
+        <button class="opt">폰트 안티앨리어싱 효과를 반영한다</button>
+      </div><div class="quiz-exp">0.05는 백색의 5%에 해당하는 플레어 항이다. 이 때문에 최대 대비가 21:1로 제한되고, 반대로 어두운 색끼리의 비가 지각보다 크게 계산되는 한계도 생긴다.</div></div>
+
+      <div class="quiz-q"><p>배경이 중간 회색 #777777일 때, WCAG와 APCA의 판정으로 옳은 것은?</p><div class="opts">
+        <button class="opt">두 지표 모두 검정 글자가 낫다고 본다</button>
+        <button class="opt">두 지표 모두 흰 글자가 낫다고 본다</button>
+        <button class="opt" data-correct>WCAG는 검정(4.69 대 4.48)을, APCA는 흰 글자(|Lc| 76.6 대 33.0)를 택한다</button>
+        <button class="opt">WCAG는 극성을 고려해 흰 글자에 가중치를 준다</button>
+      </div><div class="quiz-exp">WCAG의 검정/흰 경계는 Y≈0.179(코드값 약 118)이고 #777777은 그보다 약간 밝아 검정이 근소하게 이긴다. APCA는 어두운 배경-밝은 글자 극성에 다른 지수를 써서 경계가 코드값 약 164로 이동한다.</div></div>
+
+      <div class="quiz-q"><p>Machado 2009 행렬로 색각 이상을 시뮬레이션할 때 올바른 처리 순서는?</p><div class="opts">
+        <button class="opt">코드값/255 → 행렬 곱 → ×255</button>
+        <button class="opt">HSV로 변환 → 색상각 회전 → RGB로 복귀</button>
+        <button class="opt" data-correct>코드값 디코딩(선형 RGB) → 행렬 곱 → [0,1] 클리핑 → sRGB 인코딩</button>
+        <button class="opt">CIELAB으로 변환 → a* 성분을 0으로 → 역변환</button>
+      </div><div class="quiz-exp">행렬은 선형광(원추 흥분에 비례하는 양) 사이의 선형 관계다. 인코딩 값에 곱하면 비선형 오차가 생겨, tab10 빨강의 2형 결과가 ΔE00 15만큼 어긋난다. a*=0은 2색각 모델이 아니다.</div></div>
+
+      <div class="quiz-q"><p>jet 컬러맵이 과학 데이터 표시에 부적합한 가장 핵심적인 이유는?</p><div class="opts">
+        <button class="opt">사용하는 색의 수가 적어 단계 구별이 어렵다</button>
+        <button class="opt" data-correct>L*가 단조가 아니고 인접 ΔE00가 크게 불균일해 가짜 경계와 평탄 구간이 생긴다</button>
+        <button class="opt">sRGB 가멋 밖의 색을 사용한다</button>
+        <button class="opt">양 끝 색이 같아 순환형으로 오인된다</button>
+      </div><div class="quiz-exp">jet의 ΣΔE00(234)는 오히려 viridis 근사(120)보다 크다. 문제는 분배: L*가 3회 반전하고 인접 ΔE00가 0.09–9.87로 100배 차이 난다. 흑백 인쇄에서는 양 끝이 모두 어두워 순서도 사라진다.</div></div>
+
+      <div class="quiz-q"><p>상관계수(−1~+1)를 히트맵으로 표시할 때 가장 적합한 컬러맵 유형은?</p><div class="opts">
+        <button class="opt">순차형 (0→1 명도 증가)</button>
+        <button class="opt" data-correct>발산형 (0에서 명도 극값, 양쪽 다른 색상)</button>
+        <button class="opt">순환형</button>
+        <button class="opt">범주형</button>
+      </div><div class="quiz-exp">의미 있는 중심값(0)이 있는 양은 발산형이다. 두 팔의 색상은 2형에서도 구별되도록 청–적 또는 청–황 축을 쓰고, 두 팔의 명도 프로파일을 대칭으로 맞춘다.</div></div>
+
+      <div class="quiz-q"><p>OKLCh 경로로 컬러맵을 만들 때 가멋 밖 색을 "L과 h를 유지하고 C만 줄여" 매핑하는 이유는?</p><div class="opts">
+        <button class="opt">계산이 가장 빨라서</button>
+        <button class="opt">채도가 높을수록 ΔE00가 커지기 때문에</button>
+        <button class="opt" data-correct>명도 프로파일(단조성)과 색상 순서를 보존하기 위해서</button>
+        <button class="opt">sRGB 클리핑과 결과가 같기 때문에</button>
+      </div><div class="quiz-exp">채널별 클리핑은 명도와 색상을 함께 바꿔 L* 반전을 만들 수 있다. 채도만 줄이면 L(t)가 그대로 남아 단조성이 유지된다. 대가로 ΔE 균일성이 깨질 수 있어 재매개화로 보정한다.</div></div>
+
+      <div class="quiz-q"><p>범주형 팔레트를 평가하는 지표로 가장 적절한 것은?</p><div class="opts">
+        <button class="opt">모든 쌍의 평균 ΔE00</button>
+        <button class="opt">각 색의 채도 합</button>
+        <button class="opt" data-correct>정상·1형·2형 시뮬레이션 각각에서의 최소 쌍별 ΔE00</button>
+        <button class="opt">각 색의 HSL 색상각 간격</button>
+      </div><div class="quiz-exp">판독 오류는 가장 비슷한 두 색에서 생긴다. tab10은 정상 최소 16.2지만 1형에서 주황–초록이 1.25로 붕괴한다. 평균이나 색상각 간격은 이를 드러내지 못한다.</div></div>
+
+      <div class="quiz-q"><p>라이트 테마의 상태색(#d32f2f, #2e7d32)을 다크 테마(#121212)에 그대로 쓸 때의 문제와 처방으로 옳은 것은?</p><div class="opts">
+        <button class="opt">대비가 높아져 문제없다</button>
+        <button class="opt">채도를 높이면 대비가 올라간다</button>
+        <button class="opt" data-correct>대비가 3.7 안팎으로 떨어지므로, 색상각을 유지한 채 명도를 올리고 채도를 낮춘 별도 토큰을 쓴다</button>
+        <button class="opt">배경을 순흑(#000)으로 바꾸면 모든 문제가 해결된다</button>
+      </div><div class="quiz-exp">흰 배경용으로 어둡게 잡은 색은 어두운 배경과의 명도 거리가 작다. OKLCh에서 L≥0.72, C×0.8로 조정하면 7:1 이상이 된다. 순흑 배경은 대비비는 올리지만 할레이션과 눈부심 문제를 만든다.</div></div>
+
+      <div class="quiz-q"><p>WCAG 1.4.1 "색의 사용"을 그래프에서 만족시키는 방법이 <strong>아닌</strong> 것은?</p><div class="opts">
+        <button class="opt">계열마다 마커 모양과 선 종류를 다르게 한다</button>
+        <button class="opt">선 끝에 직접 레이블을 단다</button>
+        <button class="opt" data-correct>색각 이상에 안전한 팔레트로 바꾸고 다른 단서는 두지 않는다</button>
+        <button class="opt">상태 표시에 아이콘과 텍스트를 함께 쓴다</button>
+      </div><div class="quiz-exp">1.4.1은 색을 정보의 유일한 수단으로 쓰지 말라는 기준이다. 안전한 팔레트는 좋은 출발점이지만 그것만으로는 여전히 색에만 의존한다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  // ---- core
+  const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  const DEC = new Float64Array(256);
+  for (let i = 0; i < 256; i++) DEC[i] = CB.srgbDecode(i / 255);
+  const ENC = new Uint8ClampedArray(4097);
+  for (let i = 0; i <= 4096; i++) ENC[i] = Math.round(255 * CB.srgbEncode(i / 4096));
+  const enc8 = (v) => (v <= 0 ? 0 : v >= 1 ? 255 : ENC[(v * 4096 + 0.5) | 0]);
+  const toLin = (a) => [DEC[a[0]], DEC[a[1]], DEC[a[2]]];
+  const toRGB8 = (lin) => lin.map((v) => Math.round(255 * CB.srgbEncode(clamp01(v))));
+  const hexLin = (h) => toLin(CB.hex2rgb(h));
+  const linHex = (lin) => CB.rgb2hex(toRGB8(lin));
+  const labLin = (lin) => CB.XYZ2Lab(CB.linRGB2XYZ(lin.map(clamp01)));
+
+  const MACHADO = {
+    protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+    deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.01182, 0.04294, 0.968881]],
+    tritan: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.3039]],
+  };
+  const VIEWS = ["normal", "protan", "deutan", "tritan"];
+  const VIEW_KO = { normal: "정상", protan: "1형(P)", deutan: "2형(D)", tritan: "3형(T)" };
+  function cvdMatrix(type, sev) {
+    const M = MACHADO[type];
+    if (!M) return null;
+    if (sev == null || sev >= 1) return M;
+    return M.map((r, i) => r.map((v, j) => (i === j ? 1 : 0) * (1 - sev) + v * sev));
+  }
+  const cvdLin = (lin, type, sev) => { const M = cvdMatrix(type, sev); return M ? CB.mat.vec(M, lin).map(clamp01) : lin; };
+  function cvdLinWrong(lin, type, sev) {
+    const M = cvdMatrix(type, sev);
+    if (!M) return lin;
+    const e = lin.map((v) => CB.srgbEncode(clamp01(v)));
+    return CB.mat.vec(M, e).map((v) => CB.srgbDecode(clamp01(v)));
+  }
+
+  function apca(txt8, bg8) {
+    const Ys = (a) => {
+      const y = 0.2126729 * Math.pow(a[0] / 255, 2.4) + 0.7151522 * Math.pow(a[1] / 255, 2.4) + 0.072175 * Math.pow(a[2] / 255, 2.4);
+      return y > 0.022 ? y : y + Math.pow(0.022 - y, 1.414);
+    };
+    const yt = Ys(txt8), yb = Ys(bg8);
+    if (Math.abs(yb - yt) < 0.0005) return 0;
+    if (yb > yt) {
+      const s = (Math.pow(yb, 0.56) - Math.pow(yt, 0.57)) * 1.14;
+      return s < 0.1 ? 0 : (s - 0.027) * 100;
+    }
+    const s = (Math.pow(yb, 0.65) - Math.pow(yt, 0.62)) * 1.14;
+    return s > -0.1 ? 0 : (s + 0.027) * 100;
+  }
+
+  const oklch2lin = ([L, C, h]) => CB.oklab2linRGB([L, C * Math.cos((h * Math.PI) / 180), C * Math.sin((h * Math.PI) / 180)]);
+  const lin2oklch = (lin) => { const [L, a, b] = CB.linRGB2oklab(lin); let h = (Math.atan2(b, a) * 180) / Math.PI; if (h < 0) h += 360; return [L, Math.hypot(a, b), h]; };
+  const inGamut = (lin) => lin.every((v) => v >= -1e-5 && v <= 1 + 1e-5);
+  function gamutMap(lch) {
+    let lin = oklch2lin(lch);
+    if (inGamut(lin)) return { lin, mapped: false };
+    let lo = 0, hi = lch[1];
+    for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (inGamut(oklch2lin([lch[0], m, lch[2]]))) lo = m; else hi = m; }
+    return { lin: oklch2lin([lch[0], lo, lch[2]]).map(clamp01), mapped: true };
+  }
+  const mixOklab = (p, q, t) => { const A = CB.linRGB2oklab(p), B = CB.linRGB2oklab(q); return CB.oklab2linRGB(A.map((v, i) => v + (B[i] - v) * t)).map(clamp01); };
+  function stopsMap(hexes) {
+    const S = hexes.map(hexLin);
+    return (t) => { const f = clamp01(t) * (S.length - 1), i = Math.min(S.length - 2, Math.floor(f)); return mixOklab(S[i], S[i + 1], f - i); };
+  }
+  function piecewise(pts) {
+    return (t) => { for (let i = 1; i < pts.length; i++) if (t <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return y0 + ((y1 - y0) * (t - x0)) / (x1 - x0); } return pts[pts.length - 1][1]; };
+  }
+  const JET = [
+    piecewise([[0, 0], [0.35, 0], [0.66, 1], [0.89, 1], [1, 0.5]]),
+    piecewise([[0, 0], [0.125, 0], [0.375, 1], [0.64, 1], [0.91, 0], [1, 0]]),
+    piecewise([[0, 0.5], [0.11, 1], [0.34, 1], [0.65, 0], [1, 0]]),
+  ];
+  function hsv2rgb(h, s, v) {
+    const f = (n) => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+    return [f(5), f(3), f(1)];
+  }
+  function genMap(o) {
+    const N = 256, out = [];
+    let mapped = 0;
+    for (let i = 0; i < N; i++) {
+      const t = i / (N - 1);
+      let L, C, h;
+      if (o.mode === "div") {
+        const u = Math.abs(2 * t - 1), arm = t < 0.5 ? o.h0 : o.h1;
+        L = o.L1 + (o.L0 - o.L1) * u;
+        C = o.C * Math.pow(u, 0.8);
+        h = arm;
+      } else {
+        L = o.L0 + (o.L1 - o.L0) * t;
+        C = o.C * (o.Cshape === "flat" ? 1 : Math.sin(Math.PI * (0.15 + 0.7 * t)));
+        h = o.h0 + (o.h1 - o.h0) * t;
+      }
+      const g = gamutMap([L, C, h]);
+      if (g.mapped) mapped++;
+      out.push(g.lin);
+    }
+    let lins = out;
+    if (o.equalize) lins = equalize(out);
+    const fn = (t) => { const f = clamp01(t) * (N - 1), i = Math.min(N - 2, Math.floor(f)), r = f - i; return lins[i].map((v, k) => v + (lins[i + 1][k] - v) * r); };
+    fn.mappedFrac = mapped / N;
+    return fn;
+  }
+  function equalize(lins) {
+    const labs = lins.map(labLin), cum = [0];
+    for (let i = 1; i < labs.length; i++) cum.push(cum[i - 1] + CB.dE2000(labs[i - 1], labs[i]));
+    const tot = cum[cum.length - 1], out = [];
+    let j = 0;
+    for (let i = 0; i < lins.length; i++) {
+      const s = (tot * i) / (lins.length - 1);
+      while (j < cum.length - 2 && cum[j + 1] < s) j++;
+      const r = cum[j + 1] > cum[j] ? (s - cum[j]) / (cum[j + 1] - cum[j]) : 0;
+      out.push(mixOklab(lins[j], lins[j + 1], clamp01(r)));
+    }
+    return out;
+  }
+  const VIRIDIS9 = ["#440154", "#472d7b", "#3b528b", "#2c728e", "#21908c", "#27ad81", "#5dc863", "#aadc32", "#fde725"];
+  const CMAPS = {
+    gray: { name: "gray", kind: "seq", f: (t) => { const v = CB.srgbDecode(t); return [v, v, v]; } },
+    jet: { name: "jet", kind: "seq", f: (t) => JET.map((c) => CB.srgbDecode(c(t))) },
+    rainbow: { name: "HSV 무지개", kind: "seq", f: (t) => hsv2rgb(240 * (1 - t), 1, 1).map(CB.srgbDecode) },
+    viridis: { name: "viridis(근사)", kind: "seq", f: stopsMap(VIRIDIS9) },
+    seq: { name: "OKLCh 순차", kind: "seq", f: genMap({ mode: "seq", L0: 0.27, L1: 0.95, h0: 300, h1: 100, C: 0.16, equalize: false }) },
+    div: { name: "OKLCh 발산", kind: "div", f: genMap({ mode: "div", L0: 0.45, L1: 0.96, h0: 255, h1: 30, C: 0.17 }) },
+    cyc: { name: "OKLCh 순환", kind: "cyc", f: (t) => gamutMap([0.7, 0.11, 360 * t + 20]).lin },
+  };
+  function sampleMap(f, N, view) {
+    const a = [];
+    for (let i = 0; i < N; i++) a.push(cvdLin(f(i / (N - 1)), view || "normal"));
+    return a;
+  }
+  function mapMetrics(lins) {
+    const labs = lins.map(labLin), L = labs.map((l) => l[0]), dE = [];
+    for (let i = 1; i < labs.length; i++) dE.push(CB.dE2000(labs[i - 1], labs[i]));
+    let rev = 0, sgn = 0, revAt = [];
+    for (let i = 1; i < L.length; i++) {
+      const d = L[i] - L[i - 1];
+      if (Math.abs(d) < 0.05) continue;
+      const s = Math.sign(d);
+      if (sgn && s !== sgn) { rev++; revAt.push((i - 1) / (L.length - 1)); }
+      sgn = s;
+    }
+    const mean = dE.reduce((a, b) => a + b, 0) / dE.length;
+    const sd = Math.sqrt(dE.reduce((a, b) => a + (b - mean) ** 2, 0) / dE.length);
+    return { labs, L, dE, rev, revAt, total: mean * dE.length, mean, cv: sd / mean, minDE: Math.min(...dE), maxDE: Math.max(...dE), Lmin: Math.min(...L), Lmax: Math.max(...L) };
+  }
+  function pairDE(lins, view) {
+    const labs = lins.map((l) => labLin(cvdLin(l, view)));
+    const n = labs.length, M = [];
+    let min = Infinity, arg = [0, 0];
+    for (let i = 0; i < n; i++) {
+      M.push([]);
+      for (let j = 0; j < n; j++) {
+        const d = i === j ? 0 : CB.dE2000(labs[i], labs[j]);
+        M[i].push(d);
+        if (i < j && d < min) { min = d; arg = [i, j]; }
+      }
+    }
+    return { M, min, arg, labs };
+  }
+  function optimizePalette(n, opts) {
+    const cand = [];
+    for (let L = 0.42; L <= 0.86; L += 0.04)
+      for (let C = 0.06; C <= 0.22; C += 0.04)
+        for (let h = 0; h < 360; h += 12) {
+          const lin = oklch2lin([L, C, h]);
+          if (!inGamut(lin)) continue;
+          const l = lin.map(clamp01);
+          if (opts.white3 && CB.contrast(toRGB8(l), [255, 255, 255]) < 3) continue;
+          cand.push({ lin: l, lab: ["normal", "protan", "deutan"].map((v) => labLin(cvdLin(l, v))) });
+        }
+    if (!cand.length) return [];
+    const seedTarget = labLin(hexLin("#0072b2"));
+    let best = cand[0], bd = Infinity;
+    cand.forEach((c) => { const d = CB.dE2000(c.lab[0], seedTarget); if (d < bd) { bd = d; best = c; } });
+    const chosen = [best];
+    const minD = cand.map((c) => Math.min(...[0, 1, 2].map((k) => CB.dE2000(c.lab[k], best.lab[k]))));
+    while (chosen.length < n) {
+      let bi = -1, bv = -1;
+      minD.forEach((v, i) => { if (v > bv) { bv = v; bi = i; } });
+      if (bi < 0) break;
+      const c = cand[bi];
+      chosen.push(c);
+      cand.forEach((x, i) => { minD[i] = Math.min(minD[i], ...[0, 1, 2].map((k) => CB.dE2000(x.lab[k], c.lab[k]))); });
+    }
+    return chosen.map((c) => linHex(c.lin));
+  }
+  // ---- ui
+  const $ = (id) => document.getElementById(id);
+  const f1 = (x) => (isFinite(x) ? x.toFixed(1) : "—");
+  const f2 = (x) => (isFinite(x) ? x.toFixed(2) : "—");
+  const font = () => getComputedStyle(document.body).getPropertyValue("--font");
+  const mono = () => getComputedStyle(document.body).getPropertyValue("--mono");
+  const pass = (ok) => (ok ? '<span style="color:var(--ok)">통과</span>' : '<span style="color:var(--bad)">미달</span>');
+  const PALS = {
+    tab10: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+    okabe: ["#e69f00", "#56b4e9", "#009e73", "#f0e442", "#0072b2", "#d55e00", "#cc79a7", "#000000"],
+    rg: ["#d62728", "#ff7f0e", "#2ca02c"],
+    prim: ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"],
+    status: ["#d32f2f", "#ed6c02", "#2e7d32", "#0288d1"],
+  };
+  function lutOf(f, view) {
+    const lut = new Uint8ClampedArray(256 * 3);
+    for (let i = 0; i < 256; i++) { const c = toRGB8(cvdLin(f(i / 255), view || "normal")); lut[i * 3] = c[0]; lut[i * 3 + 1] = c[1]; lut[i * 3 + 2] = c[2]; }
+    return lut;
+  }
+  function drawBar(ctx, box, f, view, label) {
+    const n = Math.max(2, Math.round(box.w));
+    for (let i = 0; i < n; i++) { ctx.fillStyle = CB.rgb8css(toRGB8(cvdLin(f(i / (n - 1)), view))); ctx.fillRect(box.x + (i * box.w) / n, box.y, box.w / n + 0.8, box.h); }
+    if (label) { const P = CB.palette(); ctx.fillStyle = P.dim; ctx.font = "11px " + font(); ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(label, box.x - 6, box.y + box.h / 2); }
+  }
+
+  /* ---------- 1. contrast ---------- */
+  (function () {
+    const fgEl = $("ct-fg"), bgEl = $("ct-bg");
+    const get = () => [CB.hex2rgb(fgEl.value), CB.hex2rgb(bgEl.value)];
+    const cv = CB.canvas($("cv-contrast"), (ctx, w, h) => {
+      const P = CB.palette(), [fg, bg] = get();
+      const top = 112;
+      ctx.fillStyle = CB.rgb8css(bg); ctx.fillRect(8, 8, w - 16, top - 8);
+      ctx.strokeStyle = P.border; ctx.strokeRect(8.5, 8.5, w - 17, top - 9);
+      ctx.fillStyle = CB.rgb8css(fg); ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      const sz = [[12, 400], [16, 400], [16, 700], [24, 400]];
+      let x = 20;
+      ctx.font = "400 32px " + font(); ctx.fillText("색 Aa 0.5", 20, 50);
+      sz.forEach(([s, wt]) => { ctx.font = `${wt} ${s}px ${font()}`; const t = `${s}px${wt > 400 ? " 굵게" : ""} 대비`; ctx.fillText(t, x, 92); x += ctx.measureText(t).width + 16; });
+      ctx.fillRect(w - 120, 30, 90, 1); ctx.fillRect(w - 120, 44, 90, 2); ctx.lineWidth = 2; ctx.strokeStyle = CB.rgb8css(fg); ctx.strokeRect(w - 120, 58, 90, 26);
+      const gy = top + 14, gh = (h - gy - 10) / 2;
+      const sweep = (fn) => { const d = []; for (let g = 0; g <= 255; g += 3) d.push([g, fn([g, g, g])]); return d; };
+      const eqg = Math.round(255 * CB.srgbEncode(CB.relLum(bg)));
+      const black = [0, 0, 0], white = [255, 255, 255];
+      CB.chart(ctx, { x: 52, y: gy, w: w - 70, h: gh - 30 }, {
+        x: [0, 255], y: [1, 21], logY: false, yLabel: "WCAG CR",
+        yTicks: [1, 3, 4.5, 7, 14, 21], xTicks: [0, 64, 128, 192, 255],
+        series: [{ data: sweep((g) => CB.contrast(black, g)), color: P.text, width: 2 }, { data: sweep((g) => CB.contrast(white, g)), color: P.faint, width: 2, dash: [5, 4] }, { data: sweep((g) => CB.contrast(fg, g)), color: P.accent, width: 2.5 }],
+        hlines: [{ y: 4.5, color: P.ok }, { y: 3, color: P.warn }], vlines: [{ x: eqg, color: P.accent2, label: "배경 Y" }],
+      });
+      CB.chart(ctx, { x: 52, y: gy + gh + 4, w: w - 70, h: gh - 30 }, {
+        x: [0, 255], y: [0, 110], yLabel: "APCA |Lc|", xLabel: "배경 회색 코드값 — 실선: 검정 글자, 점선: 흰 글자, 강조색: 현재 글자색",
+        yTicks: [0, 30, 45, 60, 75, 90, 105], xTicks: [0, 64, 128, 192, 255],
+        series: [{ data: sweep((g) => Math.abs(apca(black, g))), color: P.text, width: 2 }, { data: sweep((g) => Math.abs(apca(white, g))), color: P.faint, width: 2, dash: [5, 4] }, { data: sweep((g) => Math.abs(apca(fg, g))), color: P.accent, width: 2.5 }],
+        hlines: [{ y: 75, color: P.ok }, { y: 60, color: P.warn }], vlines: [{ x: eqg, color: P.accent2 }],
+      });
+    }, { aspect: 0.95, minHeight: 440, maxHeight: 620 });
+    function update() {
+      const [fg, bg] = get(), cr = CB.contrast(fg, bg), lc = apca(fg, bg);
+      $("ct-fg-out").textContent = fgEl.value; $("ct-bg-out").textContent = bgEl.value;
+      CB.stat("o-ct-ratio", f2(cr) + " : 1");
+      CB.stat("o-ct-aa", pass(cr >= 4.5)); CB.stat("o-ct-aal", pass(cr >= 3)); CB.stat("o-ct-aaa", pass(cr >= 7));
+      CB.stat("o-ct-lc", f1(lc));
+      CB.stat("o-ct-y", CB.relLum(fg).toFixed(3) + " / " + CB.relLum(bg).toFixed(3));
+      cv.redraw();
+    }
+    CB.seg("ct-pre", (v) => { const [a, b] = v.split("|"); fgEl.value = a; bgEl.value = b; update(); });
+    fgEl.addEventListener("input", update); bgEl.addEventListener("input", update);
+    $("ct-swap").addEventListener("click", () => { const t = fgEl.value; fgEl.value = bgEl.value; bgEl.value = t; update(); });
+    update();
+  })();
+
+  /* ---------- 2. CVD simulator ---------- */
+  (function () {
+    const SW = 480, SH = 300;
+    const src = document.createElement("canvas"); src.width = SW; src.height = SH;
+    const sctx = src.getContext("2d");
+    const outs = VIEWS.map(() => { const c = document.createElement("canvas"); c.width = SW; c.height = SH; return c; });
+    const KEY = { chart: PALS.tab10.slice(0, 6), swatch: PALS.tab10.concat(PALS.okabe.slice(0, 7)), heat: ["#000080", "#15ffe2", "#7bff7b", "#e2ff15", "#ff2100"], ui: PALS.status.concat(["#2ca02c", "#d62728"]) };
+    function drawScene(kind) {
+      const c = sctx;
+      c.fillStyle = "#ffffff"; c.fillRect(0, 0, SW, SH);
+      c.font = "600 18px " + font(); c.textBaseline = "middle"; c.textAlign = "left";
+      if (kind === "chart") {
+        c.strokeStyle = "#cccccc"; c.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(40, 30 + i * 60); c.lineTo(400, 30 + i * 60); c.stroke(); }
+        KEY.chart.forEach((col, k) => {
+          c.strokeStyle = col; c.lineWidth = 4; c.beginPath();
+          for (let i = 0; i <= 36; i++) { const x = 40 + i * 10, y = 150 + 90 * Math.sin(i / 6 + k * 0.9) * Math.exp(-k * 0.08) - k * 6; i ? c.lineTo(x, y) : c.moveTo(x, y); }
+          c.stroke();
+          c.fillStyle = col; c.fillRect(420, 26 + k * 42, 22, 14);
+          c.fillStyle = "#222"; c.fillText(String.fromCharCode(65 + k), 450, 34 + k * 42);
+        });
+      } else if (kind === "swatch") {
+        const cols = KEY.swatch, n = 9, cw = SW / n;
+        cols.forEach((col, i) => { const r = Math.floor(i / n), q = i % n; c.fillStyle = col; c.fillRect(q * cw + 4, 10 + r * 96, cw - 8, 84); });
+        c.fillStyle = "#222"; c.font = "600 15px " + font();
+        c.fillText("tab10 (10) + Okabe–Ito (7)", 10, 284);
+      } else if (kind === "heat") {
+        const img = c.createImageData(SW, SH), jl = lutOf(CMAPS.jet.f), vl = lutOf(CMAPS.viridis.f);
+        for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+          const u = (x % (SW / 2)) / (SW / 2), v = y / SH;
+          let f = 0.55 * Math.exp(-((u - 0.35) ** 2 + (v - 0.4) ** 2) / 0.05) + 0.4 * Math.exp(-((u - 0.75) ** 2 + (v - 0.75) ** 2) / 0.03) + 0.3 * u;
+          const t = Math.round(255 * clamp01(f / 0.95)), L = x < SW / 2 ? jl : vl, p = (y * SW + x) * 4;
+          img.data[p] = L[t * 3]; img.data[p + 1] = L[t * 3 + 1]; img.data[p + 2] = L[t * 3 + 2]; img.data[p + 3] = 255;
+        }
+        c.putImageData(img, 0, 0);
+        c.fillStyle = "#ffffff"; c.fillRect(SW / 2 - 2, 0, 4, SH);
+        c.font = "600 16px " + font(); c.fillStyle = "#fff"; c.fillText("jet", 10, 18); c.fillText("viridis(근사)", SW / 2 + 10, 18);
+      } else {
+        const lab = ["오류", "경고", "성공", "정보"];
+        PALS.status.forEach((col, i) => {
+          c.fillStyle = col; c.beginPath(); c.roundRect ? c.roundRect(20 + i * 112, 24, 100, 40, 8) : c.rect(20 + i * 112, 24, 100, 40); c.fill();
+          c.fillStyle = "#fff"; c.textAlign = "center"; c.fillText(lab[i], 70 + i * 112, 44);
+          c.fillStyle = col; c.beginPath(); c.arc(40 + i * 112, 100, 10, 0, 7); c.fill();
+          c.textAlign = "left"; c.fillText(lab[i], 58 + i * 112, 101);
+        });
+        c.textAlign = "left"; c.font = "700 22px " + font();
+        c.fillStyle = "#2ca02c"; c.fillText("+3.2%  KOSPI", 24, 160);
+        c.fillStyle = "#d62728"; c.fillText("−1.4%  NASDAQ", 24, 200);
+        [["#2ca02c", 1], ["#d62728", 0]].forEach(([col, on], k) => {
+          const x0 = 300, y0 = 145 + k * 50;
+          c.fillStyle = col; c.beginPath(); c.arc(x0, y0, 15, 0, 7); c.arc(x0 + 40, y0, 15, 0, 7); c.fill(); c.fillRect(x0, y0 - 15, 40, 30);
+          c.fillStyle = "#fff"; c.beginPath(); c.arc(on ? x0 + 40 : x0, y0, 12, 0, 7); c.fill();
+        });
+        c.fillStyle = "#555"; c.font = "500 14px " + font(); c.fillText("색만으로 구분된 등락 표시와 토글", 24, 260);
+      }
+    }
+    const sev = CB.range("cv-sev", (v) => (v / 100).toFixed(2), () => process());
+    const scene = CB.seg("cv-scene", () => { drawScene(scene()); process(); });
+    const wrong = $("cv-wrong");
+    wrong.addEventListener("change", () => process());
+    function process() {
+      const base = sctx.getImageData(0, 0, SW, SH), s = sev() / 100, bad = wrong.checked;
+      VIEWS.forEach((v, k) => {
+        const oc = outs[k].getContext("2d"), img = oc.createImageData(SW, SH), d = img.data, b = base.data;
+        const M = cvdMatrix(v, s);
+        for (let p = 0; p < d.length; p += 4) {
+          if (!M) { d[p] = b[p]; d[p + 1] = b[p + 1]; d[p + 2] = b[p + 2]; d[p + 3] = 255; continue; }
+          if (bad) {
+            const r = b[p] / 255, g = b[p + 1] / 255, bb = b[p + 2] / 255;
+            d[p] = 255 * (M[0][0] * r + M[0][1] * g + M[0][2] * bb); d[p + 1] = 255 * (M[1][0] * r + M[1][1] * g + M[1][2] * bb); d[p + 2] = 255 * (M[2][0] * r + M[2][1] * g + M[2][2] * bb);
+          } else {
+            const r = DEC[b[p]], g = DEC[b[p + 1]], bb = DEC[b[p + 2]];
+            d[p] = enc8(M[0][0] * r + M[0][1] * g + M[0][2] * bb); d[p + 1] = enc8(M[1][0] * r + M[1][1] * g + M[1][2] * bb); d[p + 2] = enc8(M[2][0] * r + M[2][1] * g + M[2][2] * bb);
+          }
+          d[p + 3] = 255;
+        }
+        oc.putImageData(img, 0, 0);
+      });
+      const keys = KEY[scene()].map(hexLin), ids = ["o-cv-n", "o-cv-p", "o-cv-d", "o-cv-t"];
+      VIEWS.forEach((v, k) => {
+        const labs = keys.map((l) => labLin(bad ? cvdLinWrong(l, v, s) : cvdLin(l, v, s)));
+        let m = Infinity;
+        for (let i = 0; i < labs.length; i++) for (let j = i + 1; j < labs.length; j++) m = Math.min(m, CB.dE2000(labs[i], labs[j]));
+        CB.stat(ids[k], f1(m));
+      });
+      const err = keys.reduce((a, l) => a + CB.dE2000(labLin(cvdLin(l, "deutan", s)), labLin(cvdLinWrong(l, "deutan", s))), 0) / keys.length;
+      CB.stat("o-cv-err", f1(err));
+      cv.redraw();
+    }
+    const cv = CB.canvas($("cv-cvd"), (ctx, w, h) => {
+      const P = CB.palette(), gap = 8;
+      let pw = (w - gap * 3) / 2, ph = pw * (SH / SW);
+      const phMax = (h - gap * 3 - 52) / 2;
+      if (ph > phMax) { ph = phMax; pw = ph * (SW / SH); }
+      VIEWS.forEach((v, k) => {
+        const x = gap + (k % 2) * (pw + gap), y = gap + Math.floor(k / 2) * (ph + 26 + gap);
+        ctx.fillStyle = P.text; ctx.font = "600 12px " + font(); ctx.textBaseline = "top"; ctx.textAlign = "left";
+        ctx.fillText(VIEW_KO[v] + (v === "normal" ? "" : wrong.checked ? " · 감마 오류" : ""), x, y + 4);
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(outs[k], x, y + 22, pw, ph);
+        ctx.strokeStyle = P.border; ctx.strokeRect(x + 0.5, y + 22.5, pw - 1, ph - 1);
+      });
+    }, { aspect: 0.72, minHeight: 280 });
+    drawScene(scene()); process();
+  })();
+
+  /* ---------- 3. colormap analyzer ---------- */
+  (function () {
+    const map = CB.seg("cm-map", () => update()), view = CB.seg("cm-view", () => update());
+    const nn = CB.range("cm-n", (v) => String(v), () => update());
+    let met = null, metN = null;
+    function update() {
+      const f = CMAPS[map()].f, N = nn() + 1;
+      met = mapMetrics(sampleMap(f, N, view()));
+      metN = view() === "normal" ? met : mapMetrics(sampleMap(f, N, "normal"));
+      CB.stat("o-cm-l", f1(met.Lmin) + " – " + f1(met.Lmax));
+      CB.stat("o-cm-rev", map() === "cyc" ? met.rev + " <small>(L* 거의 일정)</small>" : String(met.rev) + (met.rev ? " <small>t≈" + met.revAt.map(f2).join(", ") + "</small>" : ""));
+      CB.stat("o-cm-de", f2(met.minDE) + " / " + f2(met.maxDE));
+      CB.stat("o-cm-cv", f2(met.cv));
+      CB.stat("o-cm-tot", f1(met.total));
+      cv.redraw();
+    }
+    const cv = CB.canvas($("cv-cmap"), (ctx, w, h) => {
+      if (!met) return;
+      const P = CB.palette(), f = CMAPS[map()].f, lx = 52, bw = w - lx - 18;
+      VIEWS.forEach((v, k) => drawBar(ctx, { x: lx, y: 8 + k * 22, w: bw, h: 18 }, f, v, VIEW_KO[v].replace(/\(.*\)/, "")));
+      const y0 = 8 + 4 * 22 + 10, ch = (h - y0 - 46) / 2;
+      const N = met.L.length, tt = (i) => i / (N - 1);
+      CB.chart(ctx, { x: lx, y: y0, w: bw, h: ch - 18 }, {
+        x: [0, 1], y: [0, 100], yLabel: "L*", yTicks: [0, 25, 50, 75, 100],
+        series: [{ data: metN.L.map((L, i) => [tt(i), L]), color: P.text, width: 2 }].concat(view() === "normal" ? [] : [{ data: met.L.map((L, i) => [tt(i), L]), color: P.accent, width: 2, dash: [5, 4] }]),
+        vlines: met.revAt.map((t) => ({ x: t, color: P.bad })),
+      });
+      const ymax = Math.max(3, Math.ceil(met.maxDE * 1.15));
+      CB.chart(ctx, { x: lx, y: y0 + ch + 4, w: bw, h: ch - 18 }, {
+        x: [0, 1], y: [0, ymax], yLabel: "인접 ΔE00", xLabel: "t" + (view() === "normal" ? "" : " — 점선/막대: " + VIEW_KO[view()]),
+        series: [{ data: met.dE.map((d, i) => [(i + 0.5) / (N - 1), d]), color: P.accent, width: 2, fill: P.accent + "22" }],
+        hlines: [{ y: met.mean, color: P.dim, label: "평균 " + f2(met.mean) }],
+      });
+    }, { aspect: 0.8, minHeight: 420, maxHeight: 600 });
+    update();
+  })();
+
+  /* ---------- 4. field ---------- */
+  (function () {
+    const FW = 200, FH = 140, base = new Float32Array(FW * FH), bump = new Float32Array(FW * FH);
+    let lo = Infinity, hi = -Infinity;
+    const g = (x, y, cx, cy, s) => Math.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * s * s));
+    for (let j = 0; j < FH; j++) for (let i = 0; i < FW; i++) {
+      const x = (i + 0.5) / FW, y = (j + 0.5) / FH, k = j * FW + i;
+      base[k] = 0.6 * g(x, y, 0.3, 0.45, 0.22) + 0.45 * g(x, y, 0.75, 0.7, 0.16) + 0.25 * x;
+      bump[k] = g(x, y, 0.62, 0.28, 0.045);
+      lo = Math.min(lo, base[k]); hi = Math.max(hi, base[k]);
+    }
+    const tPeakBase = (base[Math.round(0.28 * FH) * FW + Math.round(0.62 * FW)] - lo) / (hi - lo);
+    const selA = $("fl-a"), selB = $("fl-b"), iso = $("fl-iso");
+    const amp = CB.range("fl-amp", (v) => v.toFixed(3), () => update());
+    const view = CB.seg("fl-view", () => update());
+    [selA, selB].forEach((s) => s.addEventListener("change", () => update()));
+    iso.addEventListener("change", () => update());
+    const imgs = [document.createElement("canvas"), document.createElement("canvas")];
+    imgs.forEach((c) => { c.width = FW; c.height = FH; });
+    function render(c, key) {
+      const lut = lutOf(CMAPS[key].f, view()), x = c.getContext("2d"), img = x.createImageData(FW, FH), a = amp();
+      for (let k = 0; k < FW * FH; k++) {
+        const t = Math.round(255 * clamp01((base[k] + a * bump[k] - lo) / (hi - lo))), p = k * 4;
+        img.data[p] = lut[t * 3]; img.data[p + 1] = lut[t * 3 + 1]; img.data[p + 2] = lut[t * 3 + 2]; img.data[p + 3] = 255;
+      }
+      x.putImageData(img, 0, 0);
+    }
+    function update() {
+      render(imgs[0], selA.value); render(imgs[1], selB.value);
+      const t0 = tPeakBase, t1 = clamp01(t0 + amp() / (hi - lo));
+      const vis = (key) => { const f = CMAPS[key].f, A = labLin(cvdLin(f(t0), view())), B = labLin(cvdLin(f(t1), view())); return [CB.dE2000(A, B), B[0] - A[0]]; };
+      const va = vis(selA.value), vb = vis(selB.value);
+      CB.stat("o-fl-t", f2(t0) + " → " + f2(t1));
+      CB.stat("o-fl-da", f1(va[0])); CB.stat("o-fl-db", f1(vb[0]));
+      CB.stat("o-fl-dl", f1(va[1]) + " / " + f1(vb[1]));
+      cv.redraw();
+    }
+    const cv = CB.canvas($("cv-field"), (ctx, w, h) => {
+      const P = CB.palette(), gap = 8, pw = (w - gap * 3) / 2, ph = pw * (FH / FW);
+      [selA, selB].forEach((s, k) => {
+        const x = gap + k * (pw + gap), y = 24;
+        ctx.fillStyle = P.text; ctx.font = "600 12px " + font(); ctx.textBaseline = "top"; ctx.textAlign = "left";
+        ctx.fillText(CMAPS[s.value].name + (view() === "normal" ? "" : " · " + VIEW_KO[view()]), x, 6);
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(imgs[k], x, y, pw, ph);
+        if (iso.checked) {
+          ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 1;
+          const sx = pw / FW, sy = ph / FH, a = amp(), val = (i, j) => (base[j * FW + i] + a * bump[j * FW + i] - lo) / (hi - lo);
+          ctx.beginPath();
+          for (let lev = 0.1; lev < 0.99; lev += 0.1)
+            for (let j = 0; j < FH - 1; j++) for (let i = 0; i < FW - 1; i++) {
+              const v0 = val(i, j) - lev, v1 = val(i + 1, j) - lev, v2 = val(i, j + 1) - lev;
+              if (v0 * v1 < 0) { const r = v0 / (v0 - v1); ctx.rect(x + (i + 0.5 + r) * sx, y + (j + 0.5) * sy, 0.9, 0.9); }
+              if (v0 * v2 < 0) { const r = v0 / (v0 - v2); ctx.rect(x + (i + 0.5) * sx, y + (j + 0.5 + r) * sy, 0.9, 0.9); }
+            }
+          ctx.stroke();
+        }
+        ctx.strokeStyle = P.border; ctx.strokeRect(x + 0.5, y + 0.5, pw - 1, ph - 1);
+        ctx.strokeStyle = P.text; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(x + 0.62 * pw, y + 0.28 * ph, 0.09 * pw, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+        drawBar(ctx, { x: x, y: y + ph + 8, w: pw, h: 12 }, CMAPS[s.value].f, view());
+      });
+    }, { aspect: 0.42, minHeight: 200 });
+    update();
+  })();
+
+  /* ---------- 5. generator ---------- */
+  (function () {
+    const mode = CB.seg("gn-mode", (v) => {
+      if (v === "div") { l0.set(0.45); l1.set(0.96); h0.set(255); h1.set(30); c.set(0.17); }
+      else { l0.set(0.27); l1.set(0.95); h0.set(300); h1.set(100); c.set(0.16); }
+      $("gn-l0-lab").firstChild.textContent = v === "div" ? "양 끝 명도 L_end " : "시작 명도 L₀ ";
+      $("gn-l1-lab").firstChild.textContent = v === "div" ? "중심 명도 L_mid " : "끝 명도 L₁ ";
+      update();
+    });
+    const l0 = CB.range("gn-l0", (v) => v.toFixed(2), () => update());
+    const l1 = CB.range("gn-l1", (v) => v.toFixed(2), () => update());
+    const h0 = CB.range("gn-h0", (v) => v + "°", () => update());
+    const h1 = CB.range("gn-h1", (v) => v + "°", () => update());
+    const c = CB.range("gn-c", (v) => v.toFixed(2), () => update());
+    const lng = $("gn-long"), eq = $("gn-eq");
+    [lng, eq].forEach((e) => e.addEventListener("change", () => update()));
+    let fn = null, mN = null, mD = null;
+    function update() {
+      let a = h0(), b = h1();
+      if (mode() === "seq" && lng.checked) b += b >= a ? -360 : 360;
+      fn = genMap({ mode: mode(), L0: l0(), L1: l1(), h0: a, h1: b, C: c(), equalize: eq.checked });
+      mN = mapMetrics(sampleMap(fn, 65)); mD = mapMetrics(sampleMap(fn, 65, "deutan"));
+      CB.stat("o-gn-gam", (100 * fn.mappedFrac).toFixed(0) + " %");
+      CB.stat("o-gn-l", f1(mN.Lmin) + "–" + f1(mN.Lmax) + " / " + mN.rev);
+      CB.stat("o-gn-cv", f2(mN.cv));
+      CB.stat("o-gn-tot", f1(mN.total) + " / " + f1(mD.total) + " <small>(" + ((100 * mD.total) / mN.total).toFixed(0) + "%)</small>");
+      const sym = (v) => CB.dE2000(labLin(cvdLin(fn(0.25), v)), labLin(cvdLin(fn(0.75), v)));
+      CB.stat("o-gn-end", f1(sym("normal")) + " / " + f1(sym("deutan")));
+      const hx = Array.from({ length: 9 }, (_, i) => linHex(fn(i / 8)));
+      $("gn-hex").innerHTML = "<b>9개 기준점</b> " + hx.map((h) => `<span class="sw" style="background:${h}"></span>${h}`).join(" ");
+      cv.redraw();
+    }
+    const cv = CB.canvas($("cv-gen"), (ctx, w, h) => {
+      if (!fn) return;
+      const P = CB.palette(), lx = 52, bw = w - lx - 18;
+      drawBar(ctx, { x: lx, y: 8, w: bw, h: 26 }, fn, "normal", "정상");
+      drawBar(ctx, { x: lx, y: 38, w: bw, h: 16 }, fn, "deutan", "2형");
+      drawBar(ctx, { x: lx, y: 58, w: bw, h: 16 }, (t) => { const Y = CB.Lab2XYZ([labLin(fn(t))[0], 0, 0])[1]; return [Y, Y, Y]; }, "normal", "L*");
+      const y0 = 86, ch = (h - y0 - 46) / 2, N = mN.L.length;
+      CB.chart(ctx, { x: lx, y: y0, w: bw, h: ch - 18 }, {
+        x: [0, 1], y: [0, 100], yLabel: "L*", yTicks: [0, 25, 50, 75, 100],
+        series: [{ data: mN.L.map((L, i) => [i / (N - 1), L]), color: P.text, width: 2 }, { data: mD.L.map((L, i) => [i / (N - 1), L]), color: P.accent, width: 1.5, dash: [5, 4] }],
+      });
+      CB.chart(ctx, { x: lx, y: y0 + ch + 4, w: bw, h: ch - 18 }, {
+        x: [0, 1], y: [0, Math.max(3, Math.ceil(Math.max(mN.maxDE, mD.maxDE) * 1.15))], yLabel: "인접 ΔE00", xLabel: "t — 실선: 정상, 점선: 2형",
+        series: [{ data: mN.dE.map((d, i) => [(i + 0.5) / (N - 1), d]), color: P.text, width: 2 }, { data: mD.dE.map((d, i) => [(i + 0.5) / (N - 1), d]), color: P.accent, width: 1.5, dash: [5, 4] }],
+      });
+    }, { aspect: 0.75, minHeight: 400, maxHeight: 560 });
+    update();
+  })();
+
+  /* ---------- 6. palette diagnostic ---------- */
+  (function () {
+    const inp = $("pl-in"), w3 = $("pl-w3");
+    const view = CB.seg("pl-view", () => cv.redraw());
+    const nn = CB.range("pl-n", (v) => String(v));
+    CB.seg("pl-pre", (v) => { inp.value = PALS[v].join(" "); update(); });
+    let cols = [], res = {};
+    const parse = () => (inp.value.match(/#?[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || []).slice(0, 12).map((h) => CB.rgb2hex(CB.hex2rgb(h)));
+    function update() {
+      cols = parse();
+      const lins = cols.map(hexLin), ids = ["o-pl-n", "o-pl-p", "o-pl-d", "o-pl-t"];
+      VIEWS.forEach((v, k) => {
+        res[v] = pairDE(lins, v);
+        const r = res[v], warn = r.min < 10 ? "var(--bad)" : r.min < 15 ? "var(--warn)" : "var(--ok)";
+        CB.stat(ids[k], cols.length < 2 ? "—" : `<span style="color:${warn}">${f1(r.min)}</span> <small><span class="sw" style="background:${cols[r.arg[0]]}"></span><span class="sw" style="background:${cols[r.arg[1]]}"></span></small>`);
+      });
+      const Ls = lins.map((l) => labLin(l)[0]);
+      CB.stat("o-pl-l", Ls.length ? f1(Math.min(...Ls)) + " – " + f1(Math.max(...Ls)) : "—");
+      cv.redraw();
+    }
+    inp.addEventListener("input", update);
+    $("pl-opt").addEventListener("click", () => { inp.value = optimizePalette(nn(), { white3: w3.checked }).join(" "); update(); });
+    const scale = CMAPS.seq.f;
+    const cv = CB.canvas($("cv-pal"), (ctx, w, h) => {
+      const P = CB.palette(), n = cols.length, r = res[view()];
+      h -= 48;
+      if (n < 2 || !r) { ctx.fillStyle = P.dim; ctx.font = "13px " + font(); ctx.fillText("hex 색을 두 개 이상 입력하라", 20, 30); return; }
+      const sz = Math.min(28, (w - 20) / (n + 1.2)), cell = Math.min((w - 20 - sz - 6) / n, (h - 40 - sz - 6) / n);
+      const ox = 10 + sz + 6, oy = 10 + sz + 6;
+      const disp = r.labs.map((L) => CB.rgb8css(CB.XYZ2rgb8(CB.Lab2XYZ(L))));
+      for (let i = 0; i < n; i++) {
+        ctx.fillStyle = disp[i]; ctx.fillRect(ox + i * cell + 1, 10, cell - 2, sz); ctx.fillRect(10, oy + i * cell + 1, sz, cell - 2);
+      }
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = `${Math.max(9, Math.min(12, cell * 0.3))}px ${mono()}`;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const x = ox + j * cell, y = oy + i * cell;
+        if (i === j) { ctx.fillStyle = P.surface; ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2); continue; }
+        const d = r.M[i][j], col = toRGB8(scale(clamp01(d / 40)));
+        ctx.fillStyle = CB.rgb8css(col); ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+        if (d < 10) { ctx.strokeStyle = P.bad; ctx.lineWidth = 2.5; ctx.strokeRect(x + 2, y + 2, cell - 4, cell - 4); }
+        if (cell >= 22) { ctx.fillStyle = CB.relLum(col) > 0.25 ? "#000" : "#fff"; ctx.fillText(d.toFixed(d < 10 ? 1 : 0), x + cell / 2, y + cell / 2); }
+      }
+      const by = oy + n * cell + 10, bw = Math.min(260, w - ox - 20);
+      drawBar(ctx, { x: ox, y: by, w: bw, h: 10 }, (t) => scale(t), "normal");
+      ctx.fillStyle = P.dim; ctx.font = "11px " + font(); ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText("ΔE00 0", ox, by + 13); ctx.textAlign = "right"; ctx.fillText("≥40", ox + bw, by + 13);
+      ctx.textAlign = "left"; ctx.fillText("행·열 견본: " + VIEW_KO[view()] + " 시뮬레이션 색", ox, by + 28);
+    }, { aspect: 0.9, minHeight: 320, maxHeight: 560 });
+    update();
+  })();
+
+  /* ---------- 7. dark mode ---------- */
+  (function () {
+    const pal = CB.seg("dk-pal", () => update());
+    const lmin = CB.range("dk-l", (v) => v.toFixed(2), () => update());
+    const ck = CB.range("dk-c", (v) => v.toFixed(2), () => update());
+    const bgv = CB.range("dk-bg", (v) => v + " (#" + v.toString(16).padStart(2, "0").repeat(3) + ")", () => update());
+    let orig = [], adj = [];
+    function update() {
+      orig = PALS[pal()].map(CB.hex2rgb);
+      adj = orig.map((c) => { const [L, C, h] = lin2oklch(toLin(c)); return toRGB8(gamutMap([Math.max(L, lmin()), C * ck(), h]).lin); });
+      const W = [255, 255, 255], D = [bgv(), bgv(), bgv()];
+      const mn = (arr, bg) => Math.min(...arr.map((c) => CB.contrast(c, bg)));
+      CB.stat("o-dk-lo", f2(mn(orig, W)));
+      CB.stat("o-dk-do", f2(mn(orig, D)));
+      CB.stat("o-dk-da", f2(mn(adj, D)));
+      const sh = orig.reduce((a, c, i) => a + CB.dE2000(labLin(toLin(c)), labLin(toLin(adj[i]))), 0) / orig.length;
+      CB.stat("o-dk-shift", f1(sh));
+      const al = adj.map(toLin);
+      CB.stat("o-dk-pair", f1(pairDE(al, "normal").min) + " / " + f1(pairDE(al, "deutan").min));
+      cv.redraw();
+    }
+    const NAMES = { status: ["오류", "경고", "성공", "정보"] };
+    const cv = CB.canvas($("cv-dark"), (ctx, w, h) => {
+      const P = CB.palette(), gap = 8, pw = (w - gap * 4) / 3, D = [bgv(), bgv(), bgv()];
+      const panels = [["라이트 · 원본", [255, 255, 255], orig], ["다크 · 원본 그대로", D, orig], ["다크 · 조정", D, adj]];
+      const n = orig.length, rowH = Math.min(30, (h - 40) / n);
+      panels.forEach(([title, bg, cs], k) => {
+        const x = gap + k * (pw + gap);
+        ctx.fillStyle = P.text; ctx.font = "600 12px " + font(); ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(title, x, 4);
+        ctx.fillStyle = CB.rgb8css(bg); ctx.fillRect(x, 22, pw, h - 28);
+        ctx.strokeStyle = P.border; ctx.strokeRect(x + 0.5, 22.5, pw - 1, h - 29);
+        cs.forEach((c, i) => {
+          const y = 30 + i * rowH, cr = CB.contrast(c, bg);
+          ctx.fillStyle = CB.rgb8css(c);
+          ctx.beginPath(); ctx.arc(x + 14, y + rowH / 2, Math.min(7, rowH / 3), 0, 7); ctx.fill();
+          ctx.font = `600 ${Math.min(14, rowH * 0.5)}px ${font()}`; ctx.textBaseline = "middle";
+          ctx.fillText((NAMES[pal()] || [])[i] || "계열 " + (i + 1), x + 28, y + rowH / 2);
+          ctx.font = `${Math.min(12, rowH * 0.45)}px ${mono()}`; ctx.textAlign = "right";
+          ctx.fillStyle = cr >= 4.5 ? (bg[0] > 128 ? "#1a7f37" : "#5fd38d") : cr >= 3 ? (bg[0] > 128 ? "#9a6700" : "#f0b849") : bg[0] > 128 ? "#c62828" : "#ff8a80";
+          ctx.fillText(cr.toFixed(2), x + pw - 8, y + rowH / 2); ctx.textAlign = "left";
+        });
+      });
+    }, { aspect: 0.5, minHeight: 220, maxHeight: 380 });
+    update();
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>빛과 스펙트럼 · ColorBook</title>
+<meta name="description" content="색의 물리적 출발점인 분광 분포(SPD)를 다룬다. 복사량과 측광량, 683 lm/W 정의, 플랑크 흑체 복사, 백열·형광·LED 광원 스펙트럼, 광원×반사율 색 자극, 발광 효율(LER)을 계산한다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/light.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="빛과 스펙트럼 · ColorBook">
+<meta property="og:description" content="색의 물리적 출발점인 분광 분포(SPD)를 다룬다. 복사량과 측광량, 683 lm/W 정의, 플랑크 흑체 복사, 백열·형광·LED 광원 스펙트럼, 광원×반사율 색 자극, 발광 효율(LER)을 계산한다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/light.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"빛과 스펙트럼","name":"빛과 스펙트럼 · ColorBook","url":"https://colorbook.euiyun.com/chapters/light.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/light.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":1,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"색의 물리적 출발점인 분광 분포(SPD)를 다룬다. 복사량과 측광량, 683 lm/W 정의, 플랑크 흑체 복사, 백열·형광·LED 광원 스펙트럼, 광원×반사율 색 자극, 발광 효율(LER)을 계산한다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"01 빛과 스펙트럼","item":"https://colorbook.euiyun.com/chapters/light.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .swatches { display:flex; flex-wrap:wrap; gap:10px; padding:10px 18px 14px; }
+  .swatch { flex:1 1 120px; min-height:60px; border-radius:8px; border:1px solid var(--border); padding:6px 9px; display:flex; flex-direction:column; justify-content:flex-end; font-family:var(--mono); font-size:12px; line-height:1.35; background:var(--surface); color:var(--text); }
+  .sim-view canvas { touch-action: pan-y; }
+</style>
+</head>
+<body data-chapter="light">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 01</div>
+    <h1>빛과 스펙트럼</h1>
+    <p class="lead">“빨간 빛”이라는 말은 엄밀히 틀렸다. 빛에는 파장마다 세기가 있을 뿐이고, 그 분포가 어떤 색으로 보이는지는 관측자가 정한다. 이 장은 색 계산 체인의 맨 앞, 파장별 세기의 분포인 <strong>분광 분포</strong>를 물리량으로 정확히 다루는 법을 배운다. 와트(W)를 루멘(lm)으로 바꾸는 683, 흑체의 플랑크 법칙, 실제 광원 스펙트럼, 광원과 물체가 곱해져 색 자극이 되는 과정을 차례로 계산한다.</p>
+    <ul class="objectives">
+      <li>색이 “빛 + 관측자”의 결과임을 이해하고, 스펙트럼 → 3자극치 → 색공간 → 장치로 이어지는 이 책의 계산 체인을 설명한다.</li>
+      <li>파장·주파수·광자 에너지를 오가고, 분광량(\(\Phi_{e,\lambda}, L_{e,\lambda}\))과 적분량의 관계를 단위까지 정확히 쓴다.</li>
+      <li>복사량(W)과 측광량(lm, cd, lx, cd/m²)을 대응시키고 \(\Phi_v = 683\int \Phi_{e,\lambda}V(\lambda)\,d\lambda\)로 광속을 계산한다.</li>
+      <li>플랑크 법칙과 빈 변위 법칙으로 흑체 스펙트럼을 계산하고, 백열·형광·LED·주광 스펙트럼의 구조적 차이를 설명한다.</li>
+      <li>색 자극 = 광원 SPD × 반사율임을 이용해 같은 물체가 광원에 따라 다른 3자극치가 되는 것을 수치로 확인한다.</li>
+      <li>발광 효율(LER, lm/W<sub>opt</sub>)과 광원 효율(lm/W<sub>elec</sub>)을 구분하고 그 곱 관계를 쓴다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="intro">
+    <h2>색은 빛 + 관측자다</h2>
+    <p>물리학의 빛은 전자기파이고, 그 상태를 기술하는 데 필요한 정보(편광·위상을 무시하면)는 <span class="term">분광 분포</span><span class="en">(Spectral Power Distribution, SPD)</span> 하나다. 파장 \(\lambda\)마다 얼마만큼의 파워가 있는지를 나타내는 함수 \(S(\lambda)\)다. 이 함수에는 “색”이라는 정보가 들어 있지 않다. 색은 이 함수를 <strong>특정한 관측자</strong>가 세 가지 감도 곡선으로 적분했을 때 비로소 생긴다. 사람의 눈은 원추세포 L·M·S 세 종류로, 카메라는 R·G·B 필터 세 종류로, 측색 표준은 CIE 등색 함수 \(\bar x,\bar y,\bar z\) 세 개로 적분한다.</p>
+    <p>그래서 “이 LED의 색”을 말할 때는 반드시 관측자를 함께 지정해야 한다. CIE 1931 2° 관측자로 측정한 색도와 1964 10° 관측자로 측정한 색도는 같은 스펙트럼이라도 다르다. 카메라가 찍은 RGB 값도 같은 장면에서 카메라마다 다르다. 색을 공학적으로 다룬다는 것은 결국 <strong>스펙트럼을 어떤 관측자로 어떻게 적분하고, 그 결과를 어떤 좌표계로 옮겨 어떤 장치로 재현하는가</strong>를 다룬다는 뜻이다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="광원과 물체에서 색 자극, 관측자, 3자극치, 색공간, 장치로 이어지는 색 계산 체인">
+        <defs>
+          <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <rect x="14" y="30" width="360" height="200" rx="14" class="f-acc-soft"/>
+        <text x="194" y="22" text-anchor="middle" class="t-acc">이 장 (Chapter 01)</text>
+        <rect x="30" y="50" width="140" height="62" rx="9" class="f-surface"/>
+        <text x="100" y="76" text-anchor="middle" class="t">광원</text>
+        <text x="100" y="98" text-anchor="middle" class="t-mono">S(λ)  W/nm</text>
+        <rect x="30" y="148" width="140" height="62" rx="9" class="f-surface"/>
+        <text x="100" y="174" text-anchor="middle" class="t">물체 반사율</text>
+        <text x="100" y="196" text-anchor="middle" class="t-mono">ρ(λ)  0…1</text>
+        <line x1="170" y1="81" x2="215" y2="120" class="s-line" marker-end="url(#ar1)"/>
+        <line x1="170" y1="179" x2="215" y2="142" class="s-line" marker-end="url(#ar1)"/>
+        <circle cx="232" cy="131" r="15" class="f-elev"/>
+        <text x="232" y="136" text-anchor="middle" class="t">×</text>
+        <line x1="248" y1="131" x2="262" y2="131" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="266" y="100" width="98" height="62" rx="9" class="f-elev"/>
+        <text x="315" y="126" text-anchor="middle" class="t">색 자극</text>
+        <text x="315" y="148" text-anchor="middle" class="t-mono">φ(λ)</text>
+        <line x1="364" y1="131" x2="398" y2="131" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="402" y="96" width="104" height="70" rx="9" class="f-surface"/>
+        <text x="454" y="122" text-anchor="middle" class="t">관측자</text>
+        <text x="454" y="146" text-anchor="middle" class="t-mono">x̄ ȳ z̄ / LMS</text>
+        <line x1="506" y1="131" x2="530" y2="131" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="534" y="100" width="78" height="62" rx="9" class="f-surface"/>
+        <text x="573" y="126" text-anchor="middle" class="t">3자극치</text>
+        <text x="573" y="148" text-anchor="middle" class="t-mono">X Y Z</text>
+        <line x1="612" y1="131" x2="632" y2="131" class="s-line" marker-end="url(#ar1)"/>
+        <rect x="636" y="56" width="150" height="62" rx="9" class="f-surface"/>
+        <text x="711" y="82" text-anchor="middle" class="t">색공간</text>
+        <text x="711" y="104" text-anchor="middle" class="t-mono">xy · Lab · RGB</text>
+        <rect x="636" y="146" width="150" height="62" rx="9" class="f-surface"/>
+        <text x="711" y="172" text-anchor="middle" class="t">장치</text>
+        <text x="711" y="194" text-anchor="middle" class="t-mono">디스플레이·인쇄·카메라</text>
+        <line x1="711" y1="118" x2="711" y2="142" class="s-line" marker-end="url(#ar1)"/>
+        <text x="454" y="196" text-anchor="middle" class="t-dim">3–4장</text>
+        <text x="711" y="236" text-anchor="middle" class="t-dim">5–17장</text>
+      </svg>
+      <figcaption><b>그림 1-1.</b> 이 책의 계산 체인. 광원 SPD와 물체 반사율의 곱이 눈에 들어오는 색 자극이 되고, 관측자의 세 감도 곡선으로 적분되어 3자극치 XYZ가 된다. 이후 모든 색공간·장치 모델은 XYZ에서 출발한다. 이 장은 체인의 왼쪽(물리량) 부분을 다룬다.</figcaption>
+    </figure>
+    <p>체인의 각 단계는 성질이 다르다. 왼쪽 절반(스펙트럼)은 <strong>무한 차원</strong>의 물리량이고 선형이다. 관측자를 통과하면 <strong>3차원</strong>으로 압축된다. 이 압축은 되돌릴 수 없다. 서로 다른 무수한 스펙트럼이 같은 XYZ로 사상되며(이를 <a href="vision.html">메타머리즘</a>이라 한다), 반대로 XYZ만 알아서는 원래 스펙트럼을 복원할 수 없다. 그래서 광원 교체, 연색성, 카메라 색 오차 같은 문제는 반드시 스펙트럼 단계로 돌아가서 풀어야 한다. 이 장이 책의 출발점인 이유다.</p>
+    <div class="callout">
+      <p><b>공학자 관점 — 무엇을 저장할 것인가.</b> 측정 데이터를 보관할 때 XYZ나 sRGB 값만 남기면 나중에 광원이나 관측자를 바꾼 재계산이 불가능하다. 분광광도계·분광복사계 데이터는 원 스펙트럼(보통 380–780 nm, 5 nm 또는 10 nm 간격; CIE 015:2018 권장 범위는 360–830 nm)으로 저장하고, 색 좌표는 그때그때 계산하는 것이 원칙이다. 이 책의 모든 시뮬레이터도 CIE 원표(380–780 nm, 5 nm, 81점)에서 매번 적분한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="em">
+    <h2>전자기 스펙트럼과 가시광</h2>
+    <p>빛은 전자기파의 한 대역이다. 감마선에서 전파까지 파장은 20자릿수 이상에 걸쳐 있지만, 사람 눈이 반응하는 <span class="term">가시광</span><span class="en">(Visible Light)</span>은 대략 380–780 nm, 한 옥타브(주파수 비 약 2)에 불과하다. 이 경계는 날카롭지 않다. 비시감도 \(V(\lambda)\)는 400 nm에서 0.0004, 700 nm에서 0.0041로 최대값(555 nm)의 1% 아래이며, 380 nm·780 nm에서는 각각 \(4\times10^{-5}\), \(1.5\times10^{-5}\) 수준이다. 그래서 측색 계산에서는 관례적으로 380–780 nm(또는 360–830 nm)를 적분 범위로 잡는다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="로그 스케일 전자기 스펙트럼과 가시광 확대">
+        <defs>
+          <linearGradient id="visgrad" x1="0" x2="1" y1="0" y2="0"><stop offset="0%" stop-color="#610061"/><stop offset="5%" stop-color="#8300b5"/><stop offset="10%" stop-color="#6a00ff"/><stop offset="15%" stop-color="#0000ff"/><stop offset="20%" stop-color="#007bff"/><stop offset="25%" stop-color="#00d5ff"/><stop offset="30%" stop-color="#00ff92"/><stop offset="35%" stop-color="#36ff00"/><stop offset="40%" stop-color="#81ff00"/><stop offset="45%" stop-color="#c3ff00"/><stop offset="50%" stop-color="#ffff00"/><stop offset="55%" stop-color="#ffbe00"/><stop offset="60%" stop-color="#ff7700"/><stop offset="65%" stop-color="#ff2100"/><stop offset="70%" stop-color="#ff0000"/><stop offset="80%" stop-color="#ff0000"/><stop offset="90%" stop-color="#b50000"/><stop offset="100%" stop-color="#610000"/></linearGradient>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker>
+        </defs>
+        <rect x="40" y="40" width="720" height="34" rx="6" class="f-surface"/>
+        <rect x="263" y="40" width="13" height="34" fill="url(#visgrad)"/>
+        <g class="t" font-size="12" text-anchor="middle">
+          <text x="60" y="62">γ선</text><text x="140" y="62">X선</text><text x="231" y="62">자외선</text>
+          <text x="338" y="62">적외선</text><text x="460" y="62">마이크로파</text><text x="640" y="62">전파</text>
+        </g>
+        <g class="t-mono" font-size="11" text-anchor="middle">
+          <text x="40" y="94">1 pm</text><text x="160" y="94">1 nm</text><text x="280" y="94">1 µm</text>
+          <text x="400" y="94">1 mm</text><text x="520" y="94">1 m</text><text x="640" y="94">1 km</text><text x="760" y="94">1 Mm</text>
+        </g>
+        <text x="270" y="28" text-anchor="middle" class="t-acc">가시광</text>
+        <text x="760" y="28" text-anchor="end" class="t-dim">파장 (로그 축, 1 눈금 = 10³)</text>
+        <line x1="263" y1="74" x2="60" y2="140" class="s-line" stroke-dasharray="4 4"/>
+        <line x1="276" y1="74" x2="740" y2="140" class="s-line" stroke-dasharray="4 4"/>
+        <rect x="60" y="140" width="680" height="40" rx="4" fill="url(#visgrad)"/>
+        <g class="t-mono" font-size="11" text-anchor="middle">
+          <text x="60" y="198">380</text><text x="94" y="198">400</text><text x="264" y="198">500</text><text x="434" y="198">600</text><text x="604" y="198">700</text><text x="740" y="198">780 nm</text>
+          <text x="60" y="216" class="t-dim">789 THz</text><text x="264" y="216" class="t-dim">600 THz</text><text x="604" y="216" class="t-dim">428 THz</text><text x="740" y="216" class="t-dim">384 THz</text>
+          <text x="60" y="234" class="t-dim">3.26 eV</text><text x="264" y="234" class="t-dim">2.48 eV</text><text x="604" y="234" class="t-dim">1.77 eV</text><text x="740" y="234" class="t-dim">1.59 eV</text>
+        </g>
+        <line x1="358" y1="132" x2="358" y2="186" stroke="var(--text)" stroke-width="1.5"/>
+        <text x="358" y="128" text-anchor="middle" class="t" font-size="12">555 nm · 540 THz</text>
+      </svg>
+      <figcaption><b>그림 1-2.</b> 전자기 스펙트럼(로그 축)과 가시광 확대(선형 축). 가시광은 전체의 아주 좁은 띠이며 파장·주파수·광자 에너지는 서로 일대일로 대응한다. 띠의 색은 각 단색광의 대략적인 겉보기 색으로, sRGB로 표현할 수 없어 클리핑되어 있다.</figcaption>
+    </figure>
+    <p>파장, 주파수, 광자 에너지는 다음 관계로 묶인다.</p>
+    <div class="formula">$$\nu = \frac{c}{\lambda},\qquad E_{\text{photon}} = h\nu = \frac{hc}{\lambda} \approx \frac{1239.84\ \text{eV·nm}}{\lambda}$$
+      <div class="where">\(c = 299\,792\,458\) m/s, \(h = 6.626\,070\,15\times10^{-34}\) J·s (2019 SI 정의값). 파장은 매질에 따라 바뀌지만(\(\lambda = \lambda_0/n\)) 주파수와 광자 에너지는 바뀌지 않는다. 측색 데이터의 파장은 관례적으로 공기 중 값이다.</div>
+    </div>
+    <p>색 계산에 광자 수가 필요한 경우가 있다. 이미지 센서는 에너지가 아니라 광자를 세고(<a href="camera.html">12장</a>), 광합성·광화학 반응도 광자 단위로 일어난다. 같은 1 mW라도 파장이 길수록 광자 하나의 에너지가 작아 광자 수가 많다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>파장</th><th>주파수</th><th>광자 에너지</th><th>1 mW당 광자 수</th><th>\(V(\lambda)\)</th><th>1 W당 광속</th></tr></thead>
+      <tbody>
+        <tr><td>450 nm (청색 LED)</td><td>666 THz</td><td>2.755 eV</td><td>2.27×10¹⁵ /s</td><td>0.038</td><td>26.0 lm</td></tr>
+        <tr><td>555 nm</td><td>540 THz</td><td>2.234 eV</td><td>2.79×10¹⁵ /s</td><td>1.000</td><td>683 lm</td></tr>
+        <tr><td>650 nm (적색 레이저)</td><td>461 THz</td><td>1.907 eV</td><td>3.27×10¹⁵ /s</td><td>0.107</td><td>73.1 lm</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout tip">
+      <p><b>외워 둘 숫자.</b> \(hc \approx 1240\) eV·nm, 가시광 광자는 1.6–3.3 eV. 실리콘 밴드갭(1.12 eV, 약 1100 nm)보다 크므로 실리콘 센서는 가시광 전역과 근적외선까지 감지한다. 그래서 카메라에는 IR 컷 필터가 필요하다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="spd">
+    <h2>분광 분포: 파장당 파워</h2>
+    <p>연속 스펙트럼에서 “정확히 550 nm인 빛의 파워”는 0이다. 의미 있는 양은 파장 구간 \([\lambda, \lambda+d\lambda]\)에 들어 있는 파워이며, 이를 구간 폭으로 나눈 밀도가 <span class="term">분광량</span><span class="en">(Spectral Quantity)</span>이다. 예를 들어 분광 복사속은 \(\Phi_{e,\lambda} = d\Phi_e/d\lambda\) [W/nm]이고, 전체 복사속은 그 적분이다.</p>
+    <div class="formula">$$\Phi_e = \int_0^{\infty} \Phi_{e,\lambda}(\lambda)\,d\lambda,\qquad L_e = \int_0^\infty L_{e,\lambda}(\lambda)\,d\lambda$$
+      <div class="where">\(\Phi_{e,\lambda}\): 분광 복사속 [W·nm⁻¹], \(L_{e,\lambda}\): 분광 복사휘도 [W·sr⁻¹·m⁻²·nm⁻¹], \(E_{e,\lambda}\): 분광 방사조도 [W·m⁻²·nm⁻¹]. 아래첨자 \(e\)는 복사(energetic)량, \(v\)는 측광(visual)량.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="분광 분포 곡선과 파장 구간 dλ, 5 nm 샘플 막대">
+        <line x1="60" y1="210" x2="760" y2="210" class="s-axis"/>
+        <line x1="60" y1="210" x2="60" y2="30" class="s-axis"/>
+        <rect x="60" y="139" width="15" height="71" class="f-acc2-soft"/><rect x="77" y="117" width="15" height="93" class="f-acc2-soft"/><rect x="94" y="92" width="15" height="118" class="f-acc2-soft"/><rect x="111" y="84" width="15" height="126" class="f-acc2-soft"/><rect x="128" y="88" width="15" height="122" class="f-acc2-soft"/><rect x="145" y="80" width="15" height="130" class="f-acc2-soft"/><rect x="162" y="59" width="15" height="151" class="f-acc2-soft"/><rect x="179" y="51" width="15" height="159" class="f-acc2-soft"/><rect x="196" y="52" width="15" height="158" class="f-acc2-soft"/><rect x="213" y="53" width="15" height="157" class="f-acc2-soft"/><rect x="230" y="57" width="15" height="153" class="f-acc2-soft"/><rect x="247" y="62" width="15" height="148" class="f-acc2-soft"/><rect x="264" y="63" width="15" height="147" class="f-acc2-soft"/><rect x="281" y="66" width="15" height="144" class="f-acc2-soft"/><rect x="298" y="66" width="15" height="144" class="f-acc2-soft"/><rect x="315" y="66" width="15" height="144" class="f-acc2-soft"/><rect x="332" y="68" width="15" height="142" class="f-acc2-soft"/><rect x="349" y="71" width="15" height="139" class="f-acc2-soft"/><rect x="366" y="77" width="15" height="133" class="f-acc2-soft"/><rect x="383" y="80" width="15" height="130" class="f-acc2-soft"/><rect x="400" y="85" width="15" height="125" class="f-acc2-soft"/><rect x="417" y="89" width="15" height="121" class="f-acc2-soft"/><rect x="434" y="88" width="15" height="122" class="f-acc2-soft"/><rect x="451" y="90" width="15" height="120" class="f-acc2-soft"/><rect x="468" y="94" width="15" height="116" class="f-acc2-soft"/><rect x="485" y="97" width="15" height="113" class="f-acc2-soft"/><rect x="502" y="99" width="15" height="111" class="f-acc2-soft"/><rect x="519" y="101" width="15" height="109" class="f-acc2-soft"/><rect x="536" y="100" width="15" height="110" class="f-acc2-soft"/><rect x="553" y="101" width="15" height="109" class="f-acc2-soft"/><rect x="570" y="109" width="15" height="101" class="f-acc2-soft"/><rect x="587" y="114" width="15" height="96" class="f-acc2-soft"/><rect x="604" y="111" width="15" height="99" class="f-acc2-soft"/><rect x="621" y="118" width="15" height="92" class="f-acc2-soft"/><rect x="638" y="121" width="15" height="89" class="f-acc2-soft"/><rect x="655" y="112" width="15" height="98" class="f-acc2-soft"/><rect x="672" y="116" width="15" height="94" class="f-acc2-soft"/><rect x="689" y="135" width="15" height="75" class="f-acc2-soft"/><rect x="706" y="133" width="15" height="77" class="f-acc2-soft"/><rect x="723" y="122" width="15" height="88" class="f-acc2-soft"/>
+        <path d="M60 142L69 139L77 136L86 117L94 98L103 92L111 86L120 84L128 83L137 88L145 92L154 80L162 68L171 59L179 51L188 51L196 50L205 52L213 54L222 53L230 53L239 57L247 62L255 62L264 61L273 63L281 64L290 66L298 68L307 66L315 64L324 66L332 68L341 68L349 69L358 71L366 74L375 77L383 79L392 80L400 80L408 85L417 90L426 89L434 88L443 88L451 88L460 90L468 91L477 94L485 97L493 97L502 96L511 99L519 101L528 101L536 101L545 100L553 98L562 101L570 104L579 109L587 115L596 114L604 113L613 111L621 109L630 118L638 126L647 121L655 115L664 112L672 108L681 116L689 124L698 135L706 147L715 133L723 119L732 122L740 124" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <rect x="354" y="71" width="7" height="139" class="f-acc"/>
+        <text x="358" y="59" text-anchor="middle" class="t-acc">dΦ = Φ_λ dλ</text>
+        <text x="66" y="44" class="t-dim">Φ_e,λ  [W/nm]</text>
+        <g class="t-mono" font-size="11" text-anchor="middle">
+          <text x="60" y="228">380</text><text x="230" y="228">480</text><text x="400" y="228">580</text><text x="570" y="228">680</text><text x="740" y="228">780 nm</text>
+        </g>
+        <text x="740" y="250" text-anchor="end" class="t-dim">막대: 10 nm 간격 샘플 × Δλ → 리만 합 ≈ 곡선 아래 면적</text>
+      </svg>
+      <figcaption><b>그림 1-3.</b> 분광 분포는 “파장당 파워”의 밀도 함수다(예: D65의 상대 SPD). 좁은 띠 dλ의 면적이 그 구간의 파워이며, 실제 계산은 등간격 샘플 × Δλ의 합(리만 합)으로 한다. CIE 표는 5 nm 간격이 기본이다.</figcaption>
+    </figure>
+    <p>실무 데이터는 연속 함수가 아니라 표다. CIE 015:2018은 3자극치 계산을 5 nm 간격 합으로 정의하며(1 nm 표도 제공), 이 책의 <code>CB.spd2XYZ</code>도 380–780 nm를 5 nm로 합한다.</p>
+    <div class="formula">$$\int S(\lambda)\,\bar y(\lambda)\,d\lambda \;\approx\; \sum_{i} S(\lambda_i)\,\bar y(\lambda_i)\,\Delta\lambda,\qquad \lambda_i = 380, 385, \dots, 780\ \text{nm}$$
+      <div class="where">곡선이 \(\Delta\lambda\)에 비해 완만하면 오차는 무시할 수준이다. 문제는 폭이 \(\Delta\lambda\)와 비슷하거나 더 좁은 <strong>선 스펙트럼</strong>(형광등 수은선, 레이저, 좁은 대역 LED·QD)이다.</div>
+    </div>
+    <p>상대 분포와 절대 분포의 구분도 중요하다. 표준 광원 D65, A 등은 <strong>상대 SPD</strong>로 정의된다(560 nm 근처에서 100으로 정규화). 색도(xy)를 구할 때는 배율이 상쇄되므로 상대 SPD로 충분하다. 반면 휘도(cd/m²)·광속(lm)을 구하려면 W 단위의 절대 SPD가 필요하다.</p>
+
+    <div class="sim" id="sim-samp">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>샘플링 간격과 선 스펙트럼의 적분 오차</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-samp"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--accent)"></i>선 스펙트럼 S(λ)</span><span><i style="background:var(--text-dim)"></i>V(λ)</span><span><i style="background:var(--accent-2)"></i>샘플 S·V</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>중심 파장 <output id="sp-c-out"></output></span><input type="range" id="sp-c" min="420" max="680" value="546.1" step="0.1"></label>
+          <label class="ctrl"><span>반치폭 FWHM <output id="sp-w-out"></output></span><input type="range" id="sp-w" min="0.5" max="40" value="2" step="0.5"></label>
+          <div class="ctrl"><span>샘플 간격 Δλ</span><div class="seg" id="sp-step"><button data-value="1">1 nm</button><button data-value="5" class="on">5 nm</button><button data-value="10">10 nm</button><button data-value="20">20 nm</button></div></div>
+          <label class="ctrl"><span>샘플 격자 위상 <output id="sp-off-out"></output></span><input type="range" id="sp-off" min="0" max="95" value="0" step="5"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">정밀 적분 ∫S·V dλ</span><span class="v" id="o-sp-ex">—</span></div>
+        <div class="stat"><span class="k">Δλ 리만 합</span><span class="v" id="o-sp-sm">—</span></div>
+        <div class="stat"><span class="k">상대 오차</span><span class="v" id="o-sp-err">—</span></div>
+        <div class="stat"><span class="k">FWHM 안의 샘플 수</span><span class="v" id="o-sp-n">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 기본값(수은선 546.1 nm, FWHM 2 nm, Δλ 5 nm)에서 오차는 1% 정도다. Δλ를 10 nm로 바꾸면 샘플이 선을 완전히 건너뛰어 오차가 −100%가 된다. ② 위상을 바꿔 보면 같은 Δλ에서도 오차가 크게 요동친다. ③ FWHM을 20 nm 이상으로 넓히면 5 nm 간격으로도 오차가 사실상 0이 된다. 경험칙: 샘플 간격은 가장 좁은 피크 FWHM의 절반 이하로 잡는다.</div>
+    </div>
+
+    <div class="callout warn">
+      <p><b>흔한 실수 — 측정 대역폭.</b> 분광복사계의 출력 한 점은 이상적인 샘플이 아니라 슬릿 대역폭(보통 2–10 nm)으로 평균한 값이다. 대역폭이 넓은 기기로 형광등을 재면 선 피크가 낮고 넓게 퍼져 기록되지만 <em>면적</em>은 보존되므로 적분값은 대체로 맞다. 반면 측정 대역폭보다 듬성하게 리샘플링하거나, 선 스펙트럼을 선형 보간으로 1 nm로 늘린 뒤 “고해상도 데이터”로 취급하면 오차가 생긴다. CIE 214와 CIE 015는 대역폭 보정 절차를 다룬다(<a href="measurement.html">11장</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="photometry">
+    <h2>복사량과 측광량, 그리고 683 lm/W</h2>
+    <p>복사량은 에너지를 그대로 센다. 1 W의 적외선과 1 W의 녹색광은 복사계에서 똑같이 1 W다. 그러나 사람에게 녹색 1 W는 눈부시고 적외선 1 W는 보이지 않는다. <span class="term">측광량</span><span class="en">(Photometric Quantity)</span>은 각 파장의 파워를 사람 눈의 밝기 감도 \(V(\lambda)\)로 가중해 센 양이다. \(V(\lambda)\)는 CIE가 1924년 채택한 명소시 비시감도 함수이며 CIE 1931 등색 함수의 \(\bar y(\lambda)\)와 같다. 그래서 3자극치 Y는 그 자체로 휘도에 비례한다.</p>
+    <div class="formula">$$\Phi_v = K_m \int_{380}^{780} \Phi_{e,\lambda}(\lambda)\,V(\lambda)\,d\lambda,\qquad K_m \approx 683\ \text{lm/W}$$
+      <div class="where">\(\Phi_v\): 광속 [lm], \(\Phi_{e,\lambda}\): 분광 복사속 [W/nm]. 같은 식이 모든 쌍에 적용된다: 광도 \(I_v\)[cd] ↔ 복사 강도 \(I_e\)[W/sr], 조도 \(E_v\)[lx] ↔ 방사조도 \(E_e\)[W/m²], 휘도 \(L_v\)[cd/m²] ↔ 복사휘도 \(L_e\)[W·sr⁻¹·m⁻²].</div>
+    </div>
+    <p>683이라는 숫자는 측정값이 아니라 <strong>정의</strong>다. SI는 칸델라를 “주파수 540×10¹² Hz 단색광의 발광 효율이 정확히 683 lm/W가 되도록” 정의한다(1979년 도입, 2019년 SI 재정의에서 상수 \(K_{cd}\)로 고정). 540 THz는 진공 파장 555.17 nm, 표준 공기 중 약 555.0 nm로, \(V(\lambda)\)의 최대점과 사실상 일치한다. 그래서 “555 nm에서 1 W = 683 lm”이 된다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>복사량</th><th>단위</th><th>측광량</th><th>단위</th><th>정의</th><th>대표값(측광)</th></tr></thead>
+      <tbody>
+        <tr><td>복사속 \(\Phi_e\)</td><td>W</td><td>광속 \(\Phi_v\)</td><td>lm</td><td>단위 시간당 에너지</td><td>LED 전구 800 lm</td></tr>
+        <tr><td>복사 강도 \(I_e\)</td><td>W/sr</td><td>광도 \(I_v\)</td><td>cd = lm/sr</td><td>\(d\Phi/d\Omega\)</td><td>촛불 약 1 cd</td></tr>
+        <tr><td>방사조도 \(E_e\)</td><td>W/m²</td><td>조도 \(E_v\)</td><td>lx = lm/m²</td><td>받는 면 단위 면적당</td><td>사무실 500 lx, 맑은 날 직사광 약 10⁵ lx</td></tr>
+        <tr><td>복사 발산도 \(M_e\)</td><td>W/m²</td><td>광 발산도 \(M_v\)</td><td>lm/m²</td><td>내는 면 단위 면적당</td><td>—</td></tr>
+        <tr><td>복사휘도 \(L_e\)</td><td>W·sr⁻¹·m⁻²</td><td>휘도 \(L_v\)</td><td>cd/m² (nit)</td><td>\(d^2\Phi/(d\Omega\,dA\cos\theta)\)</td><td>sRGB 기준 백색 80 cd/m², HDR 피크 1,000+ cd/m²</td></tr>
+      </tbody>
+    </table></div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 270" role="img" aria-label="광속, 광도, 조도, 휘도의 기하학적 의미">
+        <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <circle cx="100" cy="135" r="14" fill="#ffd25a" stroke="var(--text-dim)"/>
+        <text x="100" y="175" text-anchor="middle" class="t">점광원</text>
+        <text x="100" y="195" text-anchor="middle" class="t-dim">전체 광속 Φ [lm]</text>
+        <path d="M114 128 L330 70 L330 200 Z" class="f-acc-soft"/>
+        <line x1="114" y1="128" x2="330" y2="70" class="s-acc"/>
+        <line x1="114" y1="142" x2="330" y2="200" class="s-acc"/>
+        <path d="M170 113 A60 60 0 0 1 170 157" fill="none" class="s-line"/>
+        <text x="190" y="140" class="t-mono">Ω</text>
+        <text x="220" y="40" text-anchor="middle" class="t">광도 I = dΦ/dΩ [cd]</text>
+        <rect x="330" y="70" width="14" height="130" class="f-elev"/>
+        <text x="337" y="226" text-anchor="middle" class="t">조도 E = dΦ/dA [lx]</text>
+        <text x="337" y="246" text-anchor="middle" class="t-dim">점광원: E = I cosθ / d²</text>
+        <rect x="470" y="150" width="120" height="16" class="f-surface"/>
+        <text x="530" y="190" text-anchor="middle" class="t">발광·반사 면 dA</text>
+        <line x1="530" y1="150" x2="530" y2="70" class="s-line" stroke-dasharray="4 4"/>
+        <line x1="530" y1="150" x2="690" y2="62" class="s-acc" marker-end="url(#ar3)"/>
+        <path d="M530 110 A40 40 0 0 1 562 128" fill="none" class="s-line"/>
+        <text x="552" y="104" class="t-mono">θ</text>
+        <circle cx="712" cy="54" r="18" class="f-elev"/>
+        <circle cx="706" cy="56" r="6" fill="var(--text)"/>
+        <text x="640" y="230" text-anchor="middle" class="t">휘도 L = d²Φ / (dΩ dA cosθ) [cd/m²]</text>
+        <text x="640" y="250" text-anchor="middle" class="t-dim">눈·카메라가 직접 보는 양. 거리에 무관</text>
+      </svg>
+      <figcaption><b>그림 1-4.</b> 측광량의 기하. 광도는 방향당, 조도는 받는 면적당, 휘도는 방향당·투영 면적당 양이다. 휘도는 무손실 광학계를 지나도 보존되므로(거리에 무관) 디스플레이·영상 신호가 다루는 기본량이다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-mono">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>단색광: 와트에서 루멘·칸델라·럭스로</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-mn"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>파장 <output id="mn-wl-out"></output></span><input type="range" id="mn-wl" min="380" max="780" value="555" step="1"></label>
+          <label class="ctrl"><span>복사속 <output id="mn-pw-out"></output></span><input type="range" id="mn-pw" min="-1" max="3" value="0" step="0.01"></label>
+          <label class="ctrl"><span>거리 (등방 점광원) <output id="mn-d-out"></output></span><input type="range" id="mn-d" min="0.2" max="5" value="1" step="0.1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">V(λ) · K(λ)</span><span class="v" id="o-mn-k">—</span></div>
+        <div class="stat"><span class="k">광속 Φ_v</span><span class="v" id="o-mn-lm">—</span></div>
+        <div class="stat"><span class="k">광자 에너지 · 광자 수</span><span class="v" id="o-mn-ph">—</span></div>
+        <div class="stat"><span class="k">광도 I (등방)</span><span class="v" id="o-mn-cd">—</span></div>
+        <div class="stat"><span class="k">거리 d에서 조도 E</span><span class="v" id="o-mn-lx">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 1 mW의 555 nm 광은 0.683 lm이다. 같은 1 mW를 450 nm로 바꾸면 0.026 lm으로 26분의 1이 된다. 청색 LED가 “어둡게 보이는” 이유다. ② 650 nm 적색 레이저 포인터 5 mW(Class 3R 상한)의 광속을 구해 보자. ③ 700 nm 위에서는 파워를 1 W로 올려도 광속이 몇 lm에 그친다. 광자 수는 오히려 늘어난다. 측광량은 에너지도 광자 수도 아닌 “사람 기준” 양이다.</div>
+    </div>
+
+    <p>명소시 \(V(\lambda)\)는 휘도가 약 5 cd/m² 이상인 밝은 환경에서 원추세포가 시각을 담당할 때의 감도다. 휘도가 약 0.005 cd/m² 아래로 떨어지면 막대세포만 작동하며, 이때의 감도는 <span class="term">암소시 비시감도</span> \(V'(\lambda)\)<span class="en">(Scotopic Luminous Efficiency)</span>로, 최대점이 507 nm로 이동하고 최대 효율은 \(K'_m \approx 1700\) lm/W다. 그 사이의 박명시 영역은 CIE 191:2010이 두 함수의 혼합으로 정의한다. 어두운 곳에서 빨간색이 먼저 검게 보이고 푸른 기가 상대적으로 밝아 보이는 <a href="vision.html">푸르키네 이동</a>이 이 때문이다. 이 책의 측색 계산은 모두 명소시 기준이다.</p>
+    <div class="callout deep">
+      <p><b>심화 — \(K_m\)은 683.002인가?</b> 정의는 540 THz에서 683 lm/W다. 540 THz는 표준 공기 중 약 555.016 nm이고, 이 파장에서 \(V\)는 1보다 아주 조금 작다. 그래서 \(V\)의 최대점(555 nm)에서의 값 \(K_m\)은 엄밀히 약 683.002 lm/W가 된다. 실무 계산에서는 683을 쓴다. 이 차이(3 ppm)는 어떤 측광기의 불확도보다도 훨씬 작다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="blackbody">
+    <h2>흑체 복사: 온도가 정하는 스펙트럼</h2>
+    <p>들어오는 모든 복사를 흡수하는 이상적인 물체를 <span class="term">흑체</span><span class="en">(Blackbody)</span>라 한다. 열평형에 있는 흑체가 내는 복사는 물질과 무관하게 <strong>온도 하나로만</strong> 결정된다. 실험실에서는 작은 구멍이 뚫린 등온 공동(cavity)으로 흑체를 근사한다. 구멍으로 들어간 빛은 내부에서 여러 번 반사되며 거의 다 흡수되기 때문이다.</p>
+    <div class="formula">$$L_{e,\lambda}(\lambda, T) = \frac{2hc^2}{\lambda^5}\,\frac{1}{\exp\!\left(\dfrac{hc}{\lambda k T}\right) - 1}\qquad[\text{W·sr}^{-1}\text{·m}^{-3}]$$
+      <div class="where">플랑크 법칙. \(k = 1.380\,649\times10^{-23}\) J/K. 제2 복사 상수 \(c_2 = hc/k = 1.438\,777\times10^{-2}\) m·K. nm당 값으로 쓰려면 \(10^{-9}\)을 곱한다. <code>CB.planck(nm, T)</code>가 이 식이다.</div>
+    </div>
+    <p>플랑크 법칙에서 두 가지 유명한 결과가 나온다. 분포의 최대 파장은 온도에 반비례하고(<strong>빈 변위 법칙</strong>), 전 파장 적분은 온도의 4제곱에 비례한다(<strong>슈테판–볼츠만 법칙</strong>).</p>
+    <div class="formula">$$\lambda_{\max} = \frac{b}{T},\quad b = 2.897\,772\times10^{-3}\ \text{m·K}\qquad\qquad M_e = \pi L_e = \sigma T^4,\quad \sigma = 5.670\,374\times10^{-8}\ \text{W·m}^{-2}\text{·K}^{-4}$$
+      <div class="where">2,856 K → 1,015 nm(적외선), 5,772 K(태양 유효 온도) → 502 nm, 6,500 K → 446 nm. 흑체 표면은 람베르트 방사체이므로 발산도 \(M_e\)와 복사휘도 \(L_e\)는 \(\pi\)배 관계다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 270" role="img" aria-label="흑체 공동과 온도별 플랑크 곡선">
+        <defs><marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="40" y="60" width="220" height="150" rx="16" class="f-elev"/>
+        <rect x="60" y="80" width="180" height="110" rx="10" class="f-surface"/>
+        <rect x="236" y="125" width="28" height="20" fill="var(--canvas-bg)"/>
+        <polyline points="250,131 160,86 95,186 72,100 200,184 250,139" fill="none" class="s-acc" stroke-dasharray="4 3"/>
+        <line x1="264" y1="135" x2="330" y2="135" class="s-acc" marker-end="url(#ar4)"/>
+        <text x="150" y="232" text-anchor="middle" class="t">등온 공동 · 온도 T</text>
+        <text x="150" y="252" text-anchor="middle" class="t-dim">작은 구멍 = 흡수율 ≈ 1</text>
+        <line x1="420" y1="220" x2="770" y2="220" class="s-axis"/>
+        <line x1="420" y1="220" x2="420" y2="40" class="s-axis"/>
+        <rect x="448" y="40" width="62" height="180" fill="var(--accent-2-soft)"/>
+        <text x="479" y="34" text-anchor="middle" class="t-dim" font-size="11">가시광</text>
+        <path d="M420 220L425 220L430 219L435 219L439 217L444 215L449 213L454 211L459 208L464 206L469 204L473 202L478 200L483 199L488 198L493 198L498 198L503 198L507 198L512 198L517 199L522 199L527 200L532 200L537 201L541 202L546 202L551 203L556 204L561 205L566 205L571 206L575 207L580 207L585 208L590 209L595 209L600 210L605 210L609 211L614 211L619 211L624 212L629 212L634 213L639 213L643 213L648 214L653 214L658 214L663 214L668 215L673 215L677 215L682 215L687 216L692 216L697 216L702 216L707 216L711 217L716 217L721 217L726 217L731 217L736 217L741 217L745 217L750 218L755 218L760 218" fill="none" stroke="#e8590c" stroke-width="2"/>
+        <path d="M420 219L425 216L430 211L435 204L439 195L444 185L449 176L454 168L459 162L464 157L469 154L473 152L478 152L483 152L488 153L493 155L498 157L503 160L507 162L512 165L517 168L522 171L527 173L532 176L537 179L541 181L546 183L551 186L556 188L561 190L566 191L571 193L575 195L580 196L585 198L590 199L595 200L600 201L605 202L609 203L614 204L619 205L624 206L629 207L634 208L639 208L643 209L648 209L653 210L658 211L663 211L668 212L673 212L677 212L682 213L687 213L692 213L697 214L702 214L707 214L711 215L716 215L721 215L726 215L731 216L736 216L741 216L745 216L750 216L755 216L760 217" fill="none" stroke="var(--text-dim)" stroke-width="2"/>
+        <path d="M420 208L425 190L430 165L435 137L439 110L444 87L449 70L454 58L459 52L464 50L469 52L473 56L478 62L483 69L488 77L493 85L498 94L503 102L507 110L512 117L517 125L522 131L527 138L532 144L537 149L541 154L546 159L551 163L556 167L561 171L566 174L571 178L575 180L580 183L585 186L590 188L595 190L600 192L605 194L609 195L614 197L619 198L624 200L629 201L634 202L639 203L643 204L648 205L653 206L658 207L663 207L668 208L673 209L677 209L682 210L687 210L692 211L697 211L702 212L707 212L711 213L716 213L721 213L726 214L731 214L736 214L741 214L745 215L750 215L755 215L760 215" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <polyline points="507,203 501,198 489,180 479,152 471,110 464,50 458,-34" fill="none" class="s-line" stroke-dasharray="3 3"/>
+        <text x="540" y="62" class="t-acc">6000 K</text>
+        <text x="575" y="140" class="t">5000 K</text>
+        <text x="640" y="185" class="t" fill="#e8590c">4000 K</text>
+        <text x="600" y="100" class="t-dim" font-size="11">λ_max = b/T (점선)</text>
+        <g class="t-mono" font-size="11" text-anchor="middle"><text x="420" y="238">200</text><text x="575" y="238">1200</text><text x="760" y="238">2400 nm</text></g>
+      </svg>
+      <figcaption><b>그림 1-5.</b> 흑체의 실험적 구현(공동)과 온도별 플랑크 곡선(6000 K 최대값으로 정규화). 온도가 오르면 전체 면적(∝T⁴)이 급격히 커지고 최대 파장이 짧은 쪽으로 이동한다(빈 변위). 4000 K 흑체의 최대점은 724 nm로 아직 가시광 경계 근처다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-bb">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>흑체 온도 → 스펙트럼, 가시광 비율, 발광 효율, 색</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-bb"></canvas>
+          <div class="legend" style="padding-bottom:4px"><span><i style="background:var(--accent)"></i>흑체 L_e,λ</span><span><i style="background:var(--accent-2)"></i>같은 CCT의 CIE 주광</span></div>
+          <div class="swatches"><div class="swatch" id="sw-bb">—</div></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>온도 T <output id="bb-T-out"></output></span><input type="range" id="bb-T" min="1000" max="12000" value="5772" step="1"></label>
+          <div class="ctrl"><span>세로축</span><div class="seg" id="bb-mode"><button data-value="norm" class="on">최대=1</button><button data-value="abs">절대(로그)</button></div></div>
+          <label class="check"><input type="checkbox" id="bb-day" checked> CIE 주광 겹쳐 보기 (4000 K 이상)</label>
+          <div class="ctrl"><span>바로 가기</span><div class="seg" id="bb-pre"><button data-value="1900">촛불</button><button data-value="2856">A</button><button data-value="5772" class="on">태양</button><button data-value="6504">D65</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">최대 파장 λ_max</span><span class="v" id="o-bb-pk">—</span></div>
+        <div class="stat"><span class="k">발산도 M = σT⁴</span><span class="v" id="o-bb-m">—</span></div>
+        <div class="stat"><span class="k">380–780 nm 파워 비율</span><span class="v" id="o-bb-vis">—</span></div>
+        <div class="stat"><span class="k">발광 효율 LER (전 파장)</span><span class="v" id="o-bb-ler">—</span></div>
+        <div class="stat"><span class="k">색도 xy · McCamy CCT</span><span class="v" id="o-bb-xy">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① A(2856 K)에서 가시광 비율은 약 11%, LER은 16 lm/W에 불과하다. 나머지는 적외선, 즉 열이다. ② 온도를 올리면 LER이 약 6,650 K에서 최대 약 95 lm/W에 이른 뒤 다시 떨어진다. 너무 뜨거우면 자외선으로 빠지기 때문이다. ③ “최대=1” 모드에서 5772 K와 D65를 비교하라. 주광 곡선은 대기 흡수·산란 때문에 흑체와 모양이 다르다. ④ 견본은 색도만 보여 준다(밝기는 최대 성분=1로 정규화). 저온 흑체는 sRGB 가멋 밖이라 클리핑된다.</div>
+    </div>
+
+    <p>실제 광원 중 흑체에 가까운 것은 백열 텅스텐이다. 필라멘트 온도는 일반 전구에서 약 2,700–3,000 K이며, 텅스텐의 방사율은 1보다 작고 파장에 따라 다르지만(가시광에서 약간 더 크다) 상대 분포 모양은 같은 온도의 흑체와 매우 가깝다. 그래서 CIE는 표준 광원 <strong>A</strong>를 2,856 K 흑체 분포로 정의한다. 태양은 대기 밖에서 유효 온도 약 5,772 K(근사적으로 5,800 K)의 흑체와 비슷하지만, 프라운호퍼 흡수선과 자외선 쪽 결손이 있다. 지표의 주광은 여기에 대기 산란(하늘의 푸른빛)과 흡수가 더해진 것으로, CIE는 이를 측정 데이터의 주성분 분석으로 얻은 기저 \(S_0, S_1, S_2\)의 선형 결합으로 정의한다(<strong>CIE 주광</strong>, D 계열). D65는 그중 상관 색온도 약 6,504 K의 분포다.</p>
+    <div class="callout deep">
+      <p><b>심화 — 최대 파장은 축을 무엇으로 잡느냐에 달려 있다.</b> 플랑크 분포를 주파수 밀도 \(L_{e,\nu}\)로 쓰면 최대 주파수는 \(\nu_{\max} = 5.879\times10^{10}\,T\) Hz/K다. 태양(5,772 K)이면 \(\nu_{\max} = 339\) THz, 즉 파장으로 885 nm다. 같은 스펙트럼인데 파장축 최대(502 nm)와 전혀 다르다. 밀도 함수는 변수 변환 시 야코비안 \(|d\nu/d\lambda| = c/\lambda^2\)이 곱해지기 때문이다. “태양 빛은 녹색에서 가장 강하다”는 말은 파장축을 골랐을 때만 맞다. 반면 적분량(광속, XYZ)은 어느 축으로 계산해도 같다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="sources">
+    <h2>실제 광원의 스펙트럼</h2>
+    <p>흑체가 아닌 광원은 발광 메커니즘이 스펙트럼 모양을 결정한다. 같은 4,000 K 근처의 “백색”이라도 스펙트럼은 완전히 다를 수 있고, 그 차이가 연색성·발광 효율·카메라 색 재현을 좌우한다. CIE 015:2018은 대표 광원들의 상대 SPD를 표로 제공하며, 이 책은 그 원표를 내장한다.</p>
+    <ul>
+      <li><b>백열(CIE A)</b> — 열복사. 매끄럽고 장파장으로 갈수록 증가하며, 대부분의 에너지가 적외선에 있다.</li>
+      <li><b>할로인산염 형광등(FL2, 냉백색, 약 4,230 K)</b> — 수은 방전의 자외선을 인광체가 넓은 가시광으로 바꾼다. 수은 자체의 가시 방출선(404.7, 435.8, 546.1, 577/579 nm)이 그대로 뾰족하게 남는다.</li>
+      <li><b>3파장 형광등(FL11, 약 4,000 K)</b> — 희토류 인광체 세 종류(Eu²⁺ 청색 약 450 nm, Tb³⁺ 녹색 약 545 nm, Eu³⁺ 적색 약 611 nm)의 좁은 띠. 눈의 감도가 높은 곳에 에너지를 몰아 효율이 높다.</li>
+      <li><b>인광체 변환 백색 LED(LED-B3, 약 4,100 K)</b> — InGaN 청색 칩(약 450 nm)의 일부를 YAG:Ce 계열 인광체가 넓은 황색 띠로 바꾼다. 청색 피크 + 넓은 혹, 그리고 480 nm 근처의 골이 특징이다.</li>
+      <li><b>RGB LED(LED-RGB1)</b> — 세 반도체 칩의 좁은 띠를 섞는다. 띠 사이가 비어 있어 연색성이 낮기 쉽다.</li>
+      <li><b>고압 나트륨(HP1, 약 1,950 K)</b> — 나트륨 D선(589 nm) 주변이 압력 확장·자기 흡수로 넓게 퍼진 형태. V(λ)의 정점 가까이에 몰려 LER은 높지만 색 구별은 매우 나쁘다.</li>
+    </ul>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="인광체 변환 백색 LED 구조와 스펙트럼">
+        <defs><marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <path d="M60 210 L100 120 L300 120 L340 210 Z" class="f-elev"/>
+        <path d="M100 120 Q200 30 300 120 Z" fill="#f2d24a" opacity="0.55"/>
+        <rect x="170" y="186" width="60" height="18" fill="#3b5bdb"/>
+        <text x="200" y="230" text-anchor="middle" class="t">InGaN 청색 칩 (≈450 nm)</text>
+        <text x="200" y="250" text-anchor="middle" class="t-dim">반사 컵 + 인광체 분산 봉지재</text>
+        <text x="120" y="80" class="t" font-size="12">YAG:Ce 인광체</text>
+        <line x1="200" y1="186" x2="160" y2="40" stroke="#3b5bdb" stroke-width="2" marker-end="url(#ar5)"/>
+        <line x1="200" y1="186" x2="200" y2="96" stroke="#3b5bdb" stroke-width="2"/>
+        <circle cx="200" cy="94" r="4" fill="#e0a800"/>
+        <line x1="200" y1="94" x2="250" y2="30" stroke="#e0a800" stroke-width="2" marker-end="url(#ar5)"/>
+        <text x="262" y="34" class="t-dim" font-size="11">흡수 → 재방출</text>
+        <text x="96" y="34" class="t-dim" font-size="11">투과한 청색</text>
+        <line x1="470" y1="230" x2="770" y2="230" class="s-axis"/>
+        <line x1="470" y1="230" x2="470" y2="90" class="s-axis"/>
+        <path d="M470 230L474 230L477 230L481 230L485 230L488 229L492 228L495 226L499 222L503 215L506 203L510 184L514 153L517 117L521 110L524 137L528 167L532 182L535 192L539 198L543 197L546 193L550 187L553 180L557 173L561 168L564 163L568 160L572 157L575 154L579 151L582 148L586 145L590 142L593 139L597 137L601 134L604 132L608 130L611 128L615 127L619 126L622 125L626 125L630 125L633 126L637 128L640 131L644 135L648 139L651 144L655 150L659 156L662 161L666 167L669 173L673 179L677 184L680 189L684 194L688 198L691 202L695 205L698 208L702 211L706 214L709 216L713 218L717 220L720 221L724 222L727 223L731 224L735 225L738 226L742 226L746 227L749 227L753 228L756 228L760 228" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <text x="528" y="100" class="t">청색 피크</text>
+        <text x="640" y="114" class="t">인광체 넓은 띠</text>
+        <text x="548" y="215" class="t-dim" font-size="11">골 ≈480 nm</text>
+        <g class="t-mono" font-size="11" text-anchor="middle"><text x="470" y="248">380</text><text x="615" y="248">580</text><text x="760" y="248">780 nm</text></g>
+        <text x="620" y="60" text-anchor="middle" class="t-dim">LED-B3 실측 SPD (CIE 015:2018)</text>
+      </svg>
+      <figcaption><b>그림 1-6.</b> 인광체 변환(pc) 백색 LED. 칩의 청색 광자 일부가 인광체에서 흡수되어 더 긴 파장으로 재방출된다. 450 nm → 약 560 nm 변환에는 광자 하나당 에너지의 약 20%(\(1-450/560\))를 열로 잃는 스토크스 손실이 따른다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-src">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>표준 광원 SPD 비교와 LER</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-src"></canvas>
+          <div class="swatches"><div class="swatch" id="sw-src">—</div></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>광원</span><div class="seg" id="src-sel"><button data-value="A">A</button><button data-value="D65">D65</button><button data-value="FL2" class="on">FL2</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button><button data-value="LED-RGB1">RGB</button><button data-value="HP1">HP1</button></div></div>
+          <div class="ctrl"><span>정규화</span><div class="seg" id="src-norm"><button data-value="peak" class="on">최대=1</button><button data-value="flux">같은 광속</button></div></div>
+          <label class="check"><input type="checkbox" id="src-all"> 다른 광원 함께 보기 (흐리게)</label>
+          <label class="check"><input type="checkbox" id="src-v" checked> V(λ) 겹쳐 보기</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">LER (380–780 nm)</span><span class="v" id="o-src-ler">—</span></div>
+        <div class="stat"><span class="k">색도 xy</span><span class="v" id="o-src-xy">—</span></div>
+        <div class="stat"><span class="k">CCT (McCamy)</span><span class="v" id="o-src-cct">—</span></div>
+        <div class="stat"><span class="k">최대 파장</span><span class="v" id="o-src-pk">—</span></div>
+        <div class="stat"><span class="k">380–500 nm 파워 비율</span><span class="v" id="o-src-blue">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① FL2의 뾰족한 선은 수은선이다. 546.1 nm 선이 V(λ) 정점 근처에 있어 LER을 끌어올린다. ② “같은 광속”으로 바꾸면 lm이 같을 때 각 광원이 실제로 몇 W를 내야 하는지 보인다. 면적이 작을수록 효율적이다. ③ FL2·FL11·LED-B3는 CCT가 모두 4,000–4,250 K지만 스펙트럼은 완전히 다르다. 이것이 연색성 문제의 출발점이다(<a href="lighting.html">10장</a>). ④ A의 LER은 이 표의 범위(380–780 nm)로만 계산한 값이다. 적외선까지 넣으면 위 흑체 시뮬레이터처럼 16 lm/W가 된다.</div>
+    </div>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>광원 (CIE 015:2018)</th><th>종류</th><th>x</th><th>y</th><th>CCT (K)</th><th>LER<sub>380–780</sub> (lm/W)</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>백열(2,856 K 흑체)</td><td>0.4476</td><td>0.4074</td><td>2,856</td><td>156 (전 파장 16)</td></tr>
+        <tr><td>D65</td><td>주광</td><td>0.3127</td><td>0.3290</td><td>6,504</td><td>205</td></tr>
+        <tr><td>FL2</td><td>할로인산염 형광</td><td>0.3721</td><td>0.3751</td><td>4,230</td><td>337</td></tr>
+        <tr><td>FL11</td><td>3파장 형광</td><td>0.3805</td><td>0.3769</td><td>4,000</td><td>337</td></tr>
+        <tr><td>LED-B3</td><td>청색+인광체 LED</td><td>0.3756</td><td>0.3723</td><td>≈4,100</td><td>317</td></tr>
+        <tr><td>LED-RGB1</td><td>RGB 혼합 LED</td><td>0.4557</td><td>0.4211</td><td>≈2,840</td><td>291</td></tr>
+        <tr><td>HP1</td><td>고압 나트륨</td><td>0.5330</td><td>0.4150</td><td>≈1,950</td><td>395</td></tr>
+      </tbody>
+    </table></div>
+    <p class="t-dim">xy는 CIE 1931 2° 관측자로 원표를 5 nm 적분한 값, CCT는 McCamy 근사(±수 K). LER은 380–780 nm 밖 방출을 0으로 본 값이다.</p>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="object">
+    <h2>물체색: 광원 × 반사율</h2>
+    <p>스스로 빛을 내지 않는 물체의 색은 광원에서 나온 빛 중 무엇을 얼마나 되돌려 보내느냐로 결정된다. 물체의 성질은 파장별 반사율 \(\rho(\lambda)\)(0–1)로 기술되고, 눈에 들어오는 <span class="term">색 자극</span><span class="en">(Color Stimulus)</span>은 두 함수의 <strong>파장별 곱</strong>이다.</p>
+    <div class="formula">$$\varphi(\lambda) = S(\lambda)\,\rho(\lambda),\qquad X = k\!\int\! S\rho\,\bar x\,d\lambda,\;\; Y = k\!\int\! S\rho\,\bar y\,d\lambda,\;\; Z = k\!\int\! S\rho\,\bar z\,d\lambda,\qquad k = \frac{100}{\int S\,\bar y\,d\lambda}$$
+      <div class="where">\(k\)는 완전 확산 반사면(\(\rho\equiv1\))의 Y가 100이 되도록 정한다(CIE 015). 그래서 물체의 Y는 “시감 반사율(%)”이다. <code>CB.spd2XYZ(R, {illum: S})</code>가 이 식이다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 210" role="img" aria-label="D65 SPD와 TCS09 반사율의 파장별 곱">
+        <g>
+          <line x1="30" y1="150" x2="220" y2="150" class="s-axis"/><line x1="300" y1="150" x2="490" y2="150" class="s-axis"/><line x1="570" y1="150" x2="760" y2="150" class="s-axis"/>
+          <path d="M30 108L32 106L35 104L37 92L40 80L42 76L44 72L47 72L49 71L51 74L54 76L56 69L59 61L61 56L63 51L66 50L68 50L70 51L73 53L75 52L78 52L80 55L82 58L85 57L87 57L89 58L92 58L94 60L97 61L99 60L101 59L104 60L106 61L108 62L111 62L113 63L116 65L118 67L120 68L123 68L125 69L127 72L130 75L132 74L135 74L137 74L139 74L142 75L144 76L146 77L149 79L151 79L154 79L156 81L158 82L161 82L163 82L165 81L168 80L170 82L173 84L175 87L177 91L180 90L182 89L184 88L187 87L189 92L192 98L194 94L196 91L199 88L201 86L203 91L206 96L208 103L211 111L213 102L215 93L218 95L220 96" fill="none" stroke="var(--text-dim)" stroke-width="2"/>
+          <path d="M300 143L302 144L305 144L307 145L310 145L312 145L314 145L317 145L319 145L321 145L324 145L326 145L329 145L331 146L333 146L336 146L338 146L340 147L343 147L345 147L348 147L350 147L352 147L355 147L357 147L359 147L362 147L364 147L367 147L369 147L371 147L374 147L376 147L378 147L381 147L383 146L386 146L388 146L390 145L393 145L395 144L397 142L400 140L402 136L405 131L407 124L409 116L412 108L414 100L416 92L419 86L421 82L424 78L426 76L428 74L431 73L433 72L435 71L438 70L440 70L443 69L445 69L447 68L450 68L452 67L454 67L457 67L459 67L462 67L464 66L466 66L469 66L471 66L473 66L476 66L478 66L481 66L483 66L485 66L488 66L490 66" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+          <path d="M570 147L572 147L575 147L577 147L580 146L582 146L584 146L587 146L589 146L591 146L594 146L596 146L599 146L601 146L603 146L606 146L608 146L610 147L613 147L615 147L618 147L620 147L622 147L625 147L627 147L629 147L632 147L634 147L637 147L639 147L641 147L644 147L646 147L648 147L651 147L653 147L656 147L658 146L660 146L663 146L665 145L667 144L670 142L672 140L675 135L677 130L679 124L682 119L684 112L686 108L689 105L691 102L694 99L696 99L698 99L701 98L703 97L705 96L708 94L710 95L713 96L715 99L717 102L720 101L722 100L724 99L727 98L729 102L732 106L734 103L736 100L739 99L741 97L743 101L746 105L748 111L751 117L753 110L755 102L758 104L760 105" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        </g>
+        <text x="260" y="105" text-anchor="middle" class="t" font-size="24">×</text>
+        <text x="530" y="105" text-anchor="middle" class="t" font-size="24">=</text>
+        <text x="125" y="176" text-anchor="middle" class="t">광원 S(λ): D65</text>
+        <text x="395" y="176" text-anchor="middle" class="t">반사율 ρ(λ): TCS09 (빨강)</text>
+        <text x="665" y="176" text-anchor="middle" class="t">색 자극 φ(λ)</text>
+        <g class="t-mono" font-size="10" text-anchor="middle"><text x="30" y="196">380</text><text x="220" y="196">780</text><text x="300" y="196">380</text><text x="490" y="196">780</text><text x="570" y="196">380</text><text x="760" y="196">780</text></g>
+        <text x="300" y="40" class="t-dim" font-size="11">ρ = 1</text>
+        <line x1="300" y1="50" x2="490" y2="50" class="s-line" stroke-dasharray="3 3"/>
+      </svg>
+      <figcaption><b>그림 1-7.</b> 색 자극은 광원 SPD와 반사율의 파장별 곱이다(실제 데이터: D65 × CRI 시험색 TCS09). 반사율이 0에 가까운 단파장 쪽에서는 광원의 굴곡이 지워지고, 반사율이 높은 장파장 쪽에서는 광원의 굴곡이 그대로 자극에 남는다.</figcaption>
+    </figure>
+    <p>이 식은 두 가지를 말해 준다. 첫째, 물체 고유의 양은 \(\rho(\lambda)\)뿐이고 XYZ는 물체의 성질이 아니다. 같은 빨간 사과도 백열등 아래와 주광 아래에서 XYZ가 다르다. 둘째, 광원 스펙트럼에 에너지가 없는 파장에서의 반사율 차이는 <strong>보이지 않는다</strong>. 고압 나트륨등 아래에서 빨강과 초록 자동차가 구분되지 않는 이유다.</p>
+    <p>다만 사람은 광원이 바뀌면 시각계가 백색 기준을 다시 맞추는 <a href="adaptation.html">색순응</a>을 하므로, 백열등 아래 흰 종이를 여전히 흰색으로 본다. 아래 시뮬레이터는 세 가지를 나란히 보여 준다: (1) D65 아래의 기준색, (2) 선택한 광원 아래의 물리적 자극을 D65 백색 기준 화면에 그대로 표시한 색(색순응 없음, 화이트 밸런스 없는 카메라에 해당), (3) Bradford 색순응 변환으로 선택 광원의 백색을 D65 백색으로 옮긴 색. (3)과 (1)의 차이가 “순응해도 남는” 색 차이이며, 연색성 지수가 측정하려는 것의 핵심이다.</p>
+
+    <div class="sim" id="sim-obj">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>광원 × 반사율 → 색 자극과 3자극치</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-obj"></canvas>
+          <div class="legend" style="padding-bottom:4px"><span><i style="background:var(--text-dim)"></i>광원 S (최대=1)</span><span><i style="background:var(--accent-2)"></i>반사율 ρ</span><span><i style="background:var(--accent)"></i>색 자극 S·ρ</span></div>
+          <div class="swatches"><div class="swatch" id="sw-obj-ref">—</div><div class="swatch" id="sw-obj-raw">—</div><div class="swatch" id="sw-obj-ad">—</div></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>광원</span><div class="seg" id="obj-ill"><button data-value="D65">D65</button><button data-value="A" class="on">A</button><button data-value="FL2">FL2</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button><button data-value="LED-RGB1">RGB</button><button data-value="HP1">HP1</button></div></div>
+          <label class="ctrl"><span>시험색 <output id="obj-tcs-out"></output></span><input type="range" id="obj-tcs" min="1" max="14" value="9" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">XYZ (광원 기준, Y_w=100)</span><span class="v" id="o-obj-xyz">—</span></div>
+        <div class="stat"><span class="k">색도 xy</span><span class="v" id="o-obj-xy">—</span></div>
+        <div class="stat"><span class="k">L*a*b* (Bradford→D65)</span><span class="v" id="o-obj-lab">—</span></div>
+        <div class="stat"><span class="k">D65 기준과 ΔE00</span><span class="v" id="o-obj-de">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 광원을 D65로 두고 TCS01을 고르면 Lab = (61.5, 17.5, 11.9)가 나온다. 이 장의 기준 숫자다. ② A로 바꾸면 순응 없는 견본은 주황으로 크게 틀어지지만, 순응 후에는 TCS09(빨강) ΔE00 ≈ 4.6 정도만 남는다. ③ HP1에서 TCS09·TCS11을 비교해 보라. 순응 후에도 ΔE00가 10을 넘는다(TCS09 ≈ 11, TCS11 ≈ 20). 589 nm 근처만 있는 광원은 빨강·초록을 구분할 정보를 주지 않는다. ④ LED-RGB1에서 TCS09는 채도가 과장된다(a* 증가). 좁은 띠 광원은 색을 “덜”이 아니라 “다르게” 보이게 한다. 견본 중 sRGB 밖 색은 클리핑된다.</div>
+    </div>
+
+    <div class="callout">
+      <p><b>공학자 관점 — 실제 숫자.</b> CIE 시험색 TCS09(강한 빨강)는 D65 아래 XYZ = (20.60, 11.25, 4.34), A 아래 XYZ = (33.48, 16.59, 1.36)이다. 같은 물체인데 X가 1.6배, Z가 3분의 1이 된다. 이 값을 각각 자기 광원 백색으로 Bradford 순응해 D65 기준 Lab으로 비교하면 (40.0, 59.0, 28.2) 대 (44.1, 69.0, 33.1), ΔE00 ≈ 4.6이다. 측색 보고서에 “광원/관측자”(예: D65/10°, D50/2°)를 반드시 적는 이유다. 인쇄 업계는 ISO 3664 관찰 조건과 ISO 13655 측정 조건으로 D50/2°를 표준화한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="efficacy">
+    <h2>발광 효율과 광원 효율</h2>
+    <p>“이 LED는 150 lm/W”라는 말과 “이 스펙트럼의 LER은 300 lm/W”라는 말은 분모가 다르다. 둘을 혼동하는 것은 조명 공학에서 가장 흔한 실수다.</p>
+    <div class="formula">$$K = \frac{\Phi_v}{\Phi_e} = \frac{683\int \Phi_{e,\lambda}V\,d\lambda}{\int \Phi_{e,\lambda}\,d\lambda}\ [\text{lm/W}_{\text{opt}}],\qquad \eta_v = \frac{\Phi_v}{P_{\text{elec}}} = \eta_e\cdot K\ [\text{lm/W}_{\text{elec}}]$$
+      <div class="where">\(K\): 복사의 발광 효율(Luminous Efficacy of Radiation, LER) — 스펙트럼 모양만으로 정해진다. \(\eta_e = \Phi_e / P_{\text{elec}}\): 전기→광 변환 효율(LED에서는 wall-plug efficiency, WPE). \(\eta_v\): 광원의 발광 효율(Luminous Efficacy of a Source).</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 200" role="img" aria-label="전기 입력에서 광 출력, 광속으로 이어지는 효율 체인">
+        <defs><marker id="ar6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="60" width="150" height="70" rx="10" class="f-surface"/>
+        <text x="95" y="90" text-anchor="middle" class="t">전기 입력</text><text x="95" y="114" text-anchor="middle" class="t-mono">P_elec [W]</text>
+        <line x1="170" y1="95" x2="300" y2="95" class="s-line" marker-end="url(#ar6)"/>
+        <text x="235" y="82" text-anchor="middle" class="t-acc">η_e (WPE)</text>
+        <text x="235" y="122" text-anchor="middle" class="t-dim" font-size="11">열·스토크스 손실</text>
+        <rect x="305" y="60" width="170" height="70" rx="10" class="f-surface"/>
+        <text x="390" y="90" text-anchor="middle" class="t">광 출력</text><text x="390" y="114" text-anchor="middle" class="t-mono">Φ_e [W_opt]</text>
+        <line x1="475" y1="95" x2="605" y2="95" class="s-line" marker-end="url(#ar6)"/>
+        <text x="540" y="82" text-anchor="middle" class="t-acc">K = LER</text>
+        <text x="540" y="122" text-anchor="middle" class="t-dim" font-size="11">스펙트럼 × V(λ)</text>
+        <rect x="610" y="60" width="170" height="70" rx="10" class="f-acc-soft"/>
+        <text x="695" y="90" text-anchor="middle" class="t">광속</text><text x="695" y="114" text-anchor="middle" class="t-mono">Φ_v [lm]</text>
+        <text x="400" y="172" text-anchor="middle" class="t">η_v = η_e × K    예: 백색 LED 0.5 × 300 lm/W = 150 lm/W</text>
+      </svg>
+      <figcaption><b>그림 1-8.</b> 효율 체인. 광원 효율(lm/W<sub>elec</sub>)은 소자 물리(η<sub>e</sub>)와 스펙트럼 설계(K)의 곱이다. 백열등은 η<sub>e</sub>가 높아도(전력 대부분이 복사) K가 약 15 lm/W라서 최종 효율이 낮다.</figcaption>
+    </figure>
+    <p>LER의 이론 상한은 555 nm 단색광의 683 lm/W다. 그러나 단색광은 녹색으로 보이므로 조명이 될 수 없다. 백색이 되려면 V(λ)가 낮은 청색·적색에도 에너지를 둬야 하므로, 백색 스펙트럼의 LER은 대략 250–400 lm/W 범위가 된다. 연색성을 높이려고 스펙트럼을 넓히면 V가 작은 양 끝에 에너지가 늘어 LER은 떨어진다. 이 <strong>효율–연색성 트레이드오프</strong>가 백색 LED 스펙트럼 설계의 핵심이다(<a href="lighting.html#ler">10장</a>).</p>
+
+    <div class="sim" id="sim-gs">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>가우시안 SPD 합성기: LER과 색</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-gs"></canvas>
+          <div class="swatches"><div class="swatch" id="sw-gs">—</div></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>프리셋</span><div class="seg" id="gs-pre"><button data-value="rgb" class="on">3파장</button><button data-value="pc">청색+인광체</button><button data-value="two">보색 2선</button><button data-value="mono">555 단색</button></div></div>
+          <div class="ctrl"><span>편집할 피크</span><div class="seg" id="gs-pk"><button data-value="0" class="on">피크 1</button><button data-value="1">피크 2</button><button data-value="2">피크 3</button></div></div>
+          <label class="ctrl"><span>중심 파장 <output id="gs-c-out"></output></span><input type="range" id="gs-c" min="400" max="700" value="450" step="1"></label>
+          <label class="ctrl"><span>반치폭 FWHM <output id="gs-w-out"></output></span><input type="range" id="gs-w" min="5" max="150" value="20" step="1"></label>
+          <label class="ctrl"><span>상대 세기 <output id="gs-a-out"></output></span><input type="range" id="gs-a" min="0" max="100" value="100" step="1"></label>
+          <label class="ctrl"><span>전기→광 효율 η_e <output id="gs-wpe-out"></output></span><input type="range" id="gs-wpe" min="5" max="80" value="50" step="1"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">LER K</span><span class="v" id="o-gs-ler">—</span></div>
+        <div class="stat"><span class="k">광원 효율 η_v = η_e·K</span><span class="v" id="o-gs-eff">—</span></div>
+        <div class="stat"><span class="k">색도 xy</span><span class="v" id="o-gs-xy">—</span></div>
+        <div class="stat"><span class="k">CCT · 궤적 거리 Δuv</span><span class="v" id="o-gs-cct">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① “555 단색”은 LER ≈ 680 lm/W지만 색은 순수한 녹색이다. ② “3파장”(450/540/610 nm)은 약 5,900 K 백색에서 LER ≈ 362 lm/W, “청색+인광체”는 약 5,100 K에서 약 347 lm/W다. ③ 3파장에서 피크 3을 610 → 640 nm로 옮겨 보라. 백색을 유지하려면 세기를 더 올려야 하고 LER이 떨어진다. V(640) = 0.175로 610 nm(0.503)보다 훨씬 낮기 때문이다. ④ “보색 2선”(480 + 580 nm)도 백색이 된다. 하지만 이 광원 아래에서 물체 색은 크게 왜곡된다. LER과 색도만으로는 조명의 품질을 판단할 수 없다. (CCT는 Δuv가 0.05를 넘으면 의미가 없어 표시하지 않는다.)</div>
+    </div>
+
+    <div class="callout tip">
+      <p><b>실무 수치(대략).</b> 백열 전구 약 10–17 lm/W, 할로겐 약 15–25 lm/W, 형광등 약 60–100 lm/W, 고압 나트륨 약 80–150 lm/W, 백색 LED 제품 약 100–200 lm/W. 백색 LED의 청색 칩 WPE는 고효율 제품에서 대략 50–70%이며, 인광체 스토크스 손실과 패키지 손실이 더해진다. 같은 lm/W라도 CCT·연색성 등급이 다르면 비교할 수 없다. 데이터시트의 효율 값은 반드시 측정 조건(전류, 접합 온도)과 함께 읽는다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="next">
+    <h2>스펙트럼에서 숫자로: 다음 단계</h2>
+    <p>이 장에서 다룬 모든 양은 결국 한 형태의 적분으로 귀결된다. 어떤 스펙트럼 \(\varphi(\lambda)\)(광원이면 \(S\), 물체면 \(S\rho\))를 어떤 가중 함수 \(w(\lambda)\)로 적분한다.</p>
+    <div class="formula">$$Q = \int_{380}^{780} \varphi(\lambda)\,w(\lambda)\,d\lambda,\qquad w \in \{\,683\,V,\;\; \bar x,\bar y,\bar z,\;\; \bar l,\bar m,\bar s,\;\; \text{카메라 } r,g,b\,\}$$
+      <div class="where">가중 함수가 \(V\) 하나면 측광량(밝기 1차원), 세 개면 색(3차원)이 된다. 이 적분은 \(\varphi\)에 대해 선형이므로 빛의 덧셈은 3자극치의 덧셈이 된다(그라스만 법칙).</div>
+    </div>
+    <p>다음 장들은 이 가중 함수를 하나씩 정한다. <a href="vision.html">2장</a>은 눈의 원추세포 \(\bar l\bar m\bar s\)와 메타머리즘, <a href="colorimetry.html">3장</a>은 등색 실험으로부터 CIE \(\bar x\bar y\bar z\)를 얻는 과정, <a href="chromaticity.html">4장</a>은 XYZ를 2차원 색도로 투영하는 방법을 다룬다. 그 뒤의 색공간·장치 장들은 모두 이 3자극치에서 출발한다.</p>
+    <div class="callout">
+      <p><b>공학자 관점 — 체크리스트.</b> 색 관련 수치를 받으면 다음을 확인한다. ① 스펙트럼 범위와 간격(380–780 nm? 5 nm? 측정 대역폭은?) ② 절대/상대 단위(W/nm인가, 560 nm=100인가) ③ 광원(물체색이면 D65? D50? A?) ④ 관측자(2°/10°) ⑤ 측광량이면 명소시인가. 이 다섯 가지가 빠진 색 수치는 재현할 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ summary -->
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>색은 빛의 성질이 아니라 분광 분포를 관측자의 세 감도 곡선으로 적분한 결과다. 체인: 스펙트럼 → 관측자 → 3자극치 → 색공간 → 장치. 3차원으로의 압축은 되돌릴 수 없다.</li>
+      <li>\(E = hc/\lambda \approx 1240/\lambda\) eV(nm). 가시광은 약 380–780 nm, 1.6–3.3 eV.</li>
+      <li>분광량은 파장당 밀도(W/nm 등)이고 적분량은 그 적분이다. 실무 계산은 5 nm 리만 합이며, 선 스펙트럼은 샘플 간격·측정 대역폭에 민감하다.</li>
+      <li>측광량 = 683 × ∫(분광 복사량)·V(λ) dλ. 683 lm/W는 540 THz(≈555 nm)에서의 SI 정의값이다. 휘도 cd/m²는 영상·디스플레이의 기본량이다.</li>
+      <li>흑체는 플랑크 법칙을 따르며, \(\lambda_{\max} = 2898\ \mu\text{m·K}/T\), \(M = \sigma T^4\). 2,856 K(A)는 가시광 비율 약 11%, LER 약 16 lm/W. 흑체 LER 최대는 약 6,650 K에서 약 95 lm/W.</li>
+      <li>실제 광원 스펙트럼은 발광 메커니즘이 정한다: 백열(매끄러운 열복사), 형광(수은선 + 인광체), pc-LED(청색 피크 + 넓은 인광체 띠), RGB LED(좁은 세 띠). CCT가 같아도 스펙트럼은 전혀 다를 수 있다.</li>
+      <li>물체의 색 자극은 \(S(\lambda)\rho(\lambda)\). 물체 고유의 양은 반사율뿐이며 XYZ는 광원·관측자에 따라 바뀐다. D65/2° 아래 TCS01의 Lab = (61.5, 17.5, 11.9).</li>
+      <li>LER(lm/W<sub>opt</sub>)은 스펙트럼 모양의 성질, 광원 효율(lm/W<sub>elec</sub>) = η<sub>e</sub> × LER. 백색 스펙트럼의 LER은 대략 250–400 lm/W이며 연색성과 트레이드오프 관계다.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ quiz -->
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>555 nm 단색광 2 W의 광속은?</p><div class="opts">
+        <button class="opt">683 lm</button>
+        <button class="opt" data-correct>1,366 lm</button>
+        <button class="opt">2 lm</button>
+        <button class="opt">파장만으로는 알 수 없다</button>
+      </div><div class="quiz-exp">\(\Phi_v = 683 \times V(555) \times 2 = 683 \times 1 \times 2 = 1366\) lm. 단색광이면 파장과 파워만으로 광속이 정해진다.</div></div>
+
+      <div class="quiz-q"><p>650 nm 적색 레이저 5 mW의 광속에 가장 가까운 값은? (V(650) ≈ 0.107)</p><div class="opts">
+        <button class="opt">3.4 lm</button>
+        <button class="opt" data-correct>0.37 lm</button>
+        <button class="opt">0.0037 lm</button>
+        <button class="opt">0.107 lm</button>
+      </div><div class="quiz-exp">\(683 \times 0.107 \times 0.005 \approx 0.365\) lm. 같은 5 mW라도 532 nm 녹색(V ≈ 0.88)이면 약 3 lm로 8배 이상 밝게 보인다.</div></div>
+
+      <div class="quiz-q"><p>2,900 K 흑체의 분광 복사휘도(파장 밀도)가 최대가 되는 파장은 대략?</p><div class="opts">
+        <button class="opt">555 nm</button>
+        <button class="opt">700 nm</button>
+        <button class="opt" data-correct>1,000 nm</button>
+        <button class="opt">2,900 nm</button>
+      </div><div class="quiz-exp">빈 변위 법칙 \(\lambda_{\max} = 2.898\times10^{-3}/2900 \approx 1.0\ \mu\)m. 백열 전구 에너지의 대부분이 적외선인 이유다.</div></div>
+
+      <div class="quiz-q"><p>백열 전구의 발광 효율이 낮은 가장 근본적인 이유는?</p><div class="opts">
+        <button class="opt">필라멘트가 전기를 빛으로 거의 바꾸지 못해서(대부분 전도 손실)</button>
+        <button class="opt" data-correct>복사의 대부분이 V(λ)≈0인 적외선이라 LER 자체가 약 15 lm/W로 낮아서</button>
+        <button class="opt">텅스텐이 흑체가 아니어서</button>
+        <button class="opt">청색 성분이 너무 많아서</button>
+      </div><div class="quiz-exp">입력 전력의 대부분은 복사로 나간다(η<sub>e</sub>는 낮지 않다). 문제는 그 스펙트럼이다. 2,856 K 흑체는 380–780 nm 비율이 약 11%, LER은 약 16 lm/W다.</div></div>
+
+      <div class="quiz-q"><p>어떤 백색 LED 스펙트럼의 LER이 320 lm/W, 전기→광 변환 효율이 45%다. 광원 효율은?</p><div class="opts">
+        <button class="opt">320 lm/W</button>
+        <button class="opt">711 lm/W</button>
+        <button class="opt" data-correct>144 lm/W</button>
+        <button class="opt">45 lm/W</button>
+      </div><div class="quiz-exp">\(\eta_v = \eta_e \times K = 0.45 \times 320 = 144\) lm/W. LER은 분모가 광 출력(W<sub>opt</sub>), 광원 효율은 분모가 전기 입력(W<sub>elec</sub>)이다.</div></div>
+
+      <div class="quiz-q"><p>같은 빨간 시험색을 D65와 A 아래에서 측정했다. 두 측정에서 변하지 <em>않는</em> 것은?</p><div class="opts">
+        <button class="opt">XYZ</button>
+        <button class="opt">색도 xy</button>
+        <button class="opt" data-correct>분광 반사율 ρ(λ)</button>
+        <button class="opt">색 자극 φ(λ)</button>
+      </div><div class="quiz-exp">\(\varphi = S\rho\)이므로 광원이 바뀌면 자극과 XYZ·xy가 모두 바뀐다. 물체 고유의 양은 반사율뿐이다(형광이 없다는 가정).</div></div>
+
+      <div class="quiz-q"><p>FWHM 2 nm인 수은선을 10 nm 간격 표로 적분할 때 생기는 주된 문제는?</p><div class="opts">
+        <button class="opt">결과가 항상 정확히 두 배가 된다</button>
+        <button class="opt" data-correct>샘플이 선을 맞히느냐에 따라 적분이 크게 틀리거나 선이 통째로 빠질 수 있다</button>
+        <button class="opt">V(λ)가 음수가 된다</button>
+        <button class="opt">문제없다. 측색은 10 nm면 충분하다</button>
+      </div><div class="quiz-exp">리만 합은 피크 폭이 간격보다 충분히 넓을 때만 정확하다. 선 스펙트럼은 측정 대역폭으로 면적을 보존한 데이터를 쓰거나, 선을 별도 항(파장, 파워)으로 다룬다.</div></div>
+
+      <div class="quiz-q"><p>분광 복사휘도 \(L_{e,\lambda}\)의 SI 단위로 옳은 것은? (nm당 표기)</p><div class="opts">
+        <button class="opt">W·m⁻²</button>
+        <button class="opt">cd·m⁻²·nm⁻¹</button>
+        <button class="opt" data-correct>W·sr⁻¹·m⁻²·nm⁻¹</button>
+        <button class="opt">lm·nm⁻¹</button>
+      </div><div class="quiz-exp">복사휘도는 단위 입체각·단위 투영 면적당 파워(W·sr⁻¹·m⁻²)이고, 분광량은 거기에 파장당(nm⁻¹)이 붙는다. 이를 683·V로 적분하면 휘도 cd/m²가 된다.</div></div>
+
+      <div class="quiz-q"><p>태양 스펙트럼의 최대점을 파장축에서는 약 500 nm, 주파수축에서는 약 885 nm에 해당하는 위치로 얻었다. 올바른 해석은?</p><div class="opts">
+        <button class="opt">둘 중 하나는 계산 실수다</button>
+        <button class="opt" data-correct>밀도 함수는 변수 변환에서 야코비안(\(c/\lambda^2\))이 곱해지므로 최대점이 달라지는 것이 정상이다</button>
+        <button class="opt">대기 흡수 때문이다</button>
+        <button class="opt">주파수축은 진공, 파장축은 공기 중 값이라서다</button>
+      </div><div class="quiz-exp">\(L_\nu\,d\nu = L_\lambda\,d\lambda\)이므로 \(L_\nu = L_\lambda \lambda^2/c\). 최대점은 좌표에 의존하지만 적분량(광속, XYZ)은 좌표와 무관하다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  var SIGMA = 5.670374419e-8, B_WIEN = 2.897771955e-3;
+  var HC = CB.C.h * CB.C.c, EV = CB.C.q;
+  var TCSN = ["", "밝은 회적색", "어두운 회황색", "강한 황록색", "중간 황록색", "밝은 청록색", "밝은 파랑", "밝은 보라", "밝은 적자색", "강한 빨강", "강한 노랑", "강한 초록", "강한 파랑", "밝은 황분홍(피부)", "중간 올리브(잎)"];
+  var SRC = ["A", "D65", "FL2", "FL11", "LED-B3", "LED-RGB1", "HP1"];
+
+  function $(id) { return document.getElementById(id); }
+  function box(w, h, top) { top = top || 26; return { x: 58, y: top, w: w - 58 - 16, h: h - top - 46 }; }
+  function specBar(ctx, X, b) {
+    var x0 = X(380), x1 = X(780), a = Math.max(b.x, x0), e = Math.min(b.x + b.w, x1);
+    if (e <= a) return;
+    for (var px = a; px < e; px++) { ctx.fillStyle = CB.wl2rgb(380 + (400 * (px - x0)) / (x1 - x0)); ctx.fillRect(px, b.y - 13, 1.5, 6); }
+  }
+  function lerOf(S) { var a = 0, s = 0; for (var l = 380; l <= 780; l++) { var v = S(l); a += v * CB.V(l); s += v; } return s ? (683 * a) / s : 0; }
+  function paint(id, rgb, html) {
+    var el = $(id); if (!el) return;
+    el.style.background = CB.rgb8css(rgb);
+    el.style.color = CB.relLum(rgb) > 0.3 ? "#111" : "#f4f4f4";
+    el.innerHTML = html;
+  }
+  function lightRGB(XYZ) {
+    var lin = CB.XYZ2linRGB(XYZ), m = Math.max(lin[0], lin[1], lin[2]);
+    var rgb = CB.xy2display(CB.XYZ2xy(XYZ));
+    rgb.clipped = lin.some(function (v) { return v < -1e-3 * m; });
+    return rgb;
+  }
+  function objRGB(XYZ100) { return CB.XYZ2rgb8(XYZ100.map(function (v) { return v / 100; })); }
+  function xyStr(xy) { return xy[0].toFixed(4) + ", " + xy[1].toFixed(4); }
+  function uv60(xy) { var u = CB.xy2uv(xy); return [u[0], (2 / 3) * u[1]]; }
+  function duv(xy, T) {
+    var p = uv60(CB.planckXY(T)), q = uv60(xy), d = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    return q[1] >= p[1] ? d : -d;
+  }
+
+  /* ---------------- 1. 샘플링 */
+  (function () {
+    var cv, c = CB.range("sp-c", function (v) { return v.toFixed(1) + " nm"; }, rd),
+      w = CB.range("sp-w", function (v) { return v + " nm"; }, rd),
+      off = CB.range("sp-off", function (v) { return v + " % of Δλ"; }, rd),
+      st = CB.seg("sp-step", rd);
+    function rd() { if (cv) cv.redraw(); }
+    function S(l) { return CB.gauss(l, c(), w()); }
+    function draw(ctx, W, H) {
+      var p = CB.palette(), cc = c(), ww = w(), step = Number(st()), o = (off() / 100) * step;
+      var ex = 0, dl = Math.min(0.02, ww / 100), lo = Math.max(380, cc - 6 * ww), hi = Math.min(780, cc + 6 * ww);
+      for (var l = lo; l <= hi; l += dl) ex += S(l) * CB.V(l) * dl;
+      var sm = 0, samples = [], nIn = 0;
+      for (var k = 380 + o; k <= 780 + 1e-9; k += step) { var sv = S(k) * CB.V(k); sm += sv * step; samples.push([k, sv]); if (Math.abs(k - cc) <= ww / 2) nIn++; }
+      var R = Math.max(20, 3 * ww + 2 * step), x0 = cc - R, x1 = cc + R;
+      var line = [], vv = [], prod = [];
+      for (var i = 0; i <= 600; i++) { var x = x0 + ((x1 - x0) * i) / 600; line.push([x, S(x)]); vv.push([x, CB.V(x)]); prod.push([x, S(x) * CB.V(x)]); }
+      var b = box(W, H, 22);
+      var r = CB.chart(ctx, b, { x: [x0, x1], y: [0, 1.1], xLabel: "파장 λ (nm)", yLabel: "상대값",
+        series: [{ data: prod, color: p.accent2, width: 1, fill: CB.color("accent-2-soft") }, { data: vv, color: p.dim, width: 1.5, dash: [5, 4] }, { data: line, color: p.accent, width: 2 }] });
+      ctx.save(); ctx.beginPath(); ctx.rect(b.x, b.y, b.w, b.h); ctx.clip();
+      samples.forEach(function (s) {
+        if (s[0] < x0 || s[0] > x1) return;
+        ctx.strokeStyle = p.accent2; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(r.X(s[0]), r.Y(0)); ctx.lineTo(r.X(s[0]), r.Y(s[1])); ctx.stroke();
+        ctx.fillStyle = p.accent2; ctx.beginPath(); ctx.arc(r.X(s[0]), r.Y(s[1]), 3.5, 0, 7); ctx.fill();
+      });
+      ctx.restore();
+      var err = ex > 0 ? (sm / ex - 1) * 100 : 0;
+      CB.stat("o-sp-ex", CB.fmt(ex, 4) + " nm");
+      CB.stat("o-sp-sm", CB.fmt(sm, 4) + " nm");
+      CB.stat("o-sp-err", (err >= 0 ? "+" : "") + err.toFixed(2) + " %");
+      CB.stat("o-sp-n", nIn + " 개");
+    }
+    cv = CB.canvas($("cv-samp"), draw, { aspect: 0.5, minHeight: 240, maxHeight: 340 });
+  })();
+
+  /* ---------------- 2. 단색광 */
+  (function () {
+    var cv;
+    var wl = CB.range("mn-wl", function (v) { return v + " nm"; }, rd),
+      pw = CB.range("mn-pw", function (v) { return CB.si(Math.pow(10, v) * 1e-3, "W"); }, rd),
+      d = CB.range("mn-d", function (v) { return v.toFixed(1) + " m"; }, rd);
+    function rd() { if (cv) cv.redraw(); }
+    function draw(ctx, W, H) {
+      var p = CB.palette(), l = wl(), P = Math.pow(10, pw()) * 1e-3, V = CB.V(l), K = 683 * V, F = K * P;
+      var Ep = HC / (l * 1e-9), N = P / Ep, I = F / (4 * Math.PI), E = I / (d() * d());
+      var data = []; for (var x = 380; x <= 780; x += 1) data.push([x, 683 * CB.V(x)]);
+      var b = box(W, H, 28);
+      var r = CB.chart(ctx, b, { x: [380, 780], y: [0, 720], xLabel: "파장 λ (nm)", yLabel: "K(λ) = 683·V(λ)  [lm/W]",
+        series: [{ data: data, color: p.accent, width: 2, fill: CB.color("accent-soft") }],
+        vlines: [{ x: l, color: CB.wl2rgb(l), dash: [], width: 3 }],
+        points: [{ x: l, y: K, color: p.text, r: 4.5, label: CB.fmt(K, 3) + " lm/W" }] });
+      specBar(ctx, r.X, b);
+      CB.stat("o-mn-k", V.toPrecision(3) + " · " + CB.fmt(K, 3) + " lm/W");
+      CB.stat("o-mn-lm", CB.si(F, "lm"));
+      CB.stat("o-mn-ph", (Ep / EV).toFixed(3) + " eV · " + N.toExponential(2) + " /s");
+      CB.stat("o-mn-cd", CB.si(I, "cd"));
+      CB.stat("o-mn-lx", CB.si(E, "lx"));
+    }
+    cv = CB.canvas($("cv-mn"), draw, { aspect: 0.5, minHeight: 240, maxHeight: 340 });
+  })();
+
+  /* ---------------- 3. 흑체 */
+  (function () {
+    var cv, T = CB.range("bb-T", function (v) { return v + " K"; }, rd),
+      mode = CB.seg("bb-mode", rd), day = $("bb-day");
+    CB.seg("bb-pre", function (v) { T.set(Number(v)); });
+    day.addEventListener("change", rd);
+    function rd() { if (cv) cv.redraw(); }
+    function L(l, t) { return CB.planck(l, t) * 1e-9; }
+    function draw(ctx, W, H) {
+      var p = CB.palette(), t = T(), pk = (B_WIEN / t) * 1e9, Lpk = L(pk, t), abs = mode() === "abs";
+      var cur = []; for (var l = 100; l <= 3000; l += 5) cur.push([l, abs ? L(l, t) : L(l, t) / Lpk]);
+      var series = [], b = box(W, H, 28);
+      if (abs) [1000, 2000, 3000, 6000, 12000].forEach(function (tt) {
+        var d = []; for (var l2 = 100; l2 <= 3000; l2 += 10) d.push([l2, L(l2, tt)]);
+        series.push({ data: d, color: p.faint, width: 1, dash: [3, 3] });
+      });
+      series.push({ data: cur, color: p.accent, width: 2.4, fill: abs ? null : CB.color("accent-soft") });
+      if (day.checked && t >= 4000) {
+        var D = CB.daylight(t), k = (abs ? L(560, t) : L(560, t) / Lpk) / D(560), dd = [];
+        for (var l3 = 380; l3 <= 780; l3 += 5) dd.push([l3, D(l3) * k]);
+        series.push({ data: dd, color: p.accent2, width: 1.8 });
+      }
+      var r = CB.chart(ctx, b, { x: [100, 3000], y: abs ? [1e-3, 3e6] : [0, 1.08], logY: abs,
+        xLabel: "파장 λ (nm)", yLabel: abs ? "L_e,λ [W·sr⁻¹·m⁻²·nm⁻¹]" : "L_e,λ / 최대값",
+        bands: [{ x0: 380, x1: 780, color: CB.isDark() ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }], series: series,
+        points: pk <= 3000 && pk >= 100 ? [{ x: pk, y: abs ? Lpk : 1, color: p.text, r: 4, label: Math.round(pk) + " nm" }] : [] });
+      specBar(ctx, r.X, b);
+      var vis = 0, pv = 0;
+      for (var l4 = 380; l4 <= 780; l4 += 0.5) { var e = L(l4, t) * 0.5; vis += e; pv += e * CB.V(l4); }
+      var tot = (SIGMA * Math.pow(t, 4)) / Math.PI * 1e0, ler = (683 * pv) / tot;
+      var XYZ = CB.spd2XYZ(function (x) { return CB.planck(x, t); }), xy = CB.XYZ2xy(XYZ), rgb = lightRGB(XYZ);
+      CB.stat("o-bb-pk", Math.round(pk) + " nm");
+      CB.stat("o-bb-m", CB.si(SIGMA * Math.pow(t, 4), "W/m²"));
+      CB.stat("o-bb-vis", (100 * vis / tot).toFixed(1) + " %");
+      CB.stat("o-bb-ler", ler.toFixed(1) + " lm/W");
+      CB.stat("o-bb-xy", xyStr(xy) + " · " + Math.round(CB.cct(xy)) + " K");
+      paint("sw-bb", rgb, t + " K 흑체" + (rgb.clipped ? " · 가멋 밖(클리핑)" : "") + "<br>sRGB " + CB.rgb2hex(rgb));
+    }
+    cv = CB.canvas($("cv-bb"), draw, { aspect: 0.52, minHeight: 250, maxHeight: 360 });
+  })();
+
+  /* ---------------- 4. 광원 비교 */
+  (function () {
+    var cv, INFO = {};
+    SRC.forEach(function (n) {
+      var S = CB.illum(n), pk = 0, pl = 380, sv = 0, s = 0, bl = 0;
+      for (var l = 380; l <= 780; l++) { var v = S(l); if (v > pk) { pk = v; pl = l; } sv += v * CB.V(l); s += v; if (l <= 500) bl += v; }
+      var xy = CB.XYZ2xy(CB.spd2XYZ(S));
+      INFO[n] = { S: S, pk: pk, pl: pl, sv: sv, ler: (683 * sv) / s, xy: xy, blue: bl / s };
+    });
+    var sel = CB.seg("src-sel", rd), norm = CB.seg("src-norm", rd), all = $("src-all"), vck = $("src-v");
+    all.addEventListener("change", rd); vck.addEventListener("change", rd);
+    function rd() { if (cv) cv.redraw(); }
+    function draw(ctx, W, H) {
+      var p = CB.palette(), cur = sel(), I = INFO[cur], flux = norm() === "flux";
+      var shown = all.checked ? SRC : [cur];
+      function scale(n) { return flux ? (INFO[cur].sv / INFO[n].sv) / I.pk : 1 / INFO[n].pk; }
+      var ymax = 0; shown.forEach(function (n) { ymax = Math.max(ymax, INFO[n].pk * scale(n)); });
+      var series = [];
+      shown.forEach(function (n) {
+        if (n === cur) return;
+        var d = [], k = scale(n); for (var l = 380; l <= 780; l++) d.push([l, INFO[n].S(l) * k]);
+        series.push({ data: d, color: p.faint, width: 1 });
+      });
+      if (vck.checked) { var dv = []; for (var l2 = 380; l2 <= 780; l2 += 2) dv.push([l2, CB.V(l2) * ymax]); series.push({ data: dv, color: p.dim, width: 1.4, dash: [5, 4] }); }
+      var dc = [], kc = scale(cur); for (var l3 = 380; l3 <= 780; l3++) dc.push([l3, I.S(l3) * kc]);
+      series.push({ data: dc, color: p.accent, width: 2.2, fill: CB.color("accent-soft") });
+      var b = box(W, H, 28);
+      var r = CB.chart(ctx, b, { x: [380, 780], y: [0, ymax * 1.06], xLabel: "파장 λ (nm)", yLabel: flux ? "상대 SPD (광속 동일)" : "상대 SPD (최대=1)", series: series });
+      specBar(ctx, r.X, b);
+      var rgb = lightRGB(CB.spd2XYZ(I.S));
+      CB.stat("o-src-ler", I.ler.toFixed(1) + " lm/W");
+      CB.stat("o-src-xy", xyStr(I.xy));
+      CB.stat("o-src-cct", Math.round(CB.cct(I.xy)) + " K");
+      CB.stat("o-src-pk", I.pl + " nm");
+      CB.stat("o-src-blue", (100 * I.blue).toFixed(1) + " %");
+      paint("sw-src", rgb, cur + " 광원색(색도)" + "<br>sRGB " + CB.rgb2hex(rgb));
+    }
+    cv = CB.canvas($("cv-src"), draw, { aspect: 0.5, minHeight: 240, maxHeight: 340 });
+  })();
+
+  /* ---------------- 5. 물체색 */
+  (function () {
+    var cv, ill = CB.seg("obj-ill", rd),
+      tcs = CB.range("obj-tcs", function (v) { return "TCS" + String(v).padStart(2, "0") + " " + TCSN[v]; }, rd);
+    function rd() { if (cv) cv.redraw(); }
+    var Wd = CB.whiteXYZ("D65", 100), Wd0 = CB.spd2XYZ(function () { return 1; }, { illum: CB.D65 });
+    function draw(ctx, W, H) {
+      var p = CB.palette(), n = ill(), S = CB.illum(n), R = CB.tcs(tcs()), smax = 0;
+      for (var l = 380; l <= 780; l++) smax = Math.max(smax, S(l));
+      var dS = [], dR = [], dP = [];
+      for (var l2 = 380; l2 <= 780; l2++) { dS.push([l2, S(l2) / smax]); dR.push([l2, R(l2)]); dP.push([l2, (S(l2) * R(l2)) / smax]); }
+      var b = box(W, H, 28);
+      var r = CB.chart(ctx, b, { x: [380, 780], y: [0, 1.05], xLabel: "파장 λ (nm)", yLabel: "상대값 / 반사율",
+        series: [{ data: dS, color: p.dim, width: 1.4, dash: [5, 4] }, { data: dR, color: p.accent2, width: 2 }, { data: dP, color: p.accent, width: 2.2, fill: CB.color("accent-soft") }] });
+      specBar(ctx, r.X, b);
+      var XYZ = CB.spd2XYZ(R, { illum: S }), Wn = CB.spd2XYZ(function () { return 1; }, { illum: S });
+      var ref = CB.spd2XYZ(R, { illum: CB.D65 }), labRef = CB.XYZ2Lab(ref, Wd);
+      var ad = CB.adapt(XYZ, Wn, Wd0, "bradford"), labAd = CB.XYZ2Lab(ad, Wd), de = CB.dE2000(labRef, labAd);
+      var c1 = objRGB(ref), c2 = objRGB(XYZ), c3 = objRGB(ad);
+      var cl = function (c) { return c.clipped ? " (클리핑)" : ""; };
+      paint("sw-obj-ref", c1, "D65 아래 기준" + cl(c1));
+      paint("sw-obj-raw", c2, n + " · 순응 없음" + cl(c2));
+      paint("sw-obj-ad", c3, n + " · Bradford 순응" + cl(c3));
+      CB.stat("o-obj-xyz", XYZ.map(function (v) { return v.toFixed(2); }).join(", "));
+      CB.stat("o-obj-xy", xyStr(CB.XYZ2xy(XYZ)));
+      CB.stat("o-obj-lab", labAd.map(function (v) { return v.toFixed(1); }).join(", "));
+      CB.stat("o-obj-de", de.toFixed(2));
+    }
+    cv = CB.canvas($("cv-obj"), draw, { aspect: 0.5, minHeight: 240, maxHeight: 340 });
+  })();
+
+  /* ---------------- 6. 가우시안 합성 */
+  (function () {
+    var PRE = {
+      rgb: [[450, 20, 100], [540, 30, 90], [610, 25, 80]],
+      pc: [[450, 20, 100], [570, 120, 60], [630, 30, 0]],
+      two: [[480, 10, 100], [580, 10, 100], [630, 30, 0]],
+      mono: [[555, 10, 100], [450, 20, 0], [610, 25, 0]],
+    };
+    var PK = PRE.rgb.map(function (a) { return a.slice(); }), cv, loading = false;
+    function rd() { if (cv && !loading) cv.redraw(); }
+    var gc = CB.range("gs-c", function (v) { return v + " nm"; }, function (v) { PK[Number(pk())][0] = v; rd(); }),
+      gw = CB.range("gs-w", function (v) { return v + " nm"; }, function (v) { PK[Number(pk())][1] = v; rd(); }),
+      ga = CB.range("gs-a", function (v) { return v + " %"; }, function (v) { PK[Number(pk())][2] = v; rd(); }),
+      wpe = CB.range("gs-wpe", function (v) { return v + " %"; }, rd);
+    var pk = CB.seg("gs-pk", load);
+    CB.seg("gs-pre", function (v) { PK = PRE[v].map(function (a) { return a.slice(); }); load(); });
+    function load() {
+      var q = PK[Number(pk())]; loading = true;
+      gc.set(q[0]); gw.set(q[1]); ga.set(q[2]);
+      loading = false; rd();
+    }
+    function S(l) { var s = 0; for (var i = 0; i < 3; i++) s += (PK[i][2] / 100) * CB.gauss(l, PK[i][0], PK[i][1]); return s; }
+    function draw(ctx, W, H) {
+      var p = CB.palette(), sum = [], ymax = 0;
+      for (var l = 380; l <= 780; l++) { var v = S(l); sum.push([l, v]); ymax = Math.max(ymax, v); }
+      ymax = ymax || 1;
+      var series = PK.map(function (q, i) {
+        var d = []; for (var l2 = 380; l2 <= 780; l2 += 2) d.push([l2, (q[2] / 100) * CB.gauss(l2, q[0], q[1])]);
+        return { data: d, color: CB.wl2rgb(q[0]), width: i === Number(pk()) ? 2 : 1.2, dash: [4, 3] };
+      });
+      var dv = []; for (var l3 = 380; l3 <= 780; l3 += 2) dv.push([l3, CB.V(l3) * ymax]);
+      series.push({ data: dv, color: p.dim, width: 1.3, dash: [6, 4] });
+      series.push({ data: sum, color: p.accent, width: 2.4, fill: CB.color("accent-soft") });
+      var b = box(W, H, 28);
+      var r = CB.chart(ctx, b, { x: [380, 780], y: [0, ymax * 1.08], xLabel: "파장 λ (nm)", yLabel: "상대 SPD", series: series });
+      specBar(ctx, r.X, b);
+      var tot = PK.reduce(function (a, q) { return a + q[2]; }, 0);
+      if (!tot) { ["o-gs-ler", "o-gs-eff", "o-gs-xy", "o-gs-cct"].forEach(function (id) { CB.stat(id, "—"); }); paint("sw-gs", [0, 0, 0], "빛 없음"); return; }
+      var K = lerOf(S), XYZ = CB.spd2XYZ(S), xy = CB.XYZ2xy(XYZ), T = CB.cct(xy), rgb = lightRGB(XYZ);
+      CB.stat("o-gs-ler", K.toFixed(1) + " lm/W");
+      CB.stat("o-gs-eff", ((K * wpe()) / 100).toFixed(1) + " lm/W");
+      CB.stat("o-gs-xy", xyStr(xy));
+      var ok = T > 1500 && T < 20000, du = ok ? duv(xy, T) : NaN;
+      CB.stat("o-gs-cct", ok && Math.abs(du) < 0.05 ? Math.round(T) + " K · " + (du >= 0 ? "+" : "") + du.toFixed(4) : "궤적에서 멂");
+      paint("sw-gs", rgb, "합성 광원색(색도)" + (rgb.clipped ? " · 가멋 밖(클리핑)" : "") + "<br>sRGB " + CB.rgb2hex(rgb));
+    }
+    cv = CB.canvas($("cv-gs"), draw, { aspect: 0.5, minHeight: 240, maxHeight: 340 });
+  })();
+})();
+</script>
+</body>
+</html>

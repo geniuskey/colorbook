@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>카메라 색 재현 · ColorBook</title>
+<meta name="description" content="카메라는 관측자가 아니다: 분광 감도와 루터–아이브스 조건, 카메라 메타머리즘, 최소자승·ΔE00 CCM 피팅, 노이즈 이득, 화이트 밸런스 추정 알고리즘, 광원별 CCM 보간과 RAW→XYZ 렌더링을 직접 계산한다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/camera.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="카메라 색 재현 · ColorBook">
+<meta property="og:description" content="카메라는 관측자가 아니다: 분광 감도와 루터–아이브스 조건, 카메라 메타머리즘, 최소자승·ΔE00 CCM 피팅, 노이즈 이득, 화이트 밸런스 추정 알고리즘, 광원별 CCM 보간과 RAW→XYZ 렌더링을 직접 계산한다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/camera.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"카메라 색 재현","name":"카메라 색 재현 · ColorBook","url":"https://colorbook.euiyun.com/chapters/camera.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/camera.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":12,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"카메라는 관측자가 아니다: 분광 감도와 루터–아이브스 조건, 카메라 메타머리즘, 최소자승·ΔE00 CCM 피팅, 노이즈 이득, 화이트 밸런스 추정 알고리즘, 광원별 CCM 보간과 RAW→XYZ 렌더링을 직접 계산한다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"12 카메라 색 재현","item":"https://colorbook.euiyun.com/chapters/camera.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .ccm-box { font-family: var(--mono); font-size: 12px; line-height: 1.55; white-space: pre; overflow-x: auto; max-width: 100%; }
+  .sim-view canvas { touch-action: pan-y; }
+</style>
+</head>
+<body data-chapter="camera">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 12</div>
+    <h1>카메라 색 재현</h1>
+    <p class="lead">카메라는 세 개의 숫자를 기록하지만 그 숫자는 XYZ가 아니다. 센서의 분광 감도는 CIE 등색 함수와 다르고, 장면의 광원은 매번 바뀐다. 이 장은 카메라 RGB를 측색값으로 바꾸는 과정 — 색 보정 행렬(CCM), 화이트 밸런스, 광원 추정, 광원별 보간, 출력 렌더링 — 을 하나의 최적화 문제로 보고, 그 오차를 ΔE00과 노이즈 이득이라는 숫자로 따진다.</p>
+    <ul class="objectives">
+      <li>카메라 분광 감도와 등색 함수의 차이가 왜 '카메라 메타머리즘'을 낳는지 루터–아이브스 조건으로 설명한다.</li>
+      <li>최소자승 CCM \( M = T C^\top (C C^\top)^{-1} \)과 백색 보존 제약, ΔE00 직접 최소화를 구현 수준에서 비교한다.</li>
+      <li>CCM의 비대각 성분이 노이즈를 증폭하는 정도를 계산하고, 정규화로 정확도와 노이즈를 맞바꾼다.</li>
+      <li>센서 공간 대각 이득으로서의 화이트 밸런스와 Gray World·White Patch·Shades of Gray·Gray-Edge 광원 추정을 각도 오차로 평가한다.</li>
+      <li>광원별 CCM과 DNG식 역 CCT(mired) 보간, RAW→XYZ→sRGB/P3 렌더링, 차트 기반 검증 절차를 이해한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="observer">
+    <h2>카메라는 관측자가 아니다</h2>
+    <p><a href="colorimetry.html">3장</a>에서 색을 세 개의 적분값 XYZ로 정의했다. 장면의 한 점에서 오는 빛의 분광 분포가 광원 \( E(\lambda) \)와 반사율 \( R(\lambda) \)의 곱이라면, 표준 관측자와 카메라는 똑같은 모양의 적분을 계산한다. 차이는 <strong>가중 함수</strong> 하나뿐이다.</p>
+    <div class="formula">$$X_i = k\!\int E(\lambda)R(\lambda)\,\bar x_i(\lambda)\,d\lambda,\qquad c_k = \int E(\lambda)R(\lambda)\,s_k(\lambda)\,d\lambda$$
+      <div class="where">\( \bar x_i \in \{\bar x,\bar y,\bar z\} \): CIE 1931 등색 함수, \( s_k \) (\(k=R,G,B\)): 카메라 채널의 유효 분광 감도 = 렌즈 투과율 × IR 컷 필터 × 컬러 필터 × 실리콘 양자효율, \( k \): 완전 백색의 \(Y\)를 1(또는 100)로 맞추는 상수.</div>
+    </div>
+    <p>두 식은 모두 무한 차원의 스펙트럼을 3차원으로 <strong>사영</strong><span class="en">(projection)</span>하는 선형 연산이다. 사람 눈의 사영 방향은 \( \bar x\bar y\bar z \)가 펼치는 3차원 부분공간이고, 카메라의 사영 방향은 \( s_R s_G s_B \)가 펼치는 부분공간이다. 두 부분공간이 같다면 카메라 RGB와 XYZ는 3×3 행렬 하나로 정확히 오가지만, 다르다면 어떤 행렬도 모든 스펙트럼에 대해 맞출 수 없다. 카메라 색 재현의 모든 어려움은 이 한 문장에서 시작한다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="같은 스펙트럼이 관측자와 카메라에서 서로 다른 가중 함수로 적분되는 구조">
+        <rect x="20" y="110" width="150" height="80" rx="10" class="f-surface s-line"/>
+        <text x="95" y="140" text-anchor="middle" class="t">장면 스펙트럼</text>
+        <text x="95" y="162" text-anchor="middle" class="t-mono t-dim">E(λ)·R(λ)</text>
+        <path d="M40 182 C60 170 70 128 90 135 S120 175 150 150" fill="none" class="s-acc" stroke-width="2"/>
+        <path d="M170 140 L255 80" class="s-line" fill="none" marker-end="url(#ar12a)"/>
+        <path d="M170 160 L255 220" class="s-line" fill="none" marker-end="url(#ar12a)"/>
+        <defs><marker id="ar12a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-acc"/></marker></defs>
+        <rect x="260" y="30" width="230" height="100" rx="10" class="f-elev s-line"/>
+        <text x="375" y="52" text-anchor="middle" class="t">표준 관측자 x̄ ȳ z̄</text>
+        <path d="M280 115 C300 112 305 70 320 72 S335 112 350 115" fill="none" stroke="#2f6fe0" stroke-width="2"/>
+        <path d="M300 115 C340 112 350 62 370 62 S410 112 440 115" fill="none" stroke="#2f9e4a" stroke-width="2"/>
+        <path d="M285 115 C295 108 300 100 305 102 S320 115 330 115 M350 115 C380 112 395 60 415 60 S450 112 470 115" fill="none" stroke="#e0443e" stroke-width="2"/>
+        <rect x="260" y="170" width="230" height="100" rx="10" class="f-elev s-line"/>
+        <text x="375" y="192" text-anchor="middle" class="t">카메라 s_R s_G s_B</text>
+        <path d="M280 255 C300 250 310 212 325 212 S350 250 370 255" fill="none" stroke="#2f6fe0" stroke-width="2"/>
+        <path d="M310 255 C340 250 350 205 370 205 S410 250 430 255" fill="none" stroke="#2f9e4a" stroke-width="2"/>
+        <path d="M360 255 C390 250 400 208 418 208 S440 240 452 255" fill="none" stroke="#e0443e" stroke-width="2"/>
+        <path d="M452 255 L470 255" class="s-line" stroke-dasharray="3 3"/>
+        <text x="462" y="246" text-anchor="middle" class="t-dim" font-size="11">IR 컷</text>
+        <path d="M490 80 L560 80" class="s-line" marker-end="url(#ar12a)"/>
+        <path d="M490 220 L560 220" class="s-line" marker-end="url(#ar12a)"/>
+        <rect x="565" y="55" width="110" height="50" rx="8" class="f-acc-soft s-acc"/>
+        <text x="620" y="86" text-anchor="middle" class="t-mono">X Y Z</text>
+        <rect x="565" y="195" width="110" height="50" rx="8" class="f-acc2-soft s-line"/>
+        <text x="620" y="226" text-anchor="middle" class="t-mono">R G B (raw)</text>
+        <path d="M620 190 L620 110" class="s-acc" stroke-dasharray="5 4" marker-end="url(#ar12a)"/>
+        <text x="632" y="146" class="t-acc">3×3 M ?</text>
+        <text x="690" y="140" class="t-dim" font-size="12">부분공간이</text>
+        <text x="690" y="158" class="t-dim" font-size="12">같을 때만</text>
+        <text x="690" y="176" class="t-dim" font-size="12">정확</text>
+      </svg>
+      <figcaption><b>그림 12-1.</b> 같은 스펙트럼을 관측자와 카메라가 각자의 가중 함수로 적분한다. 카메라 RGB에서 XYZ로 가는 3×3 행렬이 모든 스펙트럼에 대해 정확하려면 두 가중 함수 집합이 같은 3차원 부분공간을 펼쳐야 한다.</figcaption>
+    </figure>
+
+    <p>이 장에서는 카메라 감도를 다음 <strong>교육용 모델</strong>로 쓴다. 각 채널은 가우시안 하나, IR 컷 필터는 로지스틱 함수다.</p>
+    <div class="formula">$$s_k(\lambda) = \exp\!\Big[-4\ln 2\,\frac{(\lambda-\mu_k)^2}{w_k^2}\Big]\cdot T_{\mathrm{IR}}(\lambda),\qquad T_{\mathrm{IR}}(\lambda) = \frac{1}{1+e^{(\lambda-\lambda_c)/8\,\mathrm{nm}}}$$
+      <div class="where">\( \mu_k \): 피크 파장, \( w_k \): 반치폭(FWHM), \( \lambda_c \): IR 컷 50% 파장. 기본값은 R 600/100 nm, G 530/100 nm, B 460/90 nm, \( \lambda_c \)=650 nm. 적분은 CIE 원표 범위인 380–780 nm, 5 nm 간격으로 한다.</div>
+    </div>
+    <div class="callout warn">
+      <strong>모델의 한계</strong>
+      <p>실제 센서 감도는 안료 필터의 비대칭 투과, 실리콘 QE의 파장 의존성, R 채널의 청색 쪽 2차 봉우리, 780 nm 이상의 근적외선 응답(이 모델은 780 nm에서 적분을 끊는다)을 가진다. 그래서 여기서 나오는 ΔE 값은 실제 카메라보다 대체로 작다(실제 카메라는 24색 차트에서 3×3 CCM만으로 평균 ΔE00 2–4 정도가 흔하다). 컬러 필터·IR 컷의 하드웨어 측면과 디모자이킹은 SensorBook의 <a href="https://sensorbook.euiyun.com/chapters/color.html">컬러 필터와 디모자이킹</a> 장을 보라. 이 장은 그 결과로 얻은 세 숫자를 <em>측색적으로</em> 어떻게 다루는지에 집중한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="luther">
+    <h2>루터–아이브스 조건과 카메라 메타머리즘</h2>
+    <p>카메라 감도가 등색 함수의 선형 결합이라고 하자. 즉 어떤 가역 3×3 행렬 \( A \)에 대해 \( \mathbf s(\lambda) = A\,\bar{\mathbf x}(\lambda) \)이다. 그러면 적분의 선형성에 의해 모든 스펙트럼에서 \( \mathbf c = A\,\mathbf X \)이고, \( \mathbf X = A^{-1}\mathbf c \)로 XYZ를 <strong>정확히</strong> 복원한다. 이것이 <span class="term">루터–아이브스 조건</span><span class="en">(Luther–Ives condition, Luther condition)</span>이다. 이 조건을 만족하는 장치를 측색적<span class="en">(colorimetric)</span> 장치라 부른다.</p>
+    <div class="formula">$$\mathbf s(\lambda)=A\,\bar{\mathbf x}(\lambda)\;\;\forall\lambda\quad\Longrightarrow\quad \mathbf c = A\,\mathbf X\;\;\text{(모든 } E,R\text{에 대해)}$$</div>
+    <p>실제 필터는 이 조건을 만족하지 못한다. 결과는 <span class="term">카메라 메타머리즘</span><span class="en">(camera/device metamerism)</span>이다. 두 표면이 카메라에는 같은 RGB를 주지만 사람에게는 다른 색으로 보이거나, 그 반대가 생긴다. 카메라 감도 공간에 직교하는 스펙트럼 성분 \( \delta(\lambda) \) — 카메라의 <em>메타머 블랙</em> — 을 반사율에 더하면 카메라 응답은 그대로이지만 XYZ는 바뀐다. 위 기본 카메라 모델로 계산하면 TCS05(청록)에 500 nm 부근 봉우리를 카메라 직교 성분만 남겨 더한 반사율은 D65 아래에서 카메라 RGB가 소수점 셋째 자리까지 같지만, 관측자에게는 Lab = (62.4, −17.5, −8.5) 대 (58.6, −11.3, −4.2), <strong>ΔE00 = 6.1</strong>만큼 다르다. 어떤 CCM도 이 둘을 동시에 맞출 수 없다. 같은 RGB에 서로 다른 답을 요구하기 때문이다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="스펙트럼 공간에서 CMF 부분공간과 카메라 부분공간의 사영">
+        <polygon points="120,200 420,230 560,140 260,110" class="f-acc-soft s-acc"/>
+        <text x="455" y="222" class="t-acc">span(x̄, ȳ, z̄)</text>
+        <polygon points="150,150 430,210 540,90 260,40" class="f-acc2-soft s-line" opacity="0.85"/>
+        <text x="470" y="80" class="t">span(s_R, s_G, s_B)</text>
+        <line x1="340" y1="160" x2="300" y2="20" class="s-line" stroke-dasharray="4 4"/>
+        <circle cx="300" cy="20" r="5" class="f-acc"/>
+        <text x="312" y="24" class="t">반사 스펙트럼 φ = E·R</text>
+        <line x1="300" y1="20" x2="338" y2="168" class="s-acc" stroke-width="1.5"/>
+        <circle cx="338" cy="168" r="4" class="f-acc"/>
+        <text x="190" y="180" class="t-dim" font-size="12">관측자 사영 → XYZ</text>
+        <line x1="300" y1="20" x2="355" y2="120" class="s-line" stroke-width="1.5"/>
+        <circle cx="355" cy="120" r="4" class="f-surface s-line"/>
+        <text x="365" y="128" class="t-dim" font-size="12">카메라 사영 → RGB</text>
+        <text x="600" y="150" class="t" font-size="13">ν = ⅓·tr(P_A P_S)</text>
+        <text x="600" y="172" class="t-dim" font-size="12">두 평면이 같으면 ν = 1</text>
+        <text x="600" y="192" class="t-dim" font-size="12">어긋난 각도만큼 ν &lt; 1</text>
+      </svg>
+      <figcaption><b>그림 12-2.</b> 스펙트럼 공간(고차원)을 두 개의 3차원 부분공간으로 사영한다고 보면, 루터 조건은 '두 평면이 같다'는 조건이다. 평면이 어긋나 있으면 카메라 평면에 수직인 성분(메타머 블랙)은 RGB에 흔적을 남기지 않지만 XYZ는 바꾼다.</figcaption>
+    </figure>
+
+    <p>루터 조건을 얼마나 어겼는지 재는 방법은 두 갈래다. 하나는 <strong>스펙트럼 지표</strong>로, 감도 곡선 자체를 비교한다. 등색 함수 행렬 \( A \)(파장 × 3)와 카메라 감도 행렬 \( S \)의 열공간 사이 사영 일치도를 쓰는 Vora–Trussell 지표가 대표적이다.</p>
+    <div class="formula">$$\nu = \tfrac13\,\mathrm{tr}\!\left(P_A P_S\right),\qquad P_A = A(A^\top A)^{-1}A^\top,\;\; P_S = S(S^\top S)^{-1}S^\top$$
+      <div class="where">\(A,S\)의 각 행은 광원 \(E(\lambda)\)로 가중한다. \( 0\le\nu\le1 \)이며 \( \nu=1 \)은 루터 조건 만족. 함께 쓰는 '루터 잔차'는 \( \min_M \lVert M\mathbf s - \bar{\mathbf x}\rVert / \lVert\bar{\mathbf x}\rVert \)(광원 가중 최소자승의 상대 잔차)이다.</div>
+    </div>
+    <p>다른 하나는 <strong>색차 지표</strong>로, 시험 색 집합을 실제로 찍고 최적 행렬을 맞춘 뒤 남는 색차를 본다. ISO 17321-1<span class="en">(Colour characterisation of digital still cameras)</span>의 감도 메타머리즘 지수 SMI는 이 계열로, 100에서 평균 색차의 5.5배를 빼는 형태 \( \mathrm{SMI} = 100 - 5.5\,\overline{\Delta E} \)로 정의된다. 시험 색 집합, 광원, 색차식 등 세부 조건은 규격 원문을 따라야 하므로, 아래 시뮬레이터의 값은 TCS01–08과 ΔE*ab로 계산한 <em>SMI 형태의 근사</em>로만 읽어라. SMI 100은 완벽, 실제 카메라는 대략 70–90대에 분포한다고 보고되어 왔다.</p>
+
+    <div class="sim" id="sim-design">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>카메라 감도 설계기: 감도 vs 등색 함수, 최적 CCM, 색 오차</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-design"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:#e0443e"></i>R / x̄</span><span><i style="background:#2f9e4a"></i>G / ȳ</span><span><i style="background:#2f6fe0"></i>B / z̄</span><span><i style="background:var(--text-dim)"></i>실선 = 카메라(또는 M·s), 점선 = CMF</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>보기</span><div class="seg" id="d-view"><button data-value="sens" class="on">감도 형태</button><button data-value="fit">M·s ≈ CMF</button></div></div>
+          <div class="ctrl"><span>프리셋</span><div class="seg" id="d-preset"><button data-value="base" class="on">기본</button><button data-value="narrow">좁은 대역</button><button data-value="wide">넓은 대역</button></div></div>
+          <label class="ctrl"><span>R 피크 <output id="d-rP-out"></output></span><input type="range" id="d-rP" min="560" max="650" step="1" value="600"></label>
+          <label class="ctrl"><span>R 반치폭 <output id="d-rW-out"></output></span><input type="range" id="d-rW" min="30" max="160" step="1" value="100"></label>
+          <label class="ctrl"><span>G 피크 <output id="d-gP-out"></output></span><input type="range" id="d-gP" min="500" max="575" step="1" value="530"></label>
+          <label class="ctrl"><span>G 반치폭 <output id="d-gW-out"></output></span><input type="range" id="d-gW" min="30" max="160" step="1" value="100"></label>
+          <label class="ctrl"><span>B 피크 <output id="d-bP-out"></output></span><input type="range" id="d-bP" min="420" max="495" step="1" value="460"></label>
+          <label class="ctrl"><span>B 반치폭 <output id="d-bW-out"></output></span><input type="range" id="d-bW" min="30" max="160" step="1" value="90"></label>
+          <label class="check"><input type="checkbox" id="d-ir" checked> IR 컷 필터</label>
+          <label class="ctrl"><span>IR 컷 50% 파장 <output id="d-cut-out"></output></span><input type="range" id="d-cut" min="600" max="720" step="5" value="650"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">Vora–Trussell ν (D65)</span><span class="v" id="o-d-nu">—</span></div>
+        <div class="stat"><span class="k">루터 잔차</span><span class="v" id="o-d-res">—</span></div>
+        <div class="stat"><span class="k">TCS 14색 ΔE00 평균 / 최대</span><span class="v" id="o-d-de">—</span></div>
+        <div class="stat"><span class="k">SMI 근사 (TCS01–08)</span><span class="v" id="o-d-smi">—</span></div>
+        <div class="stat"><span class="k">노이즈 이득 R/G/B 행</span><span class="v" id="o-d-ng">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① '넓은 대역'을 고르면 ν가 떨어지고 노이즈 이득이 3을 넘는다 — 겹침이 크면 색을 분리하려고 큰 뺄셈이 필요하다. ② '좁은 대역'은 노이즈 이득은 작지만 400–440 nm와 480–500 nm 같은 대역 사이 파장을 놓쳐 ΔE가 커진다. ③ 'M·s ≈ CMF' 보기에서 x̄의 청색 쪽 작은 봉우리가 어떻게 근사되는지 보라(B 채널을 R 행에 더해 만든다). ④ R 피크를 620 nm 이상으로 옮기면 x̄ 주 봉우리(약 600 nm)와 어긋나 오차가 커진다. 이 장의 다른 시뮬레이터는 모두 여기서 설계한 카메라를 쓴다. (CCM은 D65, TCS 14색, 백색 보존 최소자승)</div>
+    </div>
+    <p>기본 카메라는 \( \nu = 0.956 \), 루터 잔차 24.5%이며, 백색 보존 최소자승 CCM을 쓰면 TCS 14색의 평균 ΔE00이 1.18, 최대 4.58(TCS12, 진한 파랑)이다. 루터 잔차가 20%를 넘는데도 평균 ΔE00이 1 남짓인 것은 TCS 대부분이 매끄러운 저채도 반사율이라 메타머 블랙 성분이 작기 때문이다. 반대로 진한 파랑·빨강처럼 스펙트럼이 가파른 색과, 형광등·협대역 LED처럼 스펙트럼이 뾰족한 광원에서는 오차가 커진다. 감도 설계의 목표는 \(\nu\)를 1에 가깝게 하는 것이지만, 다음 절에서 보듯 그것만으로는 충분하지 않다. 노이즈도 함께 봐야 한다.</p>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="ccm">
+    <h2>색 보정 행렬(CCM) 피팅</h2>
+    <p>루터 조건이 깨진 카메라에서 할 수 있는 최선은 '대표 표면 집합에서 평균적으로 가장 잘 맞는' 3×3 행렬을 찾는 것이다. 이를 <span class="term">색 보정 행렬</span><span class="en">(color correction matrix, CCM)</span>이라 한다. N개 학습 색에 대해 화이트 밸런스된 카메라 값 \( C \in\mathbb R^{3\times N} \)과 목표 XYZ \( T\in\mathbb R^{3\times N} \)을 모으면, 최소자승 해는 정규 방정식으로 바로 나온다.</p>
+    <div class="formula">$$M_{\mathrm{LS}} = \arg\min_M \lVert MC - T\rVert_F^2 = T\,C^\top\,(C\,C^\top)^{-1}$$
+      <div class="where">\( C C^\top \)는 3×3 그람 행렬. 행 \( i \)마다 독립인 선형 회귀 3개로 분해된다. 목표가 선형 sRGB라면 \( T \) 대신 \( M_{\mathrm{sRGB}}^{-1}T \)를 넣으면 되고, 해도 정확히 \( M_{\mathrm{sRGB}}^{-1}M_{\mathrm{LS}} \)가 된다(행별 선형성).</div>
+    </div>
+    <p>무제약 최소자승은 학습 색 전체의 오차 제곱합을 줄이지만 <strong>무채색 축을 보장하지 않는다</strong>. 화이트 밸런스 후 완전 백색은 \( \mathbf c=(1,1,1) \)인데, \( M_{\mathrm{LS}}\mathbf 1 \)이 D65 백색과 조금 다르면 모든 회색에 색 캐스트가 생긴다. 기본 카메라에서 무제약 해는 완전 백색을 ΔE00 2.4만큼 틀린다. 회색 오차는 사람이 가장 민감하게 알아채므로, 실무 CCM은 대개 <strong>백색 보존 제약</strong> \( M\mathbf 1 = \mathbf w \)(선형 sRGB 출력이면 '행 합 = 1')을 건다. 라그랑주 승수로 풀면 닫힌 해가 있다.</p>
+    <div class="formula">$$\mathbf m_i = \mathbf m_i^{\mathrm{LS}} + \mu_i\,(CC^\top)^{-1}\mathbf 1,\qquad \mu_i = \frac{w_i - \mathbf m_i^{\mathrm{LS}}\!\cdot\mathbf 1}{\mathbf 1^\top (CC^\top)^{-1}\mathbf 1}$$
+      <div class="where">\( \mathbf m_i \): \(M\)의 \(i\)번째 행, \( \mathbf w = (X_w, Y_w, Z_w) \): 목표 백색(D65, \(Y_w=1\)). 제약 때문에 자유도는 9에서 6으로 줄고, 학습 오차는 조금 늘지만 회색은 정확해진다.</div>
+    </div>
+    <p>XYZ 공간의 제곱 오차는 지각 오차가 아니다. 어두운 색의 작은 XYZ 차이가 Lab에서는 크고, 밝은 노랑의 큰 XYZ 차이가 Lab에서는 작다. 그래서 세 번째 방법은 <strong>ΔE00 자체를 최소화</strong>하는 것이다. 목적 함수가 비선형이므로 반복법이 필요하다. 이 장의 구현은 백색 보존 해를 초깃값으로, 제약을 유지한 6개 자유도에 대해 수치 야코비안을 쓰는 레벤버그–마쿼트<span class="en">(Levenberg–Marquardt)</span> 반복으로 \( \sum_n \Delta E_{00,n}^2 \)을 줄인다.</p>
+    <div class="formula">$$\min_{M:\,M\mathbf 1=\mathbf w}\;\sum_{n=1}^{N}\Delta E_{00}\big(\mathrm{Lab}(M\mathbf c_n),\,\mathrm{Lab}(\mathbf t_n)\big)^2,\qquad \mathbf p_{k+1}=\mathbf p_k-(J^\top J+\mu\,\mathrm{diag}J^\top J)^{-1}J^\top\mathbf r$$</div>
+
+    <div class="sim" id="sim-ccm">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>CCM 피팅: 행렬과 패치별 오차 (위 = 기준, 아래 = 재현)</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-ccm"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>피팅 방법</span><div class="seg" id="c-method"><button data-value="ls">최소자승</button><button data-value="white" class="on">백색 보존</button><button data-value="lab">ΔE00 최소화</button></div></div>
+          <div class="ctrl"><span>학습 색 집합</span><div class="seg" id="c-train"><button data-value="tcs" class="on">TCS 14</button><button data-value="syn">합성 60</button><button data-value="both">합쳐서 74</button></div></div>
+          <div class="ctrl"><span>CCM (WB 카메라 RGB → 선형 sRGB)</span><div class="ccm-box" id="c-mat">—</div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">TCS 14 ΔE00 평균</span><span class="v" id="o-c-mean">—</span></div>
+        <div class="stat"><span class="k">TCS 14 ΔE00 최대</span><span class="v" id="o-c-max">—</span></div>
+        <div class="stat"><span class="k">완전 백색 ΔE00</span><span class="v" id="o-c-white">—</span></div>
+        <div class="stat"><span class="k">학습 집합 ΔE00 평균</span><span class="v" id="o-c-train">—</span></div>
+        <div class="stat"><span class="k">노이즈 이득 RMS</span><span class="v" id="o-c-ng">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① '최소자승'은 평균은 가장 작지만 완전 백색이 틀린다(행 합이 1이 아니다). ② 'ΔE00 최소화'는 평균은 비슷하고 최대 오차를 크게 줄인다 — 최악 패치에 가중이 실린다. ③ 학습을 '합성 60'으로 바꾸면 TCS는 시험 집합이 되어 일반화 성능을 본다. 견본은 D65, sRGB 표시이며 패치 아래 숫자는 ΔE00이다. 위 감도 설계기를 바꾸면 이 결과도 바뀐다.</div>
+    </div>
+    <p>기본 카메라, TCS 14색 학습 기준으로 세 방법을 비교하면 다음과 같다(평가도 TCS 14색, D65).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>방법</th><th>ΔE00 평균</th><th>ΔE00 최대</th><th>완전 백색 ΔE00</th><th>선형 sRGB 행렬 R 행</th></tr></thead>
+      <tbody>
+        <tr><td>무제약 최소자승</td><td>0.91</td><td>3.39</td><td>2.36</td><td>—</td></tr>
+        <tr><td>백색 보존 최소자승</td><td>1.18</td><td>4.58</td><td>0</td><td class="t-mono">2.284 −1.714 0.430</td></tr>
+        <tr><td>ΔE00 최소화 (LM, 백색 보존)</td><td>1.14</td><td>2.92</td><td>0</td><td class="t-mono">2.227 −1.709 0.483</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout">
+      <strong>공학자 관점: 학습 색 집합이 곧 사양이다</strong>
+      <p>CCM은 학습 색 집합에 대해 최적일 뿐이다. 피부색이 중요하면 피부 반사율을, 제품 촬영이면 해당 재질을 학습 집합에 넣고 가중한다. 14색이나 24색처럼 적은 집합에 9개 계수를 맞추면 과적합 위험도 있다. 이 모델에서 TCS로 학습하고 합성 반사율 60개로 시험하면 평균 ΔE00이 0.75, 합성으로 학습하고 TCS로 시험하면 0.77로 비슷하게 나오지만, 실제 카메라와 실제 차트에서는 학습/시험 차트를 분리해 보고하는 것이 원칙이다(<a href="#validate">9절</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="noise">
+    <h2>노이즈 증폭과 정규화 CCM</h2>
+    <p>CCM은 색만 바꾸지 않는다. 각 채널의 노이즈도 같은 행렬로 섞인다. 화이트 밸런스된 카메라 채널의 노이즈가 서로 독립이고 분산이 \( \sigma_j^2 \)라면, 출력 채널의 노이즈 분산은 계수의 <strong>제곱</strong>으로 더해진다.</p>
+    <div class="formula">$$\sigma_{\mathrm{out},i}^2 = \sum_{j} m_{ij}^2\,\sigma_j^2 \;\;\xrightarrow{\;\sigma_j=\sigma\;}\;\; \sigma_{\mathrm{out},i} = g_i\,\sigma,\qquad g_i=\sqrt{\textstyle\sum_j m_{ij}^2},\qquad g_{\mathrm{rms}}=\sqrt{\tfrac13\textstyle\sum_{i,j} m_{ij}^2}$$
+      <div class="where">\( g_i \): 출력 \(i\) 행의 노이즈 이득(선형 sRGB 행렬 기준). 행 합이 1로 고정된 상태에서 비대각 성분이 음수로 커질수록 대각 성분도 커져 \( g_i \)가 1보다 커진다.</div>
+    </div>
+    <p>기본 카메라의 sRGB 행렬 R 행은 (2.284, −1.714, 0.430)이고 \( g_R=\sqrt{2.284^2+1.714^2+0.430^2}=2.89 \)다. 회색 패치에서 R 채널 노이즈가 2.9배가 된다는 뜻이다. 감도 곡선이 많이 겹칠수록(채널 간 상관이 클수록) 색을 분리하려면 큰 뺄셈이 필요하고, 그만큼 노이즈가 커진다. 색 정확도를 조금 포기하고 행렬을 단위행렬 쪽으로 당기면 노이즈를 줄일 수 있다. 이것이 <span class="term">정규화(릿지) CCM</span><span class="en">(ridge-regularized CCM)</span>이다.</p>
+    <div class="formula">$$M_\lambda = \arg\min_M \lVert MC-T\rVert_F^2 + \lambda'\lVert M - M_0\rVert_F^2 = (TC^\top + \lambda' M_0)(CC^\top + \lambda' I)^{-1}$$
+      <div class="where">\( M_0 = M_{\mathrm{sRGB}} \): WB된 카메라 RGB를 그대로 선형 sRGB로 간주하는 행렬(출력 공간에서 단위행렬). \( \lambda' = \lambda\cdot\mathrm{tr}(CC^\top)/3 \)으로 스케일을 맞춰 \( \lambda \)를 무차원으로 쓴다. \(\lambda\to\infty\)이면 CCM을 끈 것과 같다.</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 240" role="img" aria-label="CCM 행렬 계수와 노이즈 이득의 관계">
+        <text x="40" y="40" class="t">WB 카메라 노이즈</text>
+        <g transform="translate(40,60)">
+          <rect width="70" height="34" rx="6" fill="#e0443e" opacity="0.85"/><text x="35" y="22" text-anchor="middle" fill="#fff" font-size="13">σ</text>
+          <rect y="44" width="70" height="34" rx="6" fill="#2f9e4a" opacity="0.85"/><text x="35" y="66" text-anchor="middle" fill="#fff" font-size="13">σ</text>
+          <rect y="88" width="70" height="34" rx="6" fill="#2f6fe0" opacity="0.85"/><text x="35" y="110" text-anchor="middle" fill="#fff" font-size="13">σ</text>
+        </g>
+        <path d="M120 77 L300 77" class="s-acc" stroke-width="5"/>
+        <path d="M120 121 L300 77" class="s-acc" stroke-width="3.6"/>
+        <path d="M120 165 L300 77" class="s-acc" stroke-width="1"/>
+        <text x="175" y="70" class="t-mono t-acc" font-size="12">×2.28</text>
+        <text x="175" y="118" class="t-mono t-acc" font-size="12">×(−1.71)</text>
+        <text x="175" y="160" class="t-mono t-acc" font-size="12">×0.43</text>
+        <rect x="305" y="58" width="110" height="38" rx="6" class="f-acc-soft s-acc"/>
+        <text x="360" y="82" text-anchor="middle" class="t">R_out</text>
+        <text x="430" y="70" class="t">σ_R,out = √(2.28² + 1.71² + 0.43²) σ</text>
+        <text x="430" y="92" class="t-acc">= 2.89 σ</text>
+        <text x="430" y="140" class="t-dim" font-size="13">행 합은 1(백색 보존)인데 제곱합은 8.3</text>
+        <text x="430" y="162" class="t-dim" font-size="13">→ 신호는 그대로, 노이즈만 커진다</text>
+        <text x="430" y="200" class="t-dim" font-size="13">음수 계수(뺄셈)가 클수록 손해</text>
+      </svg>
+      <figcaption><b>그림 12-3.</b> 신호는 계수의 합(행 합)으로, 독립 노이즈는 계수의 제곱합의 제곱근으로 전파된다. 큰 양수와 큰 음수가 짝을 이루면 회색 신호는 보존되면서 노이즈만 증폭된다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-ridge">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>노이즈 이득 vs 색 정확도: 릿지 CCM 트레이드오프</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-ridge"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>정규화 log₁₀λ <output id="r-lam-out"></output></span><input type="range" id="r-lam" min="-4" max="1" step="0.1" value="-4"></label>
+          <label class="ctrl"><span>카메라 노이즈 σ (백색 대비) <output id="r-sig-out"></output></span><input type="range" id="r-sig" min="0" max="6" step="0.25" value="2"></label>
+          <div class="ctrl"><span>현재 CCM (선형 sRGB)</span><div class="ccm-box" id="r-mat">—</div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">TCS 14 ΔE00 평균 / 최대</span><span class="v" id="o-r-de">—</span></div>
+        <div class="stat"><span class="k">노이즈 이득 R / G / B</span><span class="v" id="o-r-g">—</span></div>
+        <div class="stat"><span class="k">g_rms</span><span class="v" id="o-r-rms">—</span></div>
+        <div class="stat"><span class="k">18% 회색 R 출력 노이즈</span><span class="v" id="o-r-gray">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① λ를 −4에서 −2까지 올리면 g_rms는 조금 줄고 ΔE는 1 남짓 오른다. ② λ ≈ 10⁻¹이면 노이즈 이득이 거의 1이 되지만 평균 ΔE00이 5 근처로 커진다 — 색이 탁해진다(오른쪽 견본의 채도 저하). ③ σ를 키워 노이즈 견본을 보며, 저조도 모드에서 일부 카메라가 채도를 낮춘 CCM으로 바꾸는 이유를 생각해 보라. 곡선 위 점이 현재 λ다. (노이즈는 WB 후 채널 독립 가우시안, 고정 시드)</div>
+    </div>
+    <div class="callout tip">
+      <strong>실무 메모: WB 이득도 노이즈 이득이다</strong>
+      <p>여기서는 화이트 밸런스 <em>후</em> 채널 노이즈가 같다고 가정했다. 실제로는 원시 신호에서 노이즈가 결정되고 WB 이득이 곱해진다. 기본 카메라를 표준광 A(2856 K) 아래에서 쓰면 G=1 기준 WB 이득은 (R, G, B) = (0.76, 1, 2.22)로, B 채널 노이즈가 CCM 이전에 이미 2.2배가 된다. 그래서 전체 노이즈 이득은 \( M\,D \)(CCM × WB 대각 행렬)로 계산해야 하며, 텅스텐 조명의 저조도 사진에서 파란 얼룩 노이즈가 흔하다. 센서 쪽 SNR 분석은 SensorBook <a href="https://sensorbook.euiyun.com/chapters/color.html#tradeoff">CFA와 SNR 트레이드오프</a>를 참고하라.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="wb">
+    <h2>화이트 밸런스: 센서 공간의 대각 이득</h2>
+    <p>지금까지 CCM 입력을 '화이트 밸런스된 카메라 RGB'라고 했다. <span class="term">화이트 밸런스</span><span class="en">(white balance, WB)</span>는 장면 광원 아래 완전 백색이 만드는 카메라 응답 \( \mathbf w_{\mathrm{cam}} = (w_R,w_G,w_B) \)로 각 채널을 나누는 대각 행렬이다.</p>
+    <div class="formula">$$\mathbf c_{\mathrm{wb}} = D\,\mathbf c_{\mathrm{raw}},\qquad D=\mathrm{diag}\!\left(\frac{w_G}{w_R},\,1,\,\frac{w_G}{w_B}\right),\qquad \mathbf X_{\mathrm{D65}} \approx M\,D\,\mathbf c_{\mathrm{raw}}$$
+      <div class="where">G 이득을 1로 두는 것이 관례다(노출 기준 유지). \( M \)은 WB된 값을 D65 적응 XYZ(또는 선형 sRGB)로 보내는 CCM. 목표 XYZ는 장면 광원 아래 XYZ를 Bradford로 D65에 순응시킨 값이다(<a href="adaptation.html">8장</a>).</div>
+    </div>
+    <p>이것은 <a href="adaptation.html">8장</a>의 von Kries 순응과 같은 형태이지만, 대각 이득이 걸리는 공간이 원추세포 LMS나 Bradford의 '샤프닝된' 공간이 아니라 <strong>카메라 RGB 공간</strong>이라는 점이 다르다. 대각 순응은 감도가 좁을수록 잘 맞는다. 카메라 감도는 넓고 겹쳐 있으므로 센서 공간 대각 이득은 완벽한 색순응이 아니다. 회색은 정확히 회색으로 가지만(정의상), 유채색은 광원마다 조금씩 다르게 틀어진다. 이 잔차를 흡수하는 것이 다음 절의 <em>광원별 CCM</em>이다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 210" role="img" aria-label="카메라 색 처리 파이프라인 블록도">
+        <defs><marker id="ar12b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="f-acc"/></marker></defs>
+        <g font-size="12">
+          <rect x="10" y="40" width="88" height="54" rx="8" class="f-surface s-line"/><text x="54" y="63" text-anchor="middle" class="t">RAW</text><text x="54" y="81" text-anchor="middle" class="t-dim">흑 레벨·선형화</text>
+          <rect x="116" y="40" width="88" height="54" rx="8" class="f-acc-soft s-acc"/><text x="160" y="63" text-anchor="middle" class="t">WB 이득</text><text x="160" y="81" text-anchor="middle" class="t-mono t-dim">D = diag</text>
+          <rect x="222" y="40" width="88" height="54" rx="8" class="f-surface s-line"/><text x="266" y="63" text-anchor="middle" class="t">디모자이크</text><text x="266" y="81" text-anchor="middle" class="t-dim">(ISP)</text>
+          <rect x="328" y="40" width="88" height="54" rx="8" class="f-acc-soft s-acc"/><text x="372" y="63" text-anchor="middle" class="t">CCM</text><text x="372" y="81" text-anchor="middle" class="t-mono t-dim">M(CCT)</text>
+          <rect x="434" y="40" width="88" height="54" rx="8" class="f-elev s-line"/><text x="478" y="63" text-anchor="middle" class="t">XYZ</text><text x="478" y="81" text-anchor="middle" class="t-dim">장면 측색값</text>
+          <rect x="540" y="40" width="110" height="54" rx="8" class="f-surface s-line"/><text x="595" y="63" text-anchor="middle" class="t">출력 공간</text><text x="595" y="81" text-anchor="middle" class="t-dim">sRGB / P3 행렬</text>
+          <rect x="668" y="40" width="120" height="54" rx="8" class="f-acc2-soft s-line"/><text x="728" y="63" text-anchor="middle" class="t">톤·룩·OETF</text><text x="728" y="81" text-anchor="middle" class="t-dim">출력 참조</text>
+        </g>
+        <path d="M98 67 L114 67" class="s-line" marker-end="url(#ar12b)"/>
+        <path d="M204 67 L220 67" class="s-line" marker-end="url(#ar12b)"/>
+        <path d="M310 67 L326 67" class="s-line" marker-end="url(#ar12b)"/>
+        <path d="M416 67 L432 67" class="s-line" marker-end="url(#ar12b)"/>
+        <path d="M522 67 L538 67" class="s-line" marker-end="url(#ar12b)"/>
+        <path d="M650 67 L666 67" class="s-line" marker-end="url(#ar12b)"/>
+        <rect x="116" y="135" width="300" height="46" rx="8" class="f-elev s-line" stroke-dasharray="4 3"/>
+        <text x="266" y="155" text-anchor="middle" class="t">AWB: 광원 추정 → w_cam, CCT</text>
+        <text x="266" y="172" text-anchor="middle" class="t-dim" font-size="12">D와 M(CCT)을 함께 결정</text>
+        <path d="M160 135 L160 98" class="s-acc" stroke-dasharray="4 3" marker-end="url(#ar12b)"/>
+        <path d="M372 135 L372 98" class="s-acc" stroke-dasharray="4 3" marker-end="url(#ar12b)"/>
+        <text x="434" y="128" class="t-dim" font-size="12">장면 참조(scene-referred)</text>
+        <text x="610" y="128" class="t-dim" font-size="12">출력 참조(output-referred)</text>
+        <line x1="530" y1="110" x2="530" y2="190" class="s-line" stroke-dasharray="2 4"/>
+      </svg>
+      <figcaption><b>그림 12-4.</b> 색 관점에서 본 카메라 파이프라인. WB는 센서 공간의 대각 이득이고 CCM은 그 뒤에 온다. 광원 추정(AWB)의 결과가 WB 이득과 CCM 선택을 동시에 결정한다. 노이즈 저감·디모자이킹 등 ISP 단계의 세부는 SensorBook <a href="https://sensorbook.euiyun.com/chapters/isp.html">ISP 장</a>에서 다룬다.</figcaption>
+    </figure>
+
+    <p><strong>왜 WB가 CCM보다 먼저인가?</strong> 세 가지 이유가 있다. 첫째, CCM은 WB된 데이터로 학습되었고 백색 보존 제약 \( M\mathbf 1=\mathbf w \)가 의미를 가지려면 회색이 \( (1,1,1) \)이어야 한다. 둘째, 센서 공간에서 회색을 먼저 맞추면 CCM의 오차가 무채색 축에 퍼지지 않는다 — 사람은 회색의 색 캐스트에 가장 민감하다. 셋째, 하이라이트 클리핑 처리, 디모자이킹의 색차 보간 등 이후 단계 다수가 '회색 = 채널 값이 같음'을 가정한다. 순서를 바꾸면(\( D\) 를 출력 공간에 적용) 수학적으로는 다른 3×3 행렬이 될 뿐이지만, 그 행렬은 광원마다 다시 학습해야 하므로 실익이 없다.</p>
+    <div class="callout warn">
+      <strong>흔한 실수</strong>
+      <p>① 감마 인코딩된 JPEG 값에 WB 이득을 곱한다: 이득은 반드시 선형 RAW 값에 곱해야 한다(<a href="transfer.html">6장</a>). ② 클리핑된 하이라이트에 WB 이득을 곱한다: 포화된 채널(예: G)이 1에 묶인 상태에서 R·B에만 이득이 걸려 하이라이트가 분홍·자홍으로 변한다. ISP는 포화 픽셀을 별도로 처리한다. ③ 흑 레벨(블랙 오프셋)을 빼기 전에 WB를 한다: 어두운 영역의 색이 틀어진다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="awb">
+    <h2>광원 추정 알고리즘 (AWB)</h2>
+    <p>WB 이득을 구하려면 \( \mathbf w_{\mathrm{cam}} \), 즉 장면 광원의 카메라 RGB를 알아야 한다. 사진 한 장만으로 이를 구하는 문제를 <span class="term">계산적 색 항상성</span><span class="en">(computational color constancy)</span> 또는 광원 추정이라 한다. \( \mathbf c = \mathbf e \odot \boldsymbol\rho \)(광원 × 표면, 대각 모델)에서 \( \mathbf e \)와 \( \boldsymbol\rho \)를 동시에 모르므로 문제는 본질적으로 불량 설정<span class="en">(ill-posed)</span>이고, 모든 알고리즘은 '장면에 대한 가정'으로 해를 고른다. 고전 알고리즘 다수는 van de Weijer·Gevers·Gijsenij의 일반식으로 묶인다.</p>
+    <div class="formula">$$\left(\int \left|\frac{\partial^{n} \mathbf c_\sigma(\mathbf x)}{\partial \mathbf x^{n}}\right|^{p} d\mathbf x\right)^{1/p} = k\,\hat{\mathbf e}$$
+      <div class="where">\( n \): 미분 차수, \( p \): 민코프스키 노름, \( \sigma \): 가우시안 평활. 채널마다 따로 계산한다. \(n=0,p=1\): Gray World, \(n=0,p=\infty\): White Patch(max-RGB), \(n=0,p=6\): Shades of Gray, \(n=1,p=1\): Gray-Edge.</div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>알고리즘</th><th>가정</th><th>추정식</th><th>잘 깨지는 장면</th></tr></thead>
+      <tbody>
+        <tr><td>Gray World</td><td>장면 평균 반사율은 무채색</td><td>\( \hat{\mathbf e}\propto\mathrm{mean}(\mathbf c) \)</td><td>잔디·하늘·단색 벽이 화면을 채울 때</td></tr>
+        <tr><td>White Patch (max-RGB)</td><td>각 채널 최댓값은 백색(또는 정반사)에서 나온다</td><td>\( \hat e_k=\max c_k \)</td><td>흰 물체 없음, 클리핑, 노이즈 한 픽셀</td></tr>
+        <tr><td>Shades of Gray</td><td>둘의 절충(밝은 색에 가중)</td><td>\( \hat e_k=\big(\mathrm{mean}\,c_k^{p}\big)^{1/p} \)</td><td>GW·WP 실패 요인이 겹칠 때</td></tr>
+        <tr><td>Gray-Edge</td><td>경계(차분)의 평균은 무채색</td><td>\( \hat e_k=\mathrm{mean}|\nabla c_k| \)</td><td>경계가 적은 평탄한 장면, 단일 재질의 음영</td></tr>
+        <tr><td>색역 매핑 (Forsyth)</td><td>정준 광원 아래 가능한 RGB 집합이 알려져 있다</td><td>관측 색역을 정준 색역에 넣는 대각 사상의 집합 중 선택</td><td>학습 색역 밖 재질, 계산량</td></tr>
+        <tr><td>학습 기반 (FFCC, FC4 등)</td><td>데이터셋에서 광원 분포를 학습</td><td>히스토그램·CNN 회귀</td><td>학습 분포 밖 장면, 센서마다 재학습</td></tr>
+      </tbody>
+    </table></div>
+    <p>평가 지표는 <span class="term">각도 오차</span><span class="en">(angular error)</span>다. 광원 RGB의 크기(밝기)는 WB와 무관하므로 방향만 비교한다.</p>
+    <div class="formula">$$\theta = \arccos\frac{\hat{\mathbf e}\cdot\mathbf e}{\lVert\hat{\mathbf e}\rVert\,\lVert\mathbf e\rVert}$$
+      <div class="where">문헌에서는 데이터셋 전체의 평균·중앙값·최악 25% 평균을 함께 보고한다. 대략 1° 미만은 거의 구분되지 않고, 3°를 넘으면 회색의 색 캐스트가 눈에 띄기 시작한다는 것이 통상적인 감각이다.</div>
+    </div>
+
+    <div class="sim" id="sim-awb">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>WB 알고리즘 비교: 합성 몬드리안 장면과 각도 오차</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-awb"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>장면 광원</span><div class="seg" id="a-ill"><button data-value="D65" class="on">D65</button><button data-value="A">A</button><button data-value="FL2">FL2</button><button data-value="LED-B3">LED-B3</button><button data-value="BB">흑체 T</button></div></div>
+          <label class="ctrl"><span>흑체 온도 T <output id="a-T-out"></output></span><input type="range" id="a-T" min="2000" max="10000" step="100" value="3500"></label>
+          <label class="ctrl"><span>서로 다른 표면 수 <output id="a-n-out"></output></span><input type="range" id="a-n" min="2" max="48" step="1" value="12"></label>
+          <div class="ctrl"><span>장면 색 편향</span><div class="seg" id="a-bias"><button data-value="none" class="on">없음</button><button data-value="green">녹색 우세</button><button data-value="red">붉은색 우세</button></div></div>
+          <label class="check"><input type="checkbox" id="a-white"> 흰 패치 포함</label>
+          <label class="check"><input type="checkbox" id="a-shade"> 조명 음영(셀마다 밝기 0.25–1)</label>
+          <div class="ctrl"><span>표시할 보정</span><div class="seg" id="a-show"><button data-value="true">정답</button><button data-value="gw" class="on">GW</button><button data-value="wp">WP</button><button data-value="sog">SoG</button><button data-value="ge">GE</button><button data-value="none">보정 없음</button></div></div>
+          <button class="btn primary" id="a-seed">새 장면</button>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">Gray World (현재 · 60장면 중앙값)</span><span class="v" id="o-a-gw">—</span></div>
+        <div class="stat"><span class="k">White Patch</span><span class="v" id="o-a-wp">—</span></div>
+        <div class="stat"><span class="k">Shades of Gray p=6</span><span class="v" id="o-a-sog">—</span></div>
+        <div class="stat"><span class="k">Gray-Edge</span><span class="v" id="o-a-ge">—</span></div>
+        <div class="stat"><span class="k">광원 CCT (McCamy)</span><span class="v" id="o-a-cct">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 표면 수를 2–4로 줄이면 모든 알고리즘이 흔들린다 — 장면 통계 가정은 표면이 많을 때만 성립한다. ② '녹색 우세'에서 Gray World는 마젠타 쪽으로 과보정한다(왼쪽 장면이 분홍빛). ③ '흰 패치 포함'이면 White Patch가 0°가 된다. 여기에 '조명 음영'을 켜면 흰 패치가 그늘에 있을 수 있어 다시 틀어진다. ④ 오른쪽 그림은 D65 백색으로 정규화한 카메라 rg 색도다: 점 = 장면 표면, 곡선 = 흑체 궤적(2000–10000 K), 링 = 정답 광원, 기호 = 각 추정. 왼쪽 장면은 선택한 추정으로 WB한 뒤 D65 CCM을 거친 sRGB 렌더링이다. 이 합성 반사율은 평균이 거의 무채색이 되도록 뽑으므로 '편향 없음'에서는 Gray World에 유리하다.</div>
+    </div>
+    <p>합성 장면에서도 경향은 분명하다. 기본 카메라, D65, 표면 48종·편향 없음일 때 60장면 중앙값은 Gray World 1.7°, Shades of Gray 1.5°이지만, 녹색 우세로 바꾸면 Gray World가 4.6°로 커지고 White Patch는 1.3°로 오히려 좋아진다. 표면이 4종뿐이면 어느 알고리즘이든 중앙값 5° 안팎이다. 실제 카메라의 AWB는 단일 가정에 의존하지 않고, 흑체·주광 궤적 근처로 해를 제한하는 사전 확률, 얼굴·하늘 검출, 노출 값(밝은 야외 = 주광일 확률 높음), 플리커 검출(형광등) 등을 결합한다. 학습 기반 방법의 대표 데이터셋으로 Gehler–Shi ColorChecker 데이터셋과 NUS 8-카메라 데이터셋이 쓰이며, 데이터셋이 센서마다 따로 있는 이유는 광원 RGB가 <em>센서 공간</em> 양이기 때문이다.</p>
+    <div class="callout deep">
+      <strong>심화: 색역 매핑의 직관</strong>
+      <p>Forsyth의 색역 매핑<span class="en">(gamut mapping)</span>은 '정준 광원 아래에서 실제 표면이 만들 수 있는 RGB의 볼록 집합'을 미리 구해 둔다. 새 영상의 관측 RGB 집합이 그 안에 들어가도록 하는 대각 사상 \( D \)들의 집합(실현 가능 집합)을 구하고, 그중 하나(예: 체적 최대)를 고른다. 장면 통계가 아니라 '불가능한 색은 없다'는 제약을 쓴다는 점에서 GW·WP와 성격이 다르다. 2차원 색도 버전(Finlayson)이 계산량 때문에 자주 쓰였다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="multi">
+    <h2>광원별 CCM과 CCT 보간</h2>
+    <p>WB를 완벽히 해도(정답 광원을 알아도) 하나의 CCM이 모든 광원에 맞지는 않는다. 앞 절에서 본 대로 센서 공간 대각 이득은 완벽한 색순응이 아니고, 광원 스펙트럼에 따라 카메라 메타머리즘의 양상도 달라지기 때문이다. 기본 카메라에서 D65로 학습한 CCM을 표준광 A 장면에 그대로 쓰면 TCS 평균 ΔE00이 1.08(A 전용 CCM)에서 <strong>4.91</strong>, 최대 11.1로 커진다.</p>
+    <p>그래서 카메라는 보통 두 광원(흔히 표준광 A와 D65)에서 CCM을 각각 교정하고, 추정 CCT에 따라 보간한다. Adobe DNG 규격이 이 구조를 표준화했다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>DNG 태그</th><th>의미</th></tr></thead>
+      <tbody>
+        <tr><td>CalibrationIlluminant1 / 2</td><td>두 교정 광원(예: Standard light A, D65)</td></tr>
+        <tr><td>ColorMatrix1 / 2</td><td>XYZ → 기준 카메라 원시 공간(WB 전) 행렬. 광원별</td></tr>
+        <tr><td>ForwardMatrix1 / 2</td><td>WB된 카메라 RGB → XYZ(D50, PCS) 행렬. 카메라 무채색 (1,1,1)을 D50 백색으로 보낸다</td></tr>
+        <tr><td>AsShotNeutral</td><td>촬영 시 추정된 무채색의 카메라 좌표(= WB 이득의 역수)</td></tr>
+        <tr><td>CameraCalibration1 / 2, AnalogBalance</td><td>개체 편차 보정, 아날로그 이득</td></tr>
+      </tbody>
+    </table></div>
+    <p>보간은 CCT의 <strong>역수</strong>(mired = 10⁶/T) 공간에서 선형으로 한다. 색도 변화가 CCT보다 역 CCT에 대해 훨씬 균일하기 때문이다(<a href="adaptation.html">8장</a>).</p>
+    <div class="formula">$$g = \frac{T^{-1}-T_2^{-1}}{T_1^{-1}-T_2^{-1}}\;\;(0\le g\le1\text{로 클램프}),\qquad M(T) = g\,M_1 + (1-g)\,M_2$$
+      <div class="where">\( T_1=2856 \) K(A), \( T_2=6504 \) K(D65). 예: \( T=4000 \) K이면 \( g=(250.0-153.8)/(350.1-153.8)=0.49 \). DNG에서는 AsShotNeutral로부터 CCT를 구하는 것과 CCT로 행렬을 보간하는 것이 서로 의존하므로 반복으로 수렴시킨다.</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 200" role="img" aria-label="역 CCT 축에서 두 교정 광원 사이의 선형 보간">
+        <line x1="60" y1="110" x2="740" y2="110" class="s-axis"/>
+        <text x="60" y="150" class="t-dim" font-size="12">500 mired (2000 K)</text>
+        <text x="740" y="150" text-anchor="end" class="t-dim" font-size="12">100 mired (10000 K)</text>
+        <circle cx="185" cy="110" r="8" class="f-acc"/>
+        <text x="185" y="88" text-anchor="middle" class="t">A · M₁</text>
+        <text x="185" y="135" text-anchor="middle" class="t-mono t-dim" font-size="11">350 mired</text>
+        <circle cx="539" cy="110" r="8" class="f-acc"/>
+        <text x="539" y="88" text-anchor="middle" class="t">D65 · M₂</text>
+        <text x="539" y="135" text-anchor="middle" class="t-mono t-dim" font-size="11">154 mired</text>
+        <line x1="185" y1="60" x2="539" y2="60" class="s-acc" stroke-width="3"/>
+        <circle cx="365" cy="110" r="6" class="f-surface s-acc"/>
+        <text x="365" y="45" text-anchor="middle" class="t-acc">4000 K → 250 mired, g = 0.49</text>
+        <line x1="365" y1="60" x2="365" y2="104" class="s-acc" stroke-dasharray="3 3"/>
+        <text x="100" y="180" class="t-dim" font-size="12">A보다 따뜻하면 M₁ 고정</text>
+        <text x="580" y="180" class="t-dim" font-size="12">D65보다 차가우면 M₂ 고정</text>
+      </svg>
+      <figcaption><b>그림 12-5.</b> 두 교정 광원의 행렬을 역 CCT(mired) 축에서 선형 보간한다. 두 교정점 밖에서는 가까운 쪽 행렬을 쓴다. 보간은 CCT 한 변수만 보므로 같은 CCT라도 스펙트럼이 다른 광원(형광등, LED)의 차이는 반영하지 못한다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-mix">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>광원 불일치: D65 CCM, A CCM, mired 보간, 전용 CCM</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-mix"></canvas>
+          <div class="legend" style="padding-bottom:10px" id="mix-legend"></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>장면 광원</span><div class="seg" id="m-ill"><button data-value="A" class="on">A</button><button data-value="D50">D50</button><button data-value="FL2">FL2</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button><button data-value="LED-RGB1">LED-RGB1</button><button data-value="BB">흑체 T</button></div></div>
+          <label class="ctrl"><span>흑체 온도 T <output id="m-T-out"></output></span><input type="range" id="m-T" min="2000" max="10000" step="100" value="4000"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">CCT · 보간 가중 g</span><span class="v" id="o-m-cct">—</span></div>
+        <div class="stat"><span class="k">D65 CCM 평균 / 최대</span><span class="v" id="o-m-d65">—</span></div>
+        <div class="stat"><span class="k">A CCM 평균 / 최대</span><span class="v" id="o-m-a">—</span></div>
+        <div class="stat"><span class="k">mired 보간 평균 / 최대</span><span class="v" id="o-m-int">—</span></div>
+        <div class="stat"><span class="k">전용 CCM 평균 / 최대</span><span class="v" id="o-m-own">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 흑체 T를 2856 K에서 6500 K까지 움직이면 보간 CCM이 전용 CCM에 거의 붙어 따라간다 — 흑체·주광 계열 광원에는 2점 보간이 잘 맞는다. ② FL2, FL11, LED-B3처럼 CCT는 4000 K 부근이지만 스펙트럼이 뾰족한 광원에서는 보간 CCM과 전용 CCM의 차이가 커진다. ③ LED-RGB1은 CCT가 A와 비슷해(약 2840 K) 보간은 A CCM을 그대로 쓰지만, 세 개의 좁은 피크 때문에 ΔE가 크게 남는다. 모든 경우 WB는 정답 광원으로 했다(광원 추정 오차 없음). 평가: TCS 14색, 목표 = Bradford로 D65에 순응시킨 XYZ.</div>
+    </div>
+    <p>기본 카메라로 계산한 결과를 정리하면 다음과 같다(정답 WB, TCS 14색 평균 ΔE00).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>장면 광원</th><th>CCT</th><th>D65 CCM</th><th>A CCM</th><th>mired 보간</th><th>전용 CCM</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>2858 K</td><td>4.91</td><td>1.08</td><td>1.08</td><td>1.08</td></tr>
+        <tr><td>흑체 4000 K</td><td>4009 K</td><td>2.43</td><td>3.01</td><td>1.20</td><td>1.12</td></tr>
+        <tr><td>D50</td><td>5002 K</td><td>1.34</td><td>4.01</td><td>1.03</td><td>1.04</td></tr>
+        <tr><td>FL2</td><td>4230 K</td><td>3.31</td><td>3.00</td><td>1.82</td><td>0.89</td></tr>
+        <tr><td>FL11</td><td>4007 K</td><td>3.64</td><td>2.64</td><td>1.92</td><td>0.78</td></tr>
+        <tr><td>LED-RGB1</td><td>2842 K</td><td>5.53</td><td>2.83</td><td>2.83</td><td>1.16</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout">
+      <strong>공학자 관점</strong>
+      <p>CCT 하나로 CCM을 고르는 방식은 '광원 = 흑체/주광 계열'이라는 가정 위에 있다. 휴대폰 카메라 튜닝에서는 그래서 CCM을 3–5개 광원(예: A, TL84 형광, CWF, D50, D65)에서 교정하고, 광원 추정기가 형광등 여부(Duv, 플리커)를 함께 판단해 행렬 세트를 고르기도 한다. 보간 축이 CCT만이면 같은 4000 K의 흑체와 FL11을 구분하지 못한다는 점을 기억하라.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="render">
+    <h2>RAW → XYZ → 출력 색공간, 톤 커브와 룩</h2>
+    <p>CCM의 출력 XYZ는 <strong>장면 참조</strong><span class="en">(scene-referred)</span> 측색값이다. 장면의 상대 휘도를 그대로 담고 있어 백색 위로도 값이 있을 수 있고(정반사, 광원), 디스플레이 가멋 밖 색도 있다. 화면에 보여주려면 출력 공간으로 행렬 변환하고, 범위를 맞추고, 전달 함수로 인코딩해야 한다.</p>
+    <div class="formula">$$\mathbf v = \mathrm{OETF}\Big(\mathcal T\big(M_{\mathrm{out}}^{-1}\,M(T)\,D\,\mathbf c_{\mathrm{raw}}\big)\Big),\qquad M_{\mathrm{out}}\in\{M_{\mathrm{sRGB}},\,M_{\mathrm{P3}},\dots\}$$
+      <div class="where">\( M_{\mathrm{out}} \): 출력 공간의 RGB→XYZ 행렬(<a href="rgb.html">5장</a>), \( \mathcal T \): 톤 매핑·가멋 매핑·'룩', OETF: sRGB 곡선 등(<a href="transfer.html">6장</a>). 기본 카메라의 D65 백색 보존 CCM을 출력 기준으로 쓰면 선형 sRGB R 행은 (2.284, −1.714, 0.430), Display P3 R 행은 (1.849, −1.114, 0.265)다. 넓은 출력 공간일수록 비대각 성분이 작아진다.</div>
+    </div>
+    <p>여기서 두 목표가 갈린다. <strong>측색적 정확 재현</strong><span class="en">(colorimetric reproduction)</span>은 출력 XYZ가 장면 XYZ와 같아지게 하는 것이고, <strong>선호 재현</strong><span class="en">(preferred reproduction)</span>은 사람이 '좋다'고 느끼는 결과를 목표로 한다. 대부분의 소비자 카메라는 대비를 올리고(S자 톤 커브), 채도를 높이고, 피부·하늘·잔디를 선호 색 쪽으로 미세하게 옮긴다. 화면 휘도가 실제 장면보다 훨씬 낮고 주변 조건이 다르므로(<a href="appearance.html">9장</a>), 측색적으로 같은 출력이 오히려 '밋밋하고 칙칙하게' 보이기 때문이다. 따라서 룩이 적용된 JPEG로 카메라의 색 정확도를 평가하면 안 된다. 정확도는 RAW→XYZ 단계에서, 룩은 그 뒤 별도 단계에서 평가하는 것이 원칙이다.</p>
+
+    <div class="sim" id="sim-look">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>룩 적용: 대비·채도·노출이 ΔE00에 미치는 영향 (위 = 측색 기준, 아래 = 룩)</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-look"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>대비 (log 기울기) <output id="l-con-out"></output></span><input type="range" id="l-con" min="0.8" max="1.6" step="0.02" value="1.2"></label>
+          <label class="ctrl"><span>채도 (OKLab 크로마 배율) <output id="l-sat-out"></output></span><input type="range" id="l-sat" min="0.6" max="1.6" step="0.02" value="1.15"></label>
+          <label class="ctrl"><span>노출 보정 <output id="l-ev-out"></output></span><input type="range" id="l-ev" min="-1" max="1" step="0.05" value="0"></label>
+          <label class="check"><input type="checkbox" id="l-cam"> 카메라 CCM 오차 포함</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">TCS 14 ΔE00 평균 / 최대</span><span class="v" id="o-l-de">—</span></div>
+        <div class="stat"><span class="k">평균 ΔL* / ΔC*ab</span><span class="v" id="o-l-dlc">—</span></div>
+        <div class="stat"><span class="k">sRGB 클리핑 패치 수</span><span class="v" id="o-l-clip">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 대비 1.0, 채도 1.0, 노출 0이면 ΔE00 = 0(측색 재현)이다. 거기서 출발해 대비 1.2, 채도 1.15의 흔한 '선명한' 룩만 줘도 평균 ΔE00이 몇 단위 생긴다 — 카메라 오차(약 1)보다 훨씬 크다. ② '카메라 CCM 오차 포함'을 켜면 룩 오차에 카메라 오차가 더해진다. 톤 커브: 18% 회색 기준 log₂ 공간 선형(\(Y'=0.18\cdot2^{\,c\log_2(Y/0.18)+EV}\)), 채도: OKLab a·b 배율, 색 정보는 D65·sRGB.</div>
+    </div>
+    <div class="callout tip">
+      <strong>장면 참조 파이프라인</strong>
+      <p>영화·VFX에서는 카메라 RAW를 먼저 장면 참조 공간(예: ACES2065-1, AP0 원색)으로 보내는 <em>입력 변환</em>(IDT)을 측색적으로 만들고, 룩과 출력 변환을 그 뒤에 분리해 둔다. 이 장의 CCM이 IDT의 핵심이다. 색 관리 파이프라인 전체는 <a href="management.html">16장</a>, HDR 출력은 <a href="hdr.html">14장</a>에서 다룬다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="validate">
+    <h2>측정 기반 검증과 보고</h2>
+    <p>실제 카메라의 CCM은 분광 감도를 측정해 계산하거나(단색광기로 파장별 응답을 재는 방법), 컬러 차트를 촬영해 직접 맞춘다. ISO 17321-1은 두 접근을 모두 다룬다. 차트 기반 절차의 요점은 다음과 같다.</p>
+    <ol>
+      <li><strong>조명과 기하</strong>: 차트를 45°/0° 기하로 균일하게 조명한다(조도 균일도 수 % 이내, 정반사 회피). 광원의 분광 분포를 분광복사계로 측정해 둔다(<a href="measurement.html">11장</a>).</li>
+      <li><strong>기준값</strong>: 차트 패치의 반사율을 분광광도계로 측정하고, 측정한 광원 스펙트럼으로 기준 XYZ를 계산한다. 제조사 공칭값을 쓰면 차트 노화·로트 차이가 그대로 오차가 된다.</li>
+      <li><strong>RAW 처리</strong>: 흑 레벨 제거, 선형성 확인(노출 브래킷으로 응답 직선성 점검), 플랫필드(주변 감광·조명 불균일) 보정 후 패치 중앙 영역 평균. 포화 픽셀이 없어야 한다.</li>
+      <li><strong>피팅</strong>: WB(회색 패치 기준) → 백색 보존 CCM 또는 ΔE00 최적화. 학습 차트와 시험 차트를 분리한다(예: ColorChecker Classic 24로 학습, ColorChecker Digital SG 140 또는 분광 데이터베이스 합성으로 시험).</li>
+      <li><strong>보고</strong>: 평균·최대 ΔE00, 가능하면 90 백분위수, 회색 패치의 ΔC(색 캐스트)와 ΔL(톤)을 따로, 광원별로. 노이즈 이득(행렬 계수 또는 측정 SNR)도 함께.</li>
+    </ol>
+    <p>이 장의 모델로 '측정'을 흉내 내면, 기본 카메라의 백색 보존 CCM은 D65에서 TCS 14색 평균 ΔE00 1.18 / 최대 4.58, 합성 반사율 60개로 시험하면 평균 0.75다. 같은 카메라가 정답 WB와 mired 보간 CCM을 써도 FL11 아래에서는 평균 1.92가 된다. 즉 <strong>보고서의 숫자는 시험 색 집합과 광원을 함께 적어야 의미가 있다.</strong> 결론을 하나의 수치 예로 고정하면: D65 아래 TCS01의 기준 Lab은 (61.5, 17.5, 11.9)이고, 기본 카메라 + 백색 보존 CCM의 재현은 ΔE00 0.35 이내로 이를 맞추지만, TCS12(진한 파랑)는 4.58 벗어난다.</p>
+    <div class="callout warn">
+      <strong>흔한 보고 실수</strong>
+      <p>① 학습한 차트로 평가해 놓고 '평균 ΔE00 1.5'라고 쓴다(과적합된 낙관치). ② 룩이 적용된 JPEG를 측정한다(정확도가 아니라 선호도를 잰 것). ③ 기준 XYZ를 D50으로, 재현을 D65 백색으로 계산하는 등 백색점을 섞는다 — 반드시 같은 기준 백색과 같은 순응 변환을 써야 한다. ④ ΔE76과 ΔE00을 섞어 비교한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ summary -->
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>카메라 RGB와 XYZ는 같은 형태의 적분이지만 가중 함수가 다르다. 두 가중 함수 집합이 같은 부분공간을 펼칠 때(루터–아이브스 조건)만 3×3 행렬로 정확한 변환이 가능하다.</li>
+      <li>조건이 깨지면 카메라 메타머리즘이 생긴다. 카메라에는 같고 사람에게는 다른 표면 쌍(예: ΔE00 6.1)이 존재하며, 어떤 행렬로도 둘을 함께 맞출 수 없다. 지표: Vora–Trussell ν, 루터 잔차, SMI = 100 − 5.5·평균 ΔE.</li>
+      <li>최소자승 CCM \( M = TC^\top(CC^\top)^{-1} \)은 닫힌 해가 있다. 백색 보존 제약(행 합 유지)은 회색을 정확히 하고, ΔE00 직접 최소화(LM 반복)는 최대 오차를 줄인다.</li>
+      <li>CCM 행 \(i\)의 노이즈 이득은 \( \sqrt{\sum_j m_{ij}^2} \)다. 감도가 겹칠수록 비대각 성분과 노이즈가 커지며, 릿지 정규화로 정확도와 노이즈를 맞바꾼다.</li>
+      <li>WB는 센서 공간의 대각 이득이며 CCM보다 먼저 선형 RAW에 적용한다. 센서 공간 대각 이득은 완전한 색순응이 아니다.</li>
+      <li>광원 추정은 장면 가정에 의존한다: Gray World(평균 무채색), White Patch(최댓값 = 백색), Shades of Gray, Gray-Edge(경계 평균 무채색), 색역 매핑, 학습 기반. 평가는 각도 오차.</li>
+      <li>광원마다 최적 CCM이 다르다. DNG는 두 교정 광원의 행렬을 역 CCT(mired)로 선형 보간한다. 흑체·주광 계열에는 잘 맞지만 형광등·협대역 LED에는 잔차가 남는다.</li>
+      <li>측색 재현(장면 참조)과 선호 재현(룩)은 분리해 평가한다. 정확도 보고에는 시험 색 집합, 광원, 색차식, 학습/시험 분리를 명시한다.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ quiz -->
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>카메라 감도 \( \mathbf s(\lambda) \)가 루터–아이브스 조건을 만족한다는 것의 정확한 의미는?</p><div class="opts">
+        <button class="opt">세 채널의 피크 파장이 x̄, ȳ, z̄의 피크와 같다</button>
+        <button class="opt" data-correct>어떤 가역 3×3 행렬 A에 대해 모든 파장에서 s(λ) = A·x̄(λ)이다</button>
+        <button class="opt">세 채널 감도의 면적이 같다</button>
+        <button class="opt">감도 곡선이 서로 겹치지 않는다</button>
+      </div><div class="quiz-exp">조건은 '같은 부분공간'이다. 그러면 적분의 선형성으로 모든 스펙트럼에서 c = A·X가 되어 XYZ를 정확히 복원한다. 피크 위치가 같아도 모양이 다르면 조건을 만족하지 않는다.</div></div>
+
+      <div class="quiz-q"><p>두 표면이 카메라 RGB는 같지만 XYZ가 다르다. 이 상황에 대한 설명으로 옳은 것은?</p><div class="opts">
+        <button class="opt">CCM을 비선형(예: 2차 다항식)으로 바꾸면 둘 다 정확히 맞출 수 있다</button>
+        <button class="opt">화이트 밸런스를 다시 하면 해결된다</button>
+        <button class="opt" data-correct>RGB만으로는 둘을 구분할 정보가 없으므로 어떤 함수 변환으로도 둘을 동시에 맞출 수 없다</button>
+        <button class="opt">관측자 메타머리즘이므로 카메라와 무관하다</button>
+      </div><div class="quiz-exp">같은 입력에 서로 다른 출력을 요구하므로 RGB의 어떤 함수(선형·비선형·LUT)로도 불가능하다. 이것이 카메라 메타머리즘이며, 감도 자체를 바꿔야만 줄어든다.</div></div>
+
+      <div class="quiz-q"><p>무제약 최소자승 CCM 대신 백색 보존 제약 \( M\mathbf 1 = \mathbf w \)을 거는 주된 이유는?</p><div class="opts">
+        <button class="opt">학습 색의 평균 오차가 반드시 줄어들어서</button>
+        <button class="opt" data-correct>WB 후 (1,1,1)인 회색이 정확히 무채색으로 가도록 해 색 캐스트를 없애려고</button>
+        <button class="opt">노이즈 이득이 항상 1이 되어서</button>
+        <button class="opt">행렬의 역행렬이 존재하도록 하려고</button>
+      </div><div class="quiz-exp">제약은 자유도를 줄여 학습 평균 오차는 오히려 약간 늘린다(이 장의 예: 0.91 → 1.18). 대신 사람이 가장 민감한 무채색 축이 정확해진다.</div></div>
+
+      <div class="quiz-q"><p>선형 sRGB CCM의 G 행이 (−0.17, 1.67, −0.50)일 때, WB 후 채널 노이즈가 같고 독립이라면 G 출력의 노이즈 이득은 약 얼마인가?</p><div class="opts">
+        <button class="opt">1.00 (행 합이 1이므로)</button>
+        <button class="opt" data-correct>1.75</button>
+        <button class="opt">2.34</button>
+        <button class="opt">0.58</button>
+      </div><div class="quiz-exp">\( \sqrt{0.17^2+1.67^2+0.50^2}=\sqrt{0.029+2.789+0.25}\approx1.75 \). 신호는 행 합(=1)으로, 독립 노이즈는 제곱합의 제곱근으로 전파된다.</div></div>
+
+      <div class="quiz-q"><p>WB를 CCM보다 먼저(선형 RAW에) 적용하는 이유로 가장 거리가 먼 것은?</p><div class="opts">
+        <button class="opt">CCM이 WB된 데이터로 학습되고 백색 보존 제약이 회색 = (1,1,1)을 전제하므로</button>
+        <button class="opt">이후 단계(디모자이킹 색차 보간, 하이라이트 처리)가 '회색이면 채널 값이 같다'를 가정하므로</button>
+        <button class="opt" data-correct>WB 이득은 sRGB 감마 인코딩 후에 곱해야 정확하므로</button>
+        <button class="opt">회색 오차를 CCM 오차와 분리해 무채색 축을 먼저 고정하려고</button>
+      </div><div class="quiz-exp">WB 이득은 선형 값에 곱해야 한다. 감마 인코딩된 값에 곱하면 밝기에 따라 다른 이득이 걸리는 셈이 되어 회색이 정확하지 않다.</div></div>
+
+      <div class="quiz-q"><p>잔디밭이 화면 대부분을 차지하는 장면에서 Gray World 추정의 전형적인 결과는?</p><div class="opts">
+        <button class="opt">정확하다. 잔디의 평균은 무채색이다</button>
+        <button class="opt" data-correct>광원을 녹색으로 오인해 녹색 이득을 낮춰, 영상이 마젠타 쪽으로 틀어진다</button>
+        <button class="opt">광원을 청색으로 오인해 영상이 노랗게 된다</button>
+        <button class="opt">각도 오차는 장면 내용과 무관하다</button>
+      </div><div class="quiz-exp">장면 평균이 녹색이면 GW는 그 색을 광원 색으로 본다. 녹색을 '빼는' 보정이 들어가 전체가 마젠타(분홍)로 기운다. 시뮬레이터의 '녹색 우세'에서 확인할 수 있다.</div></div>
+
+      <div class="quiz-q"><p>광원 추정 평가에 RGB 차이 대신 각도 오차를 쓰는 이유는?</p><div class="opts">
+        <button class="opt">각도는 항상 0–1 사이 값이라서</button>
+        <button class="opt" data-correct>WB에는 광원 RGB의 방향(색도)만 중요하고 크기(밝기)는 무관하므로</button>
+        <button class="opt">각도 오차가 ΔE00과 정확히 비례하므로</button>
+        <button class="opt">카메라마다 같은 값이 나오도록 하려고</button>
+      </div><div class="quiz-exp">추정 RGB에 상수를 곱해도 WB 결과(이득 비)는 같다. 그래서 크기에 불변인 벡터 사이 각도를 쓴다. 단, 각도 오차는 센서 공간 양이라 카메라마다 의미가 조금 다르다.</div></div>
+
+      <div class="quiz-q"><p>DNG식 보간에서 교정 광원이 A(2856 K)와 D65(6504 K)일 때, 장면 CCT가 5000 K이면 A 행렬의 가중 g는 약 얼마인가?</p><div class="opts">
+        <button class="opt">0.59 (CCT 선형 보간)</button>
+        <button class="opt" data-correct>0.24 (역 CCT 선형 보간)</button>
+        <button class="opt">0.50</button>
+        <button class="opt">0.76</button>
+      </div><div class="quiz-exp">\( g=(200-153.8)/(350.1-153.8)\approx0.24 \). CCT 자체로 선형 보간하면 (6504−5000)/(6504−2856) ≈ 0.41이 되어 다르다. DNG는 역 CCT(mired) 공간에서 보간한다.</div></div>
+
+      <div class="quiz-q"><p>제조사가 '평균 ΔE00 1.2'라고 보고했다. 이 숫자를 해석하는 데 가장 필요한 추가 정보는?</p><div class="opts">
+        <button class="opt">센서의 화소 수</button>
+        <button class="opt">JPEG 압축률</button>
+        <button class="opt" data-correct>시험 색 집합(학습과 분리 여부), 광원, 기준 백색과 순응 방법, 룩 적용 여부</button>
+        <button class="opt">렌즈의 F값</button>
+      </div><div class="quiz-exp">같은 카메라도 광원(예: D65 1.18 vs FL11 1.92)과 시험 집합에 따라 숫자가 크게 달라진다. 학습 차트로 평가하면 낙관치가 되고, 룩이 들어가면 정확도가 아니라 선호를 잰 것이다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  /* ===== 모델 코어 (장 고유: 가우시안 카메라, CCM 피팅, 광원 추정) ===== */
+  var WL = CB.wls(5), NW = WL.length;
+  var CMF = WL.map(function (l) { return CB.cmf(l); });
+  var TCS = []; for (var t = 1; t <= 14; t++) { var tf = CB.tcs(t); TCS.push(WL.map(function (l) { return tf(l); })); }
+  var ILL_CACHE = {};
+  function illumArr(key) {
+    if (ILL_CACHE[key]) return ILL_CACHE[key];
+    var fn;
+    if (key.indexOf("BB") === 0) { var T = +key.slice(2); fn = function (l) { return CB.blackbody(l, T); }; }
+    else if (key === "A") fn = CB.illuminantA;
+    else fn = CB.illum(key);
+    return (ILL_CACHE[key] = WL.map(function (l) { return fn(l); }));
+  }
+  function camSens(p) {
+    var ch = [[p.rP, p.rW], [p.gP, p.gW], [p.bP, p.bW]];
+    return WL.map(function (l) {
+      var ir = p.ir ? 1 / (1 + Math.exp((l - p.cut) / 8)) : 1;
+      return ch.map(function (c) { return CB.gauss(l, c[0], c[1]) * ir; });
+    });
+  }
+  function respond(sens3, E, R) {
+    var o = [0, 0, 0];
+    for (var i = 0; i < NW; i++) { var e = E[i] * (R ? R[i] : 1); o[0] += e * sens3[i][0]; o[1] += e * sens3[i][1]; o[2] += e * sens3[i][2]; }
+    return o;
+  }
+  function whiteXYZof(E) { var w = respond(CMF, E, null); return [w[0] / w[1], 1, w[2] / w[1]]; }
+  var WD65 = whiteXYZof(illumArr("D65"));
+  function targetXYZ(E, R) {
+    var w = respond(CMF, E, null), x = respond(CMF, E, R), k = 1 / w[1];
+    return CB.adapt([x[0] * k, x[1] * k, x[2] * k], [w[0] * k, 1, w[2] * k], WD65, "bradford");
+  }
+  function camWB(sens, E, R) {
+    var c = respond(sens, E, R), w = respond(sens, E, null);
+    return [c[0] / w[0], c[1] / w[1], c[2] / w[2]];
+  }
+  function lab(XYZ) { return CB.XYZ2Lab(XYZ, WD65); }
+  function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function randRefl(rnd, bias) {
+    var n = 2 + Math.floor(rnd() * 2), terms = [], base = -1.6 + 2.2 * rnd();
+    for (var j = 0; j < n; j++) terms.push([380 + 420 * rnd(), 40 + 140 * rnd(), (rnd() * 2 - 1) * 3.2]);
+    if (bias === "green") terms.push([540, 70, 2.4]);
+    if (bias === "red") terms.push([660, 140, 2.2]);
+    return WL.map(function (l) {
+      var z = base; for (var j = 0; j < terms.length; j++) z += terms[j][2] * CB.gauss(l, terms[j][0], terms[j][1]);
+      return 0.03 + 0.87 / (1 + Math.exp(-z));
+    });
+  }
+  var SYN = (function () { var r = mulberry32(1931), a = []; for (var i = 0; i < 60; i++) a.push(randRefl(r)); return a; })();
+
+  function gram(C) { var A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; C.forEach(function (c) { for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) A[i][j] += c[i] * c[j]; }); return A; }
+  function cross(T, C) { var B = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; C.forEach(function (c, n) { for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) B[i][j] += T[n][i] * c[j]; }); return B; }
+  /** M = T Cᵀ (C Cᵀ)⁻¹, opts.white: M·1 = WD65, opts.ridge: λ‖M − M_sRGB‖² */
+  function fitLS(C, T, opts) {
+    opts = opts || {};
+    var A = gram(C), B = cross(T, C);
+    if (opts.ridge) {
+      var lam = opts.ridge * (A[0][0] + A[1][1] + A[2][2]) / 3, M0 = CB.M_SRGB;
+      A = A.map(function (r, i) { return r.map(function (v, j) { return v + (i === j ? lam : 0); }); });
+      B = B.map(function (r, i) { return r.map(function (v, j) { return v + lam * M0[i][j]; }); });
+    }
+    var Ai = CB.mat.inv(A), M = CB.mat.mul(B, Ai);
+    if (opts.white) {
+      var u = CB.mat.vec(Ai, [1, 1, 1]), uu = u[0] + u[1] + u[2];
+      M = M.map(function (m, i) { var mu = (WD65[i] - (m[0] + m[1] + m[2])) / uu; return [m[0] + mu * u[0], m[1] + mu * u[1], m[2] + mu * u[2]]; });
+    }
+    return M;
+  }
+  function solveN(A, b) {
+    var n = b.length, M = A.map(function (r, i) { return r.concat([b[i]]); });
+    for (var k = 0; k < n; k++) {
+      var p = k; for (var i = k + 1; i < n; i++) if (Math.abs(M[i][k]) > Math.abs(M[p][k])) p = i;
+      var tmp = M[k]; M[k] = M[p]; M[p] = tmp;
+      for (var i2 = k + 1; i2 < n; i2++) { var f = M[i2][k] / M[k][k]; for (var j = k; j <= n; j++) M[i2][j] -= f * M[k][j]; }
+    }
+    var x = new Array(n).fill(0);
+    for (var r = n - 1; r >= 0; r--) { var s = M[r][n]; for (var j2 = r + 1; j2 < n; j2++) s -= M[r][j2] * x[j2]; x[r] = s / M[r][r]; }
+    return x;
+  }
+  /** 백색 보존 6자유도에서 Σ ΔE00² 최소화 (Levenberg–Marquardt, 수치 야코비안) */
+  function fitLab(C, T, M0, iters) {
+    var TL = T.map(lab);
+    var p2M = function (p) { return [0, 1, 2].map(function (i) { return [p[2 * i], p[2 * i + 1], WD65[i] - p[2 * i] - p[2 * i + 1]]; }); };
+    var res = function (p) { var M = p2M(p); return C.map(function (c, n) { return CB.dE2000(lab(CB.mat.vec(M, c)), TL[n]); }); };
+    var sq = function (r) { return r.reduce(function (s, v) { return s + v * v; }, 0); };
+    var p = [M0[0][0], M0[0][1], M0[1][0], M0[1][1], M0[2][0], M0[2][1]], mu = 1e-3, r = res(p), cost = sq(r);
+    for (var it = 0; it < (iters || 25); it++) {
+      var J = [];
+      for (var k = 0; k < 6; k++) { var q = p.slice(); q[k] += 1e-5; var rq = res(q); J.push(rq.map(function (v, i) { return (v - r[i]) / 1e-5; })); }
+      var H = [], g = [];
+      for (var a = 0; a < 6; a++) {
+        H.push([]); var s = 0; for (var i = 0; i < r.length; i++) s += J[a][i] * r[i]; g.push(-s);
+        for (var b = 0; b < 6; b++) { var h = 0; for (var i3 = 0; i3 < r.length; i3++) h += J[a][i3] * J[b][i3]; H[a].push(h); }
+      }
+      var ok = false;
+      for (var tr = 0; tr < 8 && !ok; tr++) {
+        var Hd = H.map(function (row, i) { return row.map(function (v, j) { return i === j ? v * (1 + mu) + 1e-9 : v; }); });
+        var d = solveN(Hd, g), pn = p.map(function (v, i) { return v + d[i]; }), rn = res(pn), cn = sq(rn);
+        if (cn < cost) { p = pn; r = rn; cost = cn; mu = Math.max(1e-7, mu / 3); ok = true; } else mu *= 4;
+      }
+      if (!ok) break;
+    }
+    return p2M(p);
+  }
+  function evalM(M, C, T) {
+    var d = C.map(function (c, n) { return CB.dE2000(lab(CB.mat.vec(M, c)), lab(T[n])); });
+    var dab = C.map(function (c, n) { return CB.dE76(lab(CB.mat.vec(M, c)), lab(T[n])); });
+    var avg = function (a) { return a.reduce(function (s, v) { return s + v; }, 0) / a.length; };
+    return { d: d, mean: avg(d), max: Math.max.apply(null, d), meanAb: avg(dab) };
+  }
+  function toSRGB(M) { return CB.mat.mul(CB.M_SRGB_INV, M); }
+  function noiseGain(M) { return toSRGB(M).map(function (r) { return Math.hypot(r[0], r[1], r[2]); }); }
+  function gRms(M) { var g = noiseGain(M); return Math.sqrt((g[0] * g[0] + g[1] * g[1] + g[2] * g[2]) / 3); }
+  function weighted(arr, E) { return arr.map(function (c, i) { return c.map(function (v) { return v * E[i]; }); }); }
+  function voraNu(sens, E) {
+    var Aw = weighted(CMF, E), Sw = weighted(sens, E), AtS = cross(Aw, Sw);
+    var SA = [0, 1, 2].map(function (i) { return [0, 1, 2].map(function (j) { return AtS[j][i]; }); });
+    var Q = CB.mat.mul(CB.mat.mul(CB.mat.inv(gram(Aw)), AtS), CB.mat.mul(CB.mat.inv(gram(Sw)), SA));
+    return (Q[0][0] + Q[1][1] + Q[2][2]) / 3;
+  }
+  function lutherFit(sens, E) {
+    var Sw = weighted(sens, E), Aw = weighted(CMF, E);
+    var M = CB.mat.mul(cross(Aw, Sw), CB.mat.inv(gram(Sw)));
+    var num = 0, den = 0;
+    var fit = sens.map(function (s, i) { var f = CB.mat.vec(M, s); for (var k = 0; k < 3; k++) { num += Math.pow((f[k] - CMF[i][k]) * E[i], 2); den += Math.pow(CMF[i][k] * E[i], 2); } return f; });
+    return { fit: fit, rel: Math.sqrt(num / den) };
+  }
+  /* 몬드리안 장면 */
+  var GX = 8, GY = 6;
+  function makeScene(seed, bias, white, nSurf, shade) {
+    var rnd = mulberry32(seed), surf = [], cells = [];
+    for (var i = 0; i < nSurf; i++) surf.push(randRefl(rnd, bias !== "none" && rnd() < 0.6 ? bias : null));
+    for (var j = 0; j < GX * GY; j++) cells.push({ R: surf[Math.floor(rnd() * nSurf)], k: shade ? 0.25 + 0.75 * rnd() : 1 });
+    if (white) cells[Math.floor(rnd() * GX * GY)] = { R: WL.map(function () { return 0.9; }), k: 1 };
+    return cells;
+  }
+  function angErr(a, b) {
+    var d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    return Math.acos(CB.clamp(d / (Math.hypot(a[0], a[1], a[2]) * Math.hypot(b[0], b[1], b[2])), -1, 1)) * 180 / Math.PI;
+  }
+  function estimate(raw) {
+    var n = raw.length, gw = [0, 0, 0], wp = [0, 0, 0], sg = [0, 0, 0], ge = [0, 0, 0], ne = 0;
+    raw.forEach(function (c) { for (var k = 0; k < 3; k++) { gw[k] += c[k] / n; wp[k] = Math.max(wp[k], c[k]); sg[k] += Math.pow(c[k], 6) / n; } });
+    for (var y = 0; y < GY; y++) for (var x = 0; x < GX; x++) {
+      var a = raw[y * GX + x];
+      [[1, 0], [0, 1]].forEach(function (d) {
+        var xx = x + d[0], yy = y + d[1]; if (xx >= GX || yy >= GY) return;
+        var b = raw[yy * GX + xx]; for (var k = 0; k < 3; k++) ge[k] += Math.abs(a[k] - b[k]); ne++;
+      });
+    }
+    return { gw: gw, wp: wp, sog: sg.map(function (v) { return Math.pow(v, 1 / 6); }), ge: ge.map(function (v) { return v / ne; }) };
+  }
+
+  /* ===== 공용 그리기 ===== */
+  var F = function (x, d) { return x.toFixed(d == null ? 2 : d); };
+  var D65 = illumArr("D65");
+  var T_D65 = TCS.map(function (R) { return targetXYZ(D65, R); });
+  var T_SYN = SYN.map(function (R) { return targetXYZ(D65, R); });
+  function matText(M) {
+    return toSRGB(M).map(function (r) { return r.map(function (v) { return (v < 0 ? "" : " ") + v.toFixed(3); }).join("  ") + "   Σ=" + (r[0] + r[1] + r[2]).toFixed(3); }).join("\n");
+  }
+  function inkFor(rgb8) { return CB.relLum(rgb8) > 0.28 ? "#111" : "#f4f4f4"; }
+  /** 위 = 기준, 아래 = 재현 견본 7×2 + ΔE00 막대 */
+  function tilesBars(ctx, w, h, ref, rep, d) {
+    var P = CB.palette(), pad = 10, cols = 7, gap = 6;
+    var tw = (w - 2 * pad - (cols - 1) * gap) / cols, th = Math.min(tw * 1.05, h * 0.24);
+    ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (var n = 0; n < 14; n++) {
+      var x = pad + (n % cols) * (tw + gap), y = pad + Math.floor(n / cols) * (th + gap);
+      var a = CB.XYZ2rgb8(ref[n]), b = CB.XYZ2rgb8(rep[n]);
+      ctx.fillStyle = CB.rgb8css(a); ctx.fillRect(x, y, tw, th / 2);
+      ctx.fillStyle = CB.rgb8css(b); ctx.fillRect(x, y + th / 2, tw, th / 2);
+      ctx.fillStyle = inkFor(a); ctx.fillText(String(n + 1).padStart(2, "0"), x + tw / 2, y + th / 4);
+      ctx.fillStyle = inkFor(b); ctx.fillText(d[n].toFixed(1), x + tw / 2, y + th * 0.75);
+    }
+    var top = pad + 2 * th + gap + 14, ymax = Math.max(4, Math.ceil(Math.max.apply(null, d) + 0.5));
+    var mean = d.reduce(function (s, v) { return s + v; }, 0) / d.length;
+    var ch = CB.chart(ctx, { x: 48, y: top, w: w - 48 - 12, h: h - top - 40 }, {
+      x: [0.5, 14.5], y: [0, ymax], xTicks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], xFmt: function (v) { return String(v); },
+      yLabel: "ΔE00", xLabel: "TCS 번호", hlines: [{ y: mean, color: P.accent, label: "평균 " + mean.toFixed(2) }]
+    });
+    d.forEach(function (v, i) {
+      var bx = ch.X(i + 1) - 0.32 * (ch.X(2) - ch.X(1));
+      ctx.fillStyle = v > 3 ? P.bad : v > 1.5 ? P.warn : P.ok;
+      ctx.fillRect(bx, ch.Y(v), 0.64 * (ch.X(2) - ch.X(1)), ch.Y(0) - ch.Y(v));
+    });
+  }
+
+  /* ===== 공유 카메라 상태 ===== */
+  var cam = { p: { rP: 600, rW: 100, gP: 530, gW: 100, bP: 460, bW: 90, ir: true, cut: 650 } };
+  var listeners = [];
+  function updateCam() {
+    cam.sens = camSens(cam.p);
+    cam.C = TCS.map(function (R) { return camWB(cam.sens, D65, R); });
+    cam.Csyn = SYN.map(function (R) { return camWB(cam.sens, D65, R); });
+    cam.Mw = fitLS(cam.C, T_D65, { white: true });
+    listeners.forEach(function (f) { f(); });
+  }
+
+  /* ===== SIM 1: 감도 설계기 ===== */
+  (function () {
+    var ids = ["rP", "rW", "gP", "gW", "bP", "bW", "cut"], get = {}, batch = false;
+    var cv, view, irEl = document.getElementById("d-ir");
+    var PRESETS = {
+      base: { rP: 600, rW: 100, gP: 530, gW: 100, bP: 460, bW: 90, cut: 650 },
+      narrow: { rP: 610, rW: 60, gP: 540, gW: 70, bP: 450, bW: 50, cut: 660 },
+      wide: { rP: 600, rW: 130, gP: 530, gW: 140, bP: 460, bW: 120, cut: 660 }
+    };
+    function onInput() { if (batch) return; ids.forEach(function (k) { cam.p[k] = get[k](); }); cam.p.ir = irEl.checked; updateCam(); }
+    ids.forEach(function (k) { get[k] = CB.range("d-" + k, function (v) { return v + " nm"; }, onInput); });
+    irEl.addEventListener("change", onInput);
+    view = CB.seg("d-view", function () { cv.redraw(); });
+    CB.seg("d-preset", function (v) { batch = true; ids.forEach(function (k) { get[k].set(PRESETS[v][k]); }); batch = false; onInput(); });
+    cv = CB.canvas(document.getElementById("cv-design"), function (ctx) {
+      if (!cam.sens) return;
+      var P = CB.palette(), col = [P.red, P.green, P.blue], E = D65, series = [];
+      if (view() === "sens") {
+        var mx = [0, 1, 2].map(function (k) { return Math.max.apply(null, CMF.map(function (c) { return c[k]; })); });
+        [0, 1, 2].forEach(function (k) {
+          series.push({ data: WL.map(function (l, i) { return [l, cam.sens[i][k]]; }), color: col[k], width: 2.2 });
+          series.push({ data: WL.map(function (l, i) { return [l, CMF[i][k] / mx[k]]; }), color: col[k], width: 1.3, dash: [5, 4] });
+        });
+        if (cam.p.ir) series.push({ data: WL.map(function (l) { return [l, 1 / (1 + Math.exp((l - cam.p.cut) / 8))]; }), color: P.faint, width: 1.2, dash: [2, 3] });
+        CB.chart(ctx, null, { x: [380, 780], y: [0, 1.1], xLabel: "파장 (nm)", yLabel: "정규화 감도", series: series });
+      } else {
+        var lf = lutherFit(cam.sens, E);
+        [0, 1, 2].forEach(function (k) {
+          series.push({ data: WL.map(function (l, i) { return [l, CMF[i][k]]; }), color: col[k], width: 1.3, dash: [5, 4] });
+          series.push({ data: WL.map(function (l, i) { return [l, lf.fit[i][k]]; }), color: col[k], width: 2.2 });
+        });
+        CB.chart(ctx, null, { x: [380, 780], y: [-0.3, 1.9], xLabel: "파장 (nm)", yLabel: "x̄ ȳ z̄ 와 M·s (D65 가중 최소자승)", series: series, hlines: [{ y: 0, color: P.axis, dash: [] }] });
+      }
+    }, { aspect: 0.55, minHeight: 260, maxHeight: 420 });
+    listeners.push(function () {
+      var nu = voraNu(cam.sens, D65), lf = lutherFit(cam.sens, D65), e = evalM(cam.Mw, cam.C, T_D65);
+      var M8 = fitLS(cam.C.slice(0, 8), T_D65.slice(0, 8)), e8 = evalM(M8, cam.C.slice(0, 8), T_D65.slice(0, 8));
+      CB.stat("o-d-nu", nu.toFixed(4));
+      CB.stat("o-d-res", (100 * lf.rel).toFixed(1) + " %");
+      CB.stat("o-d-de", F(e.mean) + " / " + F(e.max));
+      CB.stat("o-d-smi", (100 - 5.5 * e8.meanAb).toFixed(1));
+      CB.stat("o-d-ng", noiseGain(cam.Mw).map(function (v) { return F(v); }).join(" / "));
+      cv.redraw();
+    });
+  })();
+
+  /* ===== SIM 2: CCM 피팅 ===== */
+  (function () {
+    var method, train, cv, res = null;
+    function compute() {
+      var tr = train(), C, T;
+      if (tr === "tcs") { C = cam.C; T = T_D65; }
+      else if (tr === "syn") { C = cam.Csyn; T = T_SYN; }
+      else { C = cam.C.concat(cam.Csyn); T = T_D65.concat(T_SYN); }
+      var M = method() === "ls" ? fitLS(C, T) : fitLS(C, T, { white: true });
+      if (method() === "lab") M = fitLab(C, T, M);
+      var e = evalM(M, cam.C, T_D65), et = evalM(M, C, T);
+      res = { M: M, e: e, rep: cam.C.map(function (c) { return CB.mat.vec(M, c); }) };
+      CB.stat("o-c-mean", F(e.mean)); CB.stat("o-c-max", F(e.max) + " (TCS" + String(e.d.indexOf(e.max) + 1).padStart(2, "0") + ")");
+      CB.stat("o-c-white", F(CB.dE2000(lab(CB.mat.vec(M, [1, 1, 1])), lab(WD65))));
+      CB.stat("o-c-train", F(et.mean) + " (N=" + C.length + ")");
+      CB.stat("o-c-ng", F(gRms(M)));
+      document.getElementById("c-mat").textContent = matText(M);
+      cv.redraw();
+    }
+    method = CB.seg("c-method", compute); train = CB.seg("c-train", compute);
+    cv = CB.canvas(document.getElementById("cv-ccm"), function (ctx, w, h) { if (res) tilesBars(ctx, w, h, T_D65, res.rep, res.e.d); }, { aspect: 0.72, minHeight: 330, maxHeight: 520 });
+    listeners.push(compute);
+  })();
+
+  /* ===== SIM 5: 릿지 트레이드오프 ===== */
+  (function () {
+    var getL, getS, cv, curve = [], cur = null;
+    var SHOW = [8, 0, 4, 9, 10, 11, 12];
+    var GRAY = WL.map(function () { return 0.18; });
+    function rebuildCurve() {
+      curve = [];
+      for (var v = -4; v <= 1.0001; v += 0.125) {
+        var M = fitLS(cam.C, T_D65, { ridge: Math.pow(10, v) });
+        curve.push([gRms(M), evalM(M, cam.C, T_D65).mean, v]);
+      }
+    }
+    function compute() {
+      var M = fitLS(cam.C, T_D65, { ridge: Math.pow(10, getL()) }), e = evalM(M, cam.C, T_D65), g = noiseGain(M);
+      cur = { M: M, e: e, g: g };
+      CB.stat("o-r-de", F(e.mean) + " / " + F(e.max));
+      CB.stat("o-r-g", g.map(function (v) { return F(v); }).join(" / "));
+      CB.stat("o-r-rms", F(gRms(M)));
+      var gray = toSRGB(M).map(function (r) { return r[0] + r[1] + r[2]; });
+      CB.stat("o-r-gray", F(getS() * g[0] / 0.18 / gray[0], 1) + " % (신호 대비)");
+      document.getElementById("r-mat").textContent = matText(M);
+      cv.redraw();
+    }
+    getL = CB.range("r-lam", function (v) { return v <= -4 ? "−4 (≈최소자승)" : v.toFixed(1); }, compute);
+    getS = CB.range("r-sig", function (v) { return v.toFixed(2) + " %"; }, function () { cv.redraw(); });
+    cv = CB.canvas(document.getElementById("cv-ridge"), function (ctx, w, h) {
+      if (!cur) return;
+      var P = CB.palette(), narrow = w < 560;
+      var cw = narrow ? w : w * 0.58, chh = narrow ? h * 0.55 : h;
+      var gx = curve.map(function (c) { return c[0]; }), dy = curve.map(function (c) { return c[1]; });
+      var ch = CB.chart(ctx, { x: 52, y: 14, w: cw - 52 - 14, h: chh - 14 - 46 }, {
+        x: [0.9, Math.max.apply(null, gx) * 1.05], y: [0, Math.ceil(Math.max.apply(null, dy) + 0.5)],
+        xLabel: "노이즈 이득 g_rms", yLabel: "평균 ΔE00 (TCS 14)",
+        series: [{ data: curve.map(function (c) { return [c[0], c[1]]; }), color: P.accent, width: 2 }],
+        points: [{ x: gRms(cur.M), y: cur.e.mean, color: P.bad, r: 5, label: "λ=10^" + getL().toFixed(1) }]
+      });
+      void ch;
+      // 노이즈 견본
+      var ox = narrow ? 10 : cw + 10, oy = narrow ? chh + 6 : 16, aw = (narrow ? w : w - cw) - 20, ah = (narrow ? h - chh - 12 : h - 32);
+      var n = SHOW.length + 1, cols = narrow ? 8 : 4, rows = Math.ceil(n / cols), gap = 6;
+      var ts = Math.min((aw - (cols - 1) * gap) / cols, (ah - (rows - 1) * gap - 14) / rows), blk = Math.max(2, Math.round(ts / 12));
+      var rnd = mulberry32(7), sig = getS() / 100;
+      var randn = function () { var u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+      ctx.fillStyle = P.dim; ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--font"); ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText("노이즈 견본 (TCS09–13, 05, 01, 18% 회색)", ox, oy - 2);
+      for (var t = 0; t < n; t++) {
+        var c = t < SHOW.length ? cam.C[SHOW[t]] : camWB(cam.sens, D65, GRAY);
+        var x0 = ox + (t % cols) * (ts + gap), y0 = oy + 14 + Math.floor(t / cols) * (ts + gap);
+        for (var by = 0; by + blk <= ts + 0.01; by += blk) for (var bx = 0; bx + blk <= ts + 0.01; bx += blk) {
+          var cn = [c[0] + sig * randn(), c[1] + sig * randn(), c[2] + sig * randn()];
+          ctx.fillStyle = CB.XYZ2css(CB.mat.vec(cur.M, cn)); ctx.fillRect(x0 + bx, y0 + by, blk, blk);
+        }
+      }
+    }, { aspect: 0.5, minHeight: 440, maxHeight: 460 });
+    listeners.push(function () { rebuildCurve(); compute(); });
+  })();
+
+  /* ===== SIM 3: AWB 비교 ===== */
+  (function () {
+    var ill, getT, getN, bias, show, cv, seed = 3, state = null;
+    var whiteEl = document.getElementById("a-white"), shadeEl = document.getElementById("a-shade");
+    var KEYS = ["gw", "wp", "sog", "ge"], NAMES = { gw: "GW", wp: "WP", sog: "SoG", ge: "GE" };
+    function illKey() { return ill() === "BB" ? "BB" + getT() : ill(); }
+    function sceneRaw(E, s) {
+      return makeScene(s, bias(), whiteEl.checked, getN(), shadeEl.checked).map(function (c) { return respond(cam.sens, E, c.R).map(function (v) { return v * c.k; }); });
+    }
+    function compute() {
+      var E = illumArr(illKey()), truth = respond(cam.sens, E, null), raw = sceneRaw(E, seed), est = estimate(raw);
+      var acc = { gw: [], wp: [], sog: [], ge: [] };
+      for (var s = 1000; s < 1060; s++) { var es = estimate(sceneRaw(E, s)); KEYS.forEach(function (k) { acc[k].push(angErr(es[k], truth)); }); }
+      KEYS.forEach(function (k) {
+        var a = acc[k].sort(function (x, y) { return x - y; }), med = (a[29] + a[30]) / 2;
+        CB.stat("o-a-" + k, F(angErr(est[k], truth), 1) + "° · " + F(med, 1) + "°");
+      });
+      CB.stat("o-a-cct", Math.round(CB.cct(CB.XYZ2xy(whiteXYZof(E)))) + " K");
+      state = { E: E, truth: truth, raw: raw, est: est };
+      cv.redraw();
+    }
+    ill = CB.seg("a-ill", compute); bias = CB.seg("a-bias", compute); show = CB.seg("a-show", function () { cv.redraw(); });
+    getT = CB.range("a-T", function (v) { return v + " K"; }, function () { if (ill() === "BB") compute(); });
+    getN = CB.range("a-n", null, compute);
+    whiteEl.addEventListener("change", compute); shadeEl.addEventListener("change", compute);
+    document.getElementById("a-seed").addEventListener("click", function () { seed++; compute(); });
+    var wD = null;
+    cv = CB.canvas(document.getElementById("cv-awb"), function (ctx, w, h) {
+      if (!state) return;
+      var P = CB.palette(), narrow = w < 560, mode = show();
+      var mw = narrow ? w - 20 : w * 0.46, mh = mw * GY / GX;
+      if (narrow && mh > h * 0.45) { mh = h * 0.45; mw = mh * GX / GY; }
+      var mx = 10, my = 10, cwid = mw / GX, chei = mh / GY;
+      var est = mode === "true" ? state.truth : mode === "none" ? wD : state.est[mode];
+      var tr = state.truth;
+      var gains = [est[1] / est[0] / tr[1], 1 / tr[1], est[1] / est[2] / tr[1]];
+      state.raw.forEach(function (c, i) {
+        var x = mx + (i % GX) * cwid, y = my + Math.floor(i / GX) * chei;
+        ctx.fillStyle = CB.XYZ2css(CB.mat.vec(cam.Mw, [c[0] * gains[0], c[1] * gains[1], c[2] * gains[2]]));
+        ctx.fillRect(x, y, cwid + 0.5, chei + 0.5);
+      });
+      ctx.fillStyle = P.dim; ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--font"); ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText(mode === "none" ? "D65 이득 고정(보정 없음)" : "보정: " + (mode === "true" ? "정답 광원" : NAMES[mode]) + (mode !== "true" ? " · 오차 " + F(angErr(est, tr), 1) + "°" : ""), mx, my + mh + 6);
+      // 카메라 rg 색도 (D65 백색 정규화)
+      var rg = function (c) { var v = [c[0] / wD[0], c[1] / wD[1], c[2] / wD[2]], s = v[0] + v[1] + v[2]; return [v[0] / s, v[1] / s]; };
+      var box = narrow ? { x: 50, y: my + mh + 30, w: w - 50 - 14, h: h - (my + mh + 30) - 44 } : { x: mw + 66, y: 14, w: w - mw - 66 - 14, h: h - 14 - 46 };
+      var ch = CB.chart(ctx, box, { x: [0.1, 0.75], y: [0.1, 0.55], xLabel: "r = R/(R+G+B)", yLabel: "g", series: [] });
+      ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+      ctx.strokeStyle = P.faint; ctx.lineWidth = 1.5; ctx.beginPath();
+      for (var T = 2000; T <= 10000; T += 250) { var q = rg(respond(cam.sens, illumArr("BB" + T), null)); T === 2000 ? ctx.moveTo(ch.X(q[0]), ch.Y(q[1])) : ctx.lineTo(ch.X(q[0]), ch.Y(q[1])); }
+      ctx.stroke();
+      state.raw.forEach(function (c) {
+        var q = rg(c); ctx.fillStyle = CB.XYZ2css(CB.mat.vec(cam.Mw, [c[0] / tr[0], c[1] / tr[1], c[2] / tr[2]].map(function (v) { return v * 0.8; })));
+        ctx.beginPath(); ctx.arc(ch.X(q[0]), ch.Y(q[1]), 3.2, 0, 7); ctx.fill();
+      });
+      var t0 = rg(tr); ctx.strokeStyle = P.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ch.X(t0[0]), ch.Y(t0[1]), 8, 0, 7); ctx.stroke();
+      ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+      KEYS.forEach(function (k, i) {
+        var q = rg(state.est[k]), X = ch.X(q[0]), Y = ch.Y(q[1]);
+        ctx.fillStyle = P.series[i]; ctx.fillRect(X - 3.5, Y - 3.5, 7, 7);
+        ctx.fillText(NAMES[k], X + 6, Y - 10 + i * 4);
+      });
+      ctx.restore();
+    }, { aspect: 0.5, minHeight: 470, maxHeight: 480 });
+    listeners.push(function () { wD = respond(cam.sens, D65, null); compute(); });
+  })();
+
+  /* ===== SIM 4: 광원 불일치와 mired 보간 ===== */
+  (function () {
+    var ill, getT, cv, st = null, MA = null;
+    var LBL = ["D65 CCM", "A CCM", "mired 보간", "전용 CCM"];
+    function fitFor(E) { return fitLS(TCS.map(function (R) { return camWB(cam.sens, E, R); }), TCS.map(function (R) { return targetXYZ(E, R); }), { white: true }); }
+    function compute() {
+      var E = illumArr(ill() === "BB" ? "BB" + getT() : ill());
+      var C = TCS.map(function (R) { return camWB(cam.sens, E, R); }), T = TCS.map(function (R) { return targetXYZ(E, R); });
+      var cct = CB.cct(CB.XYZ2xy(whiteXYZof(E)));
+      var g = CB.clamp((1 / cct - 1 / 6504) / (1 / 2856 - 1 / 6504), 0, 1);
+      var MI = cam.Mw.map(function (r, i) { return r.map(function (v, j) { return g * MA[i][j] + (1 - g) * v; }); });
+      var ev = [cam.Mw, MA, MI, fitFor(E)].map(function (M) { return evalM(M, C, T); });
+      st = { ev: ev, g: g, cct: cct };
+      CB.stat("o-m-cct", Math.round(cct) + " K · g = " + F(g));
+      ["o-m-d65", "o-m-a", "o-m-int", "o-m-own"].forEach(function (id, i) { CB.stat(id, F(ev[i].mean) + " / " + F(ev[i].max)); });
+      cv.redraw();
+    }
+    ill = CB.seg("m-ill", compute);
+    getT = CB.range("m-T", function (v) { return v + " K"; }, function () { if (ill() === "BB") compute(); });
+    function legend() {
+      var P = CB.palette();
+      document.getElementById("mix-legend").innerHTML = LBL.map(function (l, i) { return '<span><i style="background:' + P.series[i] + '"></i>' + l + "</span>"; }).join("");
+    }
+    CB.onTheme(legend); legend();
+    cv = CB.canvas(document.getElementById("cv-mix"), function (ctx, w, h) {
+      if (!st) return;
+      var P = CB.palette(), font = getComputedStyle(document.body).getPropertyValue("--mono");
+      // mired 축
+      var ax0 = 50, ax1 = w - 20, yA = 34, mir = function (m) { return ax0 + (500 - m) / 400 * (ax1 - ax0); };
+      ctx.strokeStyle = P.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ax0, yA); ctx.lineTo(ax1, yA); ctx.stroke();
+      ctx.strokeStyle = P.accent; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(mir(1e6 / 2856), yA); ctx.lineTo(mir(1e6 / 6504), yA); ctx.stroke();
+      ctx.font = "11px " + font; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      [[2856, "A"], [6504, "D65"]].forEach(function (p) { ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(mir(1e6 / p[0]), yA, 5, 0, 7); ctx.fill(); ctx.fillStyle = P.dim; ctx.fillText(p[1], mir(1e6 / p[0]), yA - 8); });
+      var ms = CB.clamp(1e6 / st.cct, 100, 500);
+      ctx.fillStyle = P.bad; ctx.beginPath(); ctx.arc(mir(ms), yA, 5, 0, 7); ctx.fill();
+      ctx.textBaseline = "top"; ctx.fillStyle = P.text; ctx.fillText(Math.round(1e6 / st.cct) + " mired", mir(ms), yA + 8);
+      ctx.textAlign = "left"; ctx.fillStyle = P.dim; ctx.fillText("2000 K", ax0, yA + 8); ctx.textAlign = "right"; ctx.fillText("10000 K", ax1, yA + 8);
+      // 막대
+      var ymax = Math.max(4, Math.ceil(Math.max.apply(null, st.ev.map(function (e) { return e.max; })) + 0.5));
+      var ch = CB.chart(ctx, { x: 50, y: 70, w: w - 50 - 14, h: h - 70 - 42 }, { x: [0.5, 14.5], y: [0, ymax], xTicks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], xFmt: function (v) { return String(v); }, xLabel: "TCS 번호", yLabel: "ΔE00" });
+      var gw = ch.X(2) - ch.X(1), bw = gw * 0.8 / 4;
+      st.ev.forEach(function (e, s) {
+        ctx.fillStyle = P.series[s];
+        e.d.forEach(function (v, i) { var x = ch.X(i + 1) - gw * 0.4 + s * bw; ctx.fillRect(x, ch.Y(v), bw - 0.5, ch.Y(0) - ch.Y(v)); });
+      });
+    }, { aspect: 0.55, minHeight: 320, maxHeight: 440 });
+    listeners.push(function () { MA = fitFor(illumArr("A")); compute(); });
+  })();
+
+  /* ===== SIM 6: 룩 ===== */
+  (function () {
+    var gC, gS, gE, cv, camEl = document.getElementById("l-cam"), st = null;
+    function look(XYZ) {
+      var lin = CB.XYZ2linRGB(XYZ), Y = Math.max(1e-6, XYZ[1]);
+      var Yn = 0.18 * Math.pow(2, gC() * Math.log2(Y / 0.18) + gE()), k = Yn / Y;
+      var ok = CB.linRGB2oklab(lin.map(function (v) { return v * k; }));
+      var out = CB.oklab2linRGB([ok[0], ok[1] * gS(), ok[2] * gS()]);
+      var clipped = out.some(function (v) { return v < -1e-4 || v > 1 + 1e-4; });
+      return { XYZ: CB.linRGB2XYZ(out.map(function (v) { return CB.clamp(v, 0, 1); })), clipped: clipped };
+    }
+    function compute() {
+      var base = camEl.checked ? cam.C.map(function (c) { return CB.mat.vec(cam.Mw, c); }) : T_D65;
+      var outs = base.map(look), rep = outs.map(function (o) { return o.XYZ; });
+      var d = rep.map(function (x, n) { return CB.dE2000(lab(x), lab(T_D65[n])); });
+      var dL = 0, dC = 0;
+      rep.forEach(function (x, n) { var a = CB.Lab2LCh(lab(x)), b = CB.Lab2LCh(lab(T_D65[n])); dL += (a[0] - b[0]) / 14; dC += (a[1] - b[1]) / 14; });
+      st = { rep: rep, d: d };
+      CB.stat("o-l-de", F(d.reduce(function (s, v) { return s + v; }, 0) / 14) + " / " + F(Math.max.apply(null, d)));
+      CB.stat("o-l-dlc", (dL >= 0 ? "+" : "") + F(dL, 1) + " / " + (dC >= 0 ? "+" : "") + F(dC, 1));
+      CB.stat("o-l-clip", outs.filter(function (o) { return o.clipped; }).length + " / 14");
+      cv.redraw();
+    }
+    gC = CB.range("l-con", function (v) { return v.toFixed(2); }, compute);
+    gS = CB.range("l-sat", function (v) { return v.toFixed(2); }, compute);
+    gE = CB.range("l-ev", function (v) { return (v >= 0 ? "+" : "") + v.toFixed(2) + " EV"; }, compute);
+    camEl.addEventListener("change", compute);
+    cv = CB.canvas(document.getElementById("cv-look"), function (ctx, w, h) { if (st) tilesBars(ctx, w, h, T_D65, st.rep, st.d); }, { aspect: 0.72, minHeight: 330, maxHeight: 520 });
+    listeners.push(compute);
+  })();
+
+  updateCam();
+})();
+</script>
+</body>
+</html>

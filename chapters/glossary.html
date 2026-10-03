@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>용어집 &amp; 종합 퀴즈 · ColorBook</title>
+<meta name="description" content="색채공학 핵심 용어 190여 개를 한국어·영어·약어로 검색하고, 자주 쓰는 표준 수치를 한 표로 확인한 뒤, 전 장을 아우르는 36문항 종합 퀴즈로 실력을 점검한다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/glossary.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="용어집 &amp; 종합 퀴즈 · ColorBook">
+<meta property="og:description" content="색채공학 핵심 용어 190여 개를 한국어·영어·약어로 검색하고, 자주 쓰는 표준 수치를 한 표로 확인한 뒤, 전 장을 아우르는 36문항 종합 퀴즈로 실력을 점검한다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/glossary.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"용어집 & 종합 퀴즈","name":"용어집 & 종합 퀴즈 · ColorBook","url":"https://colorbook.euiyun.com/chapters/glossary.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/glossary.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":20,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"색채공학 핵심 용어 190여 개를 한국어·영어·약어로 검색하고, 자주 쓰는 표준 수치를 한 표로 확인한 뒤, 전 장을 아우르는 36문항 종합 퀴즈로 실력을 점검한다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"20 용어집 & 종합 퀴즈","item":"https://colorbook.euiyun.com/chapters/glossary.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  [hidden] { display: none !important; }
+  .gl-tools { display: grid; gap: 10px; margin-bottom: 18px; }
+  .gl-tools .row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+  .gl-tools .lbl { font-size: 13px; color: var(--text-dim); }
+  .gl-tools .seg button { font-size: 12.5px; padding: 4px 9px; }
+  .gl-search { margin-bottom: 0 !important; }
+  .gl-count { font-size: 13px; color: var(--text-faint); margin-left: auto; }
+  #gl-list { max-height: min(78vh, 980px); overflow-y: auto; overscroll-behavior: contain; padding: 2px 6px 2px 2px; border-radius: 12px; }
+  .gl-group { position: sticky; top: 0; z-index: 1; background: var(--bg); font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--accent); letter-spacing: .06em; margin: 14px 0 0; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .gl-group:first-child { margin-top: 0; }
+  .gl-item h4 { overflow-wrap: anywhere; }
+  .gl-item h4 .abbr { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent-2); background: var(--accent-2-soft); border-radius: 5px; padding: 1px 6px; margin-left: 6px; vertical-align: 1px; }
+  .gl-item mark { background: color-mix(in srgb, var(--warn) 35%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .gl-item .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-top: 6px; }
+  .gl-item .meta .ch { margin-top: 0; }
+  .gl-item .cat { font-size: 11.5px; color: var(--text-faint); border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; }
+  .gl-empty { padding: 24px; text-align: center; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 12px; }
+  .const-table td:first-child { white-space: nowrap; }
+  .const-table td.mono { font-family: var(--mono); font-size: 13.5px; }
+
+  .fq { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .fq-top { display: flex; justify-content: space-between; gap: 10px; padding: 12px 18px 8px; font-size: 13px; color: var(--text-dim); font-family: var(--mono); }
+  .fq-bar { height: 6px; background: var(--surface-2); margin: 0 18px; border-radius: 3px; overflow: hidden; }
+  .fq-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .3s ease; }
+  .fq-card, .fq-result { padding: 18px 20px 20px; }
+  .fq-ch { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .04em; margin-bottom: 6px; }
+  .fq-q { font-weight: 700; font-size: 17px; margin: 0 0 14px !important; }
+  .fq-opts { display: grid; gap: 8px; }
+  .fq-opt { text-align: left; font: inherit; font-size: 15px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; line-height: 1.5; display: flex; gap: 10px; align-items: baseline; }
+  .fq-opt .n { font-family: var(--mono); font-size: 12px; color: var(--text-faint); flex: none; }
+  .fq-opt:hover:not(:disabled) { border-color: var(--accent); }
+  .fq-opt:disabled { cursor: default; }
+  .fq-opt.right { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 15%, transparent); font-weight: 600; }
+  .fq-opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  .fq-exp { margin-top: 12px; font-size: 15px; color: var(--text-dim); padding: 12px 14px; border-radius: 8px; background: var(--surface); }
+  .fq-exp b.ok { color: var(--ok); } .fq-exp b.bad { color: var(--bad); }
+  .fq-nav { display: flex; justify-content: flex-end; margin-top: 14px; }
+  .fq-result { text-align: center; }
+  .fq-rank { font-size: 13px; letter-spacing: .12em; color: var(--text-faint); font-weight: 700; }
+  .fq-title { font-size: clamp(24px, 5vw, 32px); font-weight: 800; letter-spacing: -0.02em; margin: 4px 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .fq-big { font-family: var(--mono); font-size: 40px; font-weight: 700; }
+  .fq-big small { font-size: 18px; color: var(--text-dim); }
+  .fq-chart { margin: 16px 0; text-align: left; background: var(--canvas-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .fq-chart canvas { display: block; width: 100%; }
+  .fq-review { text-align: left; font-size: 14px; color: var(--text-dim); margin: 0 0 16px; }
+  .fq-review a { font-weight: 600; }
+</style>
+</head>
+<body data-chapter="glossary">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 20</div>
+    <h1>용어집 &amp; 종합 퀴즈</h1>
+    <p class="lead">색채공학은 약어와 표준 번호의 숲이다. SPD, CCT, Duv, ΔE00, CAT16, OETF, PQ, ICtCp, PCS, BPC, GCR, APCA… 이 장은 책 전체에 흩어진 핵심 용어를 한곳에 모은 사전이자, 빛의 스펙트럼에서 인쇄 잉크까지 전 범위를 점검하는 마무리 시험이다.</p>
+    <ul class="objectives">
+      <li>한국어·영어·약어 어느 쪽으로든 용어를 찾아 정의와 해당 장으로 바로 이동할 수 있다.</li>
+      <li>실무에서 자주 꺼내 보는 표준 상수(백색점, 원색, 루마 계수, PQ 상수, 신호 범위)를 한 표로 확인한다.</li>
+      <li>계산 문제를 포함한 종합 퀴즈로 각 장의 핵심을 점검하고, 틀린 장을 골라 다시 공부한다.</li>
+    </ul>
+    <p style="margin-top:16px"><a href="#glossary">→ 용어집 바로 가기</a> · <a href="#constants">→ 표준 수치표</a> · <a href="#final-quiz">→ 종합 퀴즈 바로 풀기</a></p>
+  </header>
+
+  <section id="glossary">
+    <h2>용어집</h2>
+    <p>검색창에 한국어(예: <code>순응</code>), 영어(예: <code>gamut</code>), 약어(예: <code>EOTF</code>) 중 아무것이나 입력하면 바로 걸러진다. 정의 본문도 검색 대상이며, 용어 이름에서 일치한 항목이 먼저 나온다. 분야 칩으로 범위를 좁히고, 가나다순 또는 분야순으로 묶어 볼 수 있다. 각 항목 아래 링크는 그 용어를 본격적으로 다루는 장으로 이어진다.</p>
+    <div class="gl-tools">
+      <input type="search" class="gl-search" id="gl-q" placeholder="용어 검색: 예) 메타머, Bradford, PQ, 도트 게인" autocomplete="off" aria-label="용어 검색">
+      <div class="row">
+        <span class="lbl">분야</span>
+        <div class="seg" id="gl-cat">
+          <button data-value="all" class="on">전체</button>
+          <button data-value="light">빛·측광</button>
+          <button data-value="vision">시각</button>
+          <button data-value="cie">측색·CIE</button>
+          <button data-value="space">색공간·전달 함수</button>
+          <button data-value="diff">균등 색공간·색차</button>
+          <button data-value="white">색온도·색순응</button>
+          <button data-value="appear">색 외관</button>
+          <button data-value="lighting">조명</button>
+          <button data-value="meas">계측</button>
+          <button data-value="camera">카메라</button>
+          <button data-value="display">디스플레이·HDR</button>
+          <button data-value="video">영상 신호</button>
+          <button data-value="cms">색 관리</button>
+          <button data-value="print">인쇄·색료</button>
+          <button data-value="ui">UI·시각화</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl">정렬</span>
+        <div class="seg" id="gl-sort"><button data-value="kor" class="on">가나다순</button><button data-value="cat">분야순</button></div>
+        <span class="gl-count" id="gl-count"></span>
+      </div>
+    </div>
+    <div class="gl-list" id="gl-list" aria-live="polite"></div>
+    <div class="callout tip"><strong>용어를 쓸 때 흔한 혼동</strong>
+      <p><b>휘도</b>(luminance, 선형광의 측광량, cd/m²)와 <b>루마</b>(luma, 감마 인코딩된 R′G′B′의 가중합)는 다르다. <b>밝기</b>(brightness, 절대 지각)와 <b>명도</b>(lightness, 백색 대비 상대 지각)도 다르다. <b>채도</b>로 번역되는 말에는 크로마(chroma)·컬러풀니스(colorfulness)·포화도(saturation) 세 가지가 있다. 표준 문서와 논문을 읽을 때는 영어 원어를 확인하는 습관이 오류를 줄인다.</p>
+    </div>
+  </section>
+
+  <section id="constants">
+    <h2>자주 쓰는 표준 수치</h2>
+    <p>책 전체에서 반복해서 등장하는 상수를 모았다. 모두 표준 문서의 정의값이며, 계산 코드에 옮길 때는 반올림하지 않은 원래 값을 쓰는 것이 좋다.</p>
+    <div class="table-wrap"><table class="const-table">
+      <thead><tr><th>항목</th><th>값</th><th>근거 · 장</th></tr></thead>
+      <tbody>
+        <tr><td>최대 시감 효능 \(K_m\)</td><td class="mono">683 lm/W (540×10¹² Hz, 약 555 nm)</td><td>SI 칸델라 정의 · <a href="light.html">01</a></td></tr>
+        <tr><td>암소시 \(K'_m\)</td><td class="mono">약 1700 lm/W (507 nm)</td><td>CIE · <a href="light.html">01</a></td></tr>
+        <tr><td>D65 백색점</td><td class="mono">x = 0.3127, y = 0.3290 (약 6504 K)</td><td>ISO/CIE 11664-2 · <a href="adaptation.html">08</a></td></tr>
+        <tr><td>D50 백색점</td><td class="mono">x = 0.3457, y = 0.3585 (약 5003 K)</td><td>ISO 3664, ICC PCS · <a href="management.html">16</a></td></tr>
+        <tr><td>표준 광원 A</td><td class="mono">x = 0.4476, y = 0.4074 (약 2856 K)</td><td>CIE 015 · <a href="adaptation.html">08</a></td></tr>
+        <tr><td>BT.709 / sRGB 원색</td><td class="mono">R(0.640, 0.330) G(0.300, 0.600) B(0.150, 0.060)</td><td>ITU-R BT.709, IEC 61966-2-1 · <a href="rgb.html">05</a></td></tr>
+        <tr><td>DCI-P3 / Display P3 원색</td><td class="mono">R(0.680, 0.320) G(0.265, 0.690) B(0.150, 0.060)</td><td>SMPTE RP 431-2 · <a href="rgb.html">05</a></td></tr>
+        <tr><td>BT.2020 원색</td><td class="mono">R(0.708, 0.292) G(0.170, 0.797) B(0.131, 0.046)</td><td>ITU-R BT.2020 · <a href="rgb.html">05</a></td></tr>
+        <tr><td>sRGB 인코딩</td><td class="mono">L ≤ 0.0031308: 12.92·L, 그 외 1.055·L^(1/2.4) − 0.055</td><td>IEC 61966-2-1 · <a href="transfer.html">06</a></td></tr>
+        <tr><td>CIELAB 비선형 문턱</td><td class="mono">(6/29)³ ≈ 0.008856, 기울기 (29/6)²/3 ≈ 7.787</td><td>CIE 015 · <a href="uniform.html">07</a></td></tr>
+        <tr><td>루마 계수 \(K_R, K_B\)</td><td class="mono">BT.601 0.299/0.114 · BT.709 0.2126/0.0722 · BT.2020 0.2627/0.0593</td><td>ITU-R · <a href="encoding.html">15</a></td></tr>
+        <tr><td>리미티드 레인지</td><td class="mono">8 bit Y′ 16–235, C 16–240 · 10 bit Y′ 64–940, C 64–960</td><td>BT.709/2020 · <a href="encoding.html">15</a></td></tr>
+        <tr><td>PQ 상수</td><td class="mono">m₁ = 2610/16384, m₂ = 2523/4096×128, c₁ = 3424/4096, c₂ = 2413/4096×32, c₃ = 2392/4096×32</td><td>SMPTE ST 2084 · <a href="hdr.html">14</a></td></tr>
+        <tr><td>HLG OETF 상수</td><td class="mono">a = 0.17883277, b = 1 − 4a, c = 0.5 − a·ln(4a)</td><td>ITU-R BT.2100 · <a href="hdr.html">14</a></td></tr>
+        <tr><td>HDR 기준 백색</td><td class="mono">203 cd/m² (PQ 약 58 %, HLG 75 %)</td><td>ITU-R BT.2408 · <a href="hdr.html">14</a></td></tr>
+        <tr><td>WCAG 2.x 대비 기준</td><td class="mono">AA 본문 4.5:1, 큰 글자 3:1 · AAA 7:1</td><td>W3C WCAG 2.x · <a href="dataviz.html">18</a></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><strong>공학자 관점: 상수는 쌍으로 맞춘다</strong>
+      <p>원색과 백색점, 전달 함수, 루마 계수는 한 세트다. 예를 들어 BT.2020 원색 영상에 BT.709 루마 계수로 Y′CbCr를 디코딩하면 색이 미묘하게 틀어지고, D50 PCS 데이터를 D65 행렬로 바로 변환하면 백색이 노랗게 남는다. 파이프라인의 각 단계에서 “어떤 원색·백색·전달 함수·범위인가”를 메타데이터로 들고 다니는 것이 색 관리의 본질이다(<a href="management.html">16장</a>).</p>
+    </div>
+  </section>
+
+  <section id="final-quiz">
+    <h2>종합 퀴즈</h2>
+    <p>전 장에서 고른 36문항이다. 개념 문제와 함께 직접 계산해야 하는 문제가 섞여 있으니 계산기를 옆에 두자. 한 문제씩 풀면 해설과 관련 장 링크가 나오고, 끝까지 풀면 장별 정답 그래프와 등급을 보여 준다. 다시 풀기를 누르면 문제와 보기 순서가 섞인다.</p>
+    <div class="fq" id="fq">
+      <div class="fq-top"><span id="fq-count">문제 1 / 36</span><span id="fq-score">정답 0</span></div>
+      <div class="fq-bar"><i id="fq-fill"></i></div>
+      <div class="fq-card" id="fq-card">
+        <div class="fq-ch" id="fq-ch"></div>
+        <p class="fq-q" id="fq-q"></p>
+        <div class="fq-opts" id="fq-opts"></div>
+        <div class="fq-exp" id="fq-exp" hidden aria-live="polite"></div>
+        <div class="fq-nav"><button class="btn primary" id="fq-next" hidden>다음 문제 →</button></div>
+      </div>
+      <div class="fq-result" id="fq-result" hidden>
+        <div class="fq-rank">YOUR RANK</div>
+        <div class="fq-title" id="fq-title"></div>
+        <div class="fq-big" id="fq-big"></div>
+        <p id="fq-msg" style="color:var(--text-dim)"></p>
+        <div class="fq-chart"><canvas id="cv-fq"></canvas></div>
+        <p class="fq-review" id="fq-review"></p>
+        <button class="btn primary" id="fq-retry">다시 풀기 (문제 섞기)</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>마치며</h2>
+    <ol>
+      <li>색은 <b>스펙트럼 × 관측자 등색 함수의 적분</b>으로 정의되는 3차원 양이다. 이 선형성(그라스만 법칙) 위에 XYZ, 색도, RGB 행렬, 가산 혼합 모델이 모두 세워진다.</li>
+      <li>같은 3자극치라도 <b>보이는 색</b>은 백색점·순응·주변 조건에 따라 달라진다. 균등 색공간과 색차식, 색순응 변환, 색 외관 모델은 측색값을 지각에 가깝게 옮기기 위한 단계적 근사다.</li>
+      <li>장치 사이의 색 재현은 <b>원색·백색점·전달 함수·신호 범위</b>를 정확히 맞추는 일이다. 카메라의 CCM, 디스플레이의 3D LUT, 영상의 Y′CbCr, ICC 프로파일, 인쇄의 노이게바우어 모델은 모두 “장치 값 ↔ 측색 값” 사상을 만드는 서로 다른 방법이다.</li>
+      <li>틀린 문제가 있던 장으로 돌아가 시뮬레이터를 다시 만져 보고, <a href="workbench.html">19장 워크벤치</a>에서 스펙트럼 하나를 골라 XYZ → Lab → sRGB → Y′CbCr까지 직접 따라가 보자.</li>
+    </ol>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  /* =============================================================== 분야 */
+  var CATS = {
+    light: "빛·측광", vision: "시각", cie: "측색·CIE", space: "색공간·전달 함수", diff: "균등 색공간·색차",
+    white: "색온도·색순응", appear: "색 외관", lighting: "조명", meas: "계측", camera: "카메라",
+    display: "디스플레이·HDR", video: "영상 신호", cms: "색 관리", print: "인쇄·색료", ui: "UI·시각화"
+  };
+  var CAT_ORDER = Object.keys(CATS);
+
+  /* =============================================================== 용어 데이터
+     k: 한국어, e: 영어, a: 약어, d: 정의, c: 관련 장 slug, g: 분야 */
+  var TERMS = [
+    // ---------------------------------------------------------- 빛·측광
+    { k: "분광 분포", e: "Spectral power distribution", a: "SPD", d: "파장별 복사량(파워·복사휘도 등)의 분포 S(λ). 모든 색 계산의 출발점이며, 상대 SPD는 특정 파장(예: 560 nm)이나 총합을 기준으로 임의 배율 정규화한 것이다.", c: "light", g: "light" },
+    { k: "복사속", e: "Radiant flux", a: "Φe", d: "단위 시간당 방출·전달·수광되는 복사 에너지(W). 사람 눈의 감도 가중이 없는 물리량이다.", c: "light", g: "light" },
+    { k: "복사 조도", e: "Irradiance", a: "Ee", d: "면에 입사하는 단위 면적당 복사속(W/m²). 측광량으로 V(λ) 가중하면 조도(lx)가 된다.", c: "light", g: "light" },
+    { k: "복사휘도", e: "Radiance", a: "Le", d: "어떤 방향으로, 그 방향에 수직인 투영 단위 면적·단위 입체각당 복사속(W·sr⁻¹·m⁻²). 무손실 광학계에서 L/n²이 보존되어, 렌즈로 상을 맺어도 휘도가 늘지 않는 이유가 된다.", c: "light", g: "light" },
+    { k: "복사 강도", e: "Radiant intensity", a: "Ie", d: "점광원에서 특정 방향 단위 입체각당 복사속(W/sr). 측광량은 광도(cd)다.", c: "light", g: "light" },
+    { k: "광속", e: "Luminous flux", a: "Φv", d: "복사속을 명소시 비시감도 V(λ)로 가중한 양(lm). Φv = Km ∫ Φe,λ(λ) V(λ) dλ, Km = 683 lm/W.", c: "light", g: "light" },
+    { k: "광도", e: "Luminous intensity", a: "Iv", d: "단위 입체각당 광속(cd = lm/sr). 칸델라는 SI 기본 단위다.", c: "light", g: "light" },
+    { k: "조도", e: "Illuminance", a: "Ev", d: "면에 입사하는 단위 면적당 광속(lx = lm/m²). 사무실 작업면은 대략 300–500 lx, 인쇄물 비교 관찰 조건(ISO 3664 P1)은 2000 lx다.", c: "light", g: "light" },
+    { k: "휘도", e: "Luminance", a: "Lv", d: "복사휘도를 V(λ)로 가중한 측광량(cd/m², 흔히 nit). 디스플레이 밝기와 HDR 신호 수준을 나타내는 단위이며, CIE XYZ의 Y에 비례한다.", c: "light", g: "light" },
+    { k: "니트", e: "Nit", a: "nit", d: "휘도 단위 cd/m²의 관용 명칭. SI 정식 단위명은 아니지만 디스플레이·HDR 분야에서 널리 쓴다.", c: "hdr", g: "light" },
+    { k: "명소시 비시감도 함수", e: "Photopic luminous efficiency function", a: "V(λ)", d: "명소시에서 파장별 상대 밝기 감도. 555 nm에서 최댓값 1이며 측광량 정의의 기준이다. CIE 1931 등색 함수의 ȳ(λ)와 같다.", c: "light", g: "light" },
+    { k: "암소시 비시감도 함수", e: "Scotopic luminous efficiency function", a: "V′(λ)", d: "막대세포가 담당하는 암소시 감도. 약 507 nm에서 최대이며 대응하는 최대 시감 효능은 약 1700 lm/W다.", c: "light", g: "light" },
+    { k: "최대 시감 효능", e: "Maximum luminous efficacy", a: "Km", d: "SI는 주파수 540×10¹² Hz(약 555 nm) 단색 복사의 시감 효능을 정확히 683 lm/W로 정의한다. 그래서 555 nm 단색광 1 W는 683 lm이다.", c: "light", g: "light" },
+    { k: "흑체", e: "Blackbody (Planckian radiator)", a: "", d: "입사하는 모든 복사를 흡수하는 이상적 물체. 열평형에서 방출하는 SPD가 온도만으로 플랑크 법칙에 의해 정해져 색온도의 기준이 된다.", c: "light", g: "light" },
+    { k: "플랑크 법칙", e: "Planck's law", a: "", d: "흑체의 분광 복사를 온도의 함수로 주는 식. M(λ,T) = c₁ λ⁻⁵ / (exp(c₂/λT) − 1), c₂ ≈ 1.4388×10⁻² m·K.", c: "light", g: "light" },
+    { k: "빈 변위 법칙", e: "Wien's displacement law", a: "", d: "흑체 분광 복사의 최대 파장이 온도에 반비례한다는 법칙. λmax·T ≈ 2.898×10⁻³ m·K이므로 6500 K 흑체는 약 446 nm에서 최대다.", c: "light", g: "light" },
+    { k: "단색광", e: "Monochromatic radiation", a: "", d: "한 파장(실제로는 매우 좁은 대역)으로 이루어진 빛. 색도도에서 스펙트럼 궤적 위의 점이 된다.", c: "light", g: "light" },
+    { k: "가시광선", e: "Visible radiation", a: "", d: "시각을 일으키는 전자기 복사. 하한·상한이 뚜렷하지 않아 색채 계산에서는 관례적으로 360(또는 380)–780(또는 830) nm 범위를 적분한다.", c: "light", g: "light" },
+
+    // ---------------------------------------------------------- 시각
+    { k: "원추세포", e: "Cone cells", a: "L, M, S", d: "명소시 색각을 담당하는 세 종류의 광수용체. Stockman–Sharpe 2° 원추 기본 함수(에너지 기준)의 최대 감도는 L 약 570 nm, M 약 545 nm, S 약 445 nm다.", c: "vision", g: "vision" },
+    { k: "원추 기본 함수", e: "Cone fundamentals", a: "LMS", d: "각막에 입사한 빛 기준으로 측정한 L·M·S 원추의 분광 감도. Stockman–Sharpe(2000)가 CIE 170 생리학 기반 관측자의 바탕이며, CIE XYZ 등색 함수는 이것의 선형 변환에 가깝다.", c: "vision", g: "vision" },
+    { k: "막대세포", e: "Rod cells", a: "", d: "저조도(암소시)에서 동작하는 광수용체. 한 종류뿐이라 색을 구분하지 못하며 감도 최대는 약 507 nm이고 중심와 한가운데에는 없다.", c: "vision", g: "vision" },
+    { k: "명소시 · 박명시 · 암소시", e: "Photopic / mesopic / scotopic vision", a: "", d: "원추 주도, 원추·막대 공동, 막대 주도의 시각 상태. CIE 191은 박명시 범위를 대략 0.005–5 cd/m²로 다룬다.", c: "vision", g: "vision" },
+    { k: "단일 변수 원리", e: "Principle of univariance", a: "", d: "광수용체의 출력은 흡수한 광자 수 하나에만 의존하므로, 한 종류의 수용체는 파장 변화와 세기 변화를 구분할 수 없다는 원리. 색각에 서로 다른 감도의 수용체가 여럿 필요한 이유다.", c: "vision", g: "vision" },
+    { k: "삼색설", e: "Trichromatic theory", a: "", d: "색각이 세 종류의 감도 채널로 이루어진다는 영–헬름홀츠 이론. 정상 색각자가 세 원색의 혼합으로 거의 모든 색을 등색할 수 있다는 실험 사실과 원추세포 세 종류로 뒷받침된다.", c: "vision", g: "vision" },
+    { k: "반대색 과정", e: "Opponent process", a: "", d: "원추 신호가 무채(L+M), 적–녹(L−M), 청–황(S−(L+M)) 같은 차분 채널로 재부호화된다는 개념. CIELAB의 a*·b* 축과 Y′CbCr의 색차 구조가 이 아이디어를 따른다.", c: "vision", g: "vision" },
+    { k: "고유 색상", e: "Unique hues", a: "", d: "다른 색상이 섞여 보이지 않는 빨강·노랑·초록·파랑. 생리적 반대색 축(L−M, S−(L+M))과 정확히 일치하지는 않는다.", c: "vision", g: "vision" },
+    { k: "메타머리즘", e: "Metamerism", a: "", d: "분광 분포가 다른 두 자극이 특정 관측자·광원 조건에서 같은 3자극치를 갖는 현상. 같은 색으로 보이는 이런 쌍을 메타머라 한다.", c: "vision", g: "vision" },
+    { k: "광원 메타머리즘", e: "Illuminant metamerism", a: "", d: "한 광원 아래에서 일치하던 메타머 쌍이 다른 광원 아래에서 어긋나는 현상. 매장 조명과 주광에서 옷 색이 달라 보이는 문제이며 CIE 메타머리즘 지수로 정량화한다.", c: "vision", g: "vision" },
+    { k: "관측자 메타머리즘", e: "Observer metamerism", a: "", d: "사람마다 등색 함수가 조금씩 달라 한 관측자에게 일치한 쌍이 다른 관측자에게는 어긋나는 현상. 원색 스펙트럼이 좁은 광색역 디스플레이끼리 비교할 때 커진다.", c: "vision", g: "vision" },
+    { k: "기하 메타머리즘", e: "Geometric metamerism", a: "", d: "조명·관찰 각도가 바뀌면 일치가 깨지는 현상. 광택, 메탈릭·펄 안료처럼 각도 의존 반사를 가진 시료에서 나타난다.", c: "measurement", g: "vision" },
+    { k: "메타머 블랙", e: "Metameric black", a: "", d: "3자극치가 모두 0인 분광 성분(음수 값을 포함). 어떤 스펙트럼에 더해도 3자극치가 변하지 않으므로, 한 스펙트럼의 모든 메타머는 기본 성분 + 메타머 블랙으로 분해된다(Cohen–Wyszecki).", c: "vision", g: "vision" },
+    { k: "황반 색소", e: "Macular pigment", a: "", d: "중심와 부근 망막에 있는 노란 색소로 단파장(청색)을 흡수한다. 시야 크기에 따라 흡수량이 달라 2°와 10° 관측자의 등색 함수가 다른 원인 중 하나다.", c: "vision", g: "vision" },
+    { k: "색각 이상", e: "Color vision deficiency", a: "CVD", d: "원추 하나가 없거나(이색형, -opia) 감도가 이동한(이상 삼색형, -anomaly) 상태. 적록 이상은 북유럽계 남성의 약 8 %, 여성의 약 0.5 %에서 나타난다.", c: "dataviz", g: "vision" },
+    { k: "1형 색각", e: "Protan (protanopia / protanomaly)", a: "protan", d: "L 원추가 없거나 이상한 색각. 장파장 감도가 낮아 빨강이 어둡게 보이고 적–녹 구분이 어렵다.", c: "dataviz", g: "vision" },
+    { k: "2형 색각", e: "Deutan (deuteranopia / deuteranomaly)", a: "deutan", d: "M 원추가 없거나 이상한 색각. 가장 흔한 색각 이상이며 적–녹 구분이 어렵지만 빨강의 밝기는 크게 줄지 않는다.", c: "dataviz", g: "vision" },
+    { k: "3형 색각", e: "Tritan (tritanopia / tritanomaly)", a: "tritan", d: "S 원추가 없거나 이상한 색각. 청–황 구분이 어렵고, 적록 이상보다 훨씬 드물다.", c: "dataviz", g: "vision" },
+    { k: "혼동선", e: "Confusion lines", a: "", d: "이색형 색각자에게 구분되지 않는 색들이 색도도에서 놓이는 직선. 유형별로 한 점(공점, copunctal point)으로 모인다.", c: "dataviz", g: "vision" },
+
+    // ---------------------------------------------------------- 측색·CIE
+    { k: "측색", e: "Colorimetry", a: "", d: "색 자극을 표준 관측자의 등색 함수로 수치화(3자극치)하는 과학. 지각된 외관이 아니라 '같은 색으로 보이는가'를 다룬다.", c: "colorimetry", g: "cie" },
+    { k: "등색 실험", e: "Color matching experiment", a: "", d: "시험광과 세 원색 혼합광을 나란히 두고 같아 보일 때까지 원색 양을 조절하는 실험. 일부 시험광은 원색 하나를 시험광 쪽에 더해야 맞춰지며, 이것이 음의 등색 값이 된다.", c: "colorimetry", g: "cie" },
+    { k: "그라스만 법칙", e: "Grassmann's laws", a: "", d: "등색이 대칭·이행·비례(세기를 같이 늘려도 등색 유지)·가법성을 만족한다는 경험 법칙. 3자극치를 선형 대수로 다룰 수 있는 근거다.", c: "colorimetry", g: "cie" },
+    { k: "등색 함수", e: "Color matching functions", a: "CMF", d: "파장별 단위 파워 단색광을 등색하는 데 필요한 세 원색의 양. 원색을 바꾸면 3×3 선형 변환으로 서로 옮겨진다.", c: "colorimetry", g: "cie" },
+    { k: "CIE 1931 RGB 등색 함수", e: "CIE 1931 RGB CMFs", a: "r̄ḡb̄", d: "700, 546.1, 435.8 nm 단색 원색으로 표현한 등색 함수. 약 440–545 nm 구간에서 r̄가 음수가 된다.", c: "colorimetry", g: "cie" },
+    { k: "CIE XYZ", e: "CIE 1931 XYZ color space", a: "XYZ", d: "RGB 등색 함수를 선형 변환해 모든 실재 색이 양의 값이 되고 Y가 휘도(ȳ = V)가 되도록 만든 표준 색공간. 원색 X, Y, Z는 실재하지 않는 가상 원색이다.", c: "colorimetry", g: "cie" },
+    { k: "3자극치", e: "Tristimulus values", a: "X, Y, Z", d: "X = k∫S(λ)R(λ)x̄(λ)dλ 등으로 구하는 세 수(Y, Z도 같은 꼴). 반사 물체는 k = 100/∫S(λ)ȳ(λ)dλ로 두어 완전 확산 백색의 Y를 100으로 만든다.", c: "colorimetry", g: "cie" },
+    { k: "가상 원색", e: "Imaginary primaries", a: "", d: "등색 계산상으로는 쓸 수 있지만 양의 SPD로는 만들 수 없는 원색. XYZ의 세 원색, ProPhoto RGB의 녹·청, ACES AP0의 녹·청 원색이 그 예다.", c: "colorimetry", g: "cie" },
+    { k: "2° 표준 관측자", e: "CIE 1931 standard colorimetric observer", a: "2°", d: "약 1–4° 시야의 등색 데이터로 정한 표준 관측자. 디스플레이·영상·대부분의 색공간 정의가 이를 쓴다.", c: "colorimetry", g: "cie" },
+    { k: "10° 보조 표준 관측자", e: "CIE 1964 supplementary standard observer", a: "10°", d: "4°보다 큰 시야용 표준 관측자. 넓은 면을 보는 페인트·섬유·산업 색 평가에 주로 쓰며, D65의 xy도 (0.3138, 0.3310)로 달라진다.", c: "colorimetry", g: "cie" },
+    { k: "생리학 기반 관측자", e: "CIE physiologically based observer", a: "CIE 170", d: "Stockman–Sharpe 원추 기본 함수에서 출발해 시야 크기와 나이를 매개변수로 등색 함수를 만드는 CIE 170-1/170-2 체계.", c: "colorimetry", g: "cie" },
+    { k: "등에너지 백색", e: "Equal-energy illuminant", a: "E", d: "모든 파장에서 파워가 같은 가상의 백색. XYZ 등색 함수의 면적이 같게 정규화되어 있어 색도가 정확히 (1/3, 1/3)이다.", c: "colorimetry", g: "cie" },
+    { k: "색도", e: "Chromaticity", a: "", d: "휘도를 뺀 색의 성질(색상과 순도). 3자극치의 비율이므로 2개의 좌표로 표현된다.", c: "chromaticity", g: "cie" },
+    { k: "색도 좌표", e: "Chromaticity coordinates", a: "x, y", d: "x = X/(X+Y+Z), y = Y/(X+Y+Z). 세기를 몇 배 해도 변하지 않는 사영 좌표다.", c: "chromaticity", g: "cie" },
+    { k: "xyY", e: "CIE xyY", a: "xyY", d: "색도 x, y와 휘도 Y로 색을 표시하는 방법. X = xY/y, Z = (1−x−y)Y/y로 XYZ를 복원한다.", c: "chromaticity", g: "cie" },
+    { k: "u′v′ 균등 색도도", e: "CIE 1976 UCS diagram", a: "u′v′", d: "u′ = 4X/(X+15Y+3Z), v′ = 9Y/(X+15Y+3Z). xy보다 색도 거리가 지각 차이에 가까워 디스플레이 색 균일도·LED 색 편차 평가에 쓴다.", c: "chromaticity", g: "cie" },
+    { k: "CIE 1960 UCS", e: "CIE 1960 uv", a: "uv", d: "u = u′, v = (2/3)v′인 옛 균등 색도도. 지금도 CCT와 Duv 계산의 표준 좌표로 쓰인다.", c: "adaptation", g: "cie" },
+    { k: "스펙트럼 궤적", e: "Spectral locus", a: "", d: "단색광의 색도점을 파장 순으로 이은 말굽 모양 곡선. 모든 실재 색은 궤적과 순수 보라선이 둘러싼 볼록 영역 안에 있다.", c: "chromaticity", g: "cie" },
+    { k: "순수 보라선", e: "Line of purples", a: "", d: "스펙트럼 궤적의 양 끝(단파장과 장파장)을 잇는 직선. 이 위의 마젠타·자주 계열은 단색광으로 만들 수 없는 비스펙트럼 색이다.", c: "chromaticity", g: "cie" },
+    { k: "무게중심 법칙", e: "Center-of-gravity law", a: "", d: "두 빛을 섞은 색도는 두 색도점을 잇는 선분 위에 있고, 각 성분의 가중치는 Y가 아니라 X+Y+Z 합이다.", c: "chromaticity", g: "cie" },
+    { k: "주파장", e: "Dominant wavelength", a: "λd", d: "백색점에서 시료 색도점을 지나 연장한 직선이 스펙트럼 궤적과 만나는 파장. 직선이 순수 보라선에 닿으면 반대 방향의 보색 주파장(λc)으로 표시한다.", c: "chromaticity", g: "cie" },
+    { k: "여기 순도", e: "Excitation purity", a: "pe", d: "색도도에서 (백색점→시료 거리) / (백색점→궤적 교점 거리). 백색은 0, 단색광은 1이다.", c: "chromaticity", g: "cie" },
+    { k: "맥아담 타원", e: "MacAdam ellipses", a: "", d: "MacAdam(1942)이 25개 색도점 주변에서 측정한 등색 표준편차 타원. 크기와 방향이 위치마다 크게 달라 xy 색도도가 지각적으로 균등하지 않음을 보여 준다.", c: "chromaticity", g: "cie" },
+    { k: "맥아담 단계", e: "MacAdam step (SDCM)", a: "SDCM", d: "맥아담 타원 크기를 단위로 한 색도 편차. 조명용 LED의 색 일관성을 'n-step 타원 이내'처럼 표시한다.", c: "lighting", g: "cie" },
+
+    // ---------------------------------------------------------- 색공간·전달 함수
+    { k: "원색", e: "Primaries", a: "", d: "가산 혼합 색공간을 이루는 세 기준 색. 원색의 xy와 백색점의 xy가 정해지면 RGB↔XYZ 3×3 행렬이 유일하게 결정된다.", c: "rgb", g: "space" },
+    { k: "백색점", e: "White point", a: "", d: "RGB = (1,1,1) 또는 매체의 기준 백색이 갖는 색도. 색공간 정의의 일부이며 sRGB·BT.709·BT.2020·Display P3는 D65다.", c: "rgb", g: "space" },
+    { k: "정규화 원색 행렬", e: "Normalized primary matrix", a: "NPM", d: "선형 RGB를 XYZ로 바꾸는 3×3 행렬. 각 원색 열에 배율을 곱해 RGB = (1,1,1)이 백색점(Y = 1)이 되도록 만든다(SMPTE RP 177).", c: "rgb", g: "space" },
+    { k: "가멋", e: "Gamut", a: "", d: "장치나 색공간이 재현할 수 있는 색의 범위. 본래 3차원 입체이며, 색도도의 삼각형은 그것을 투영한 것이다.", c: "rgb", g: "space" },
+    { k: "가멋 매핑", e: "Gamut mapping", a: "", d: "원본 가멋의 색을 더 좁은 목적 가멋 안으로 옮기는 알고리즘. 경계로 잘라내는 클리핑과 전체를 눌러 넣는 압축 방식이 있다.", c: "rgb", g: "space" },
+    { k: "광색역", e: "Wide color gamut", a: "WCG", d: "BT.709/sRGB보다 넓은 색 영역. DCI-P3, BT.2020 원색을 쓰는 영상과 디스플레이를 가리킨다.", c: "hdr", g: "space" },
+    { k: "sRGB", e: "sRGB (IEC 61966-2-1)", a: "sRGB", d: "BT.709 원색과 D65 백색, 구간 함수형 전달 곡선(선형 구간 + 지수 2.4)을 쓰는 웹·PC 기본 색공간. 기준 디스플레이 휘도는 80 cd/m²다.", c: "rgb", g: "space" },
+    { k: "BT.709", e: "ITU-R BT.709 (Rec.709)", a: "Rec.709", d: "HDTV 권고. 원색 R(0.640, 0.330) G(0.300, 0.600) B(0.150, 0.060), D65 백색, 카메라 OETF와 루마 계수를 정의한다.", c: "rgb", g: "space" },
+    { k: "BT.2020", e: "ITU-R BT.2020 (Rec.2020)", a: "Rec.2020", d: "UHDTV 권고. 630, 532, 467 nm 단색 원색(xy (0.708, 0.292), (0.170, 0.797), (0.131, 0.046))과 D65를 써서 스펙트럼 궤적에 맞닿는 넓은 가멋을 갖는다.", c: "rgb", g: "space" },
+    { k: "DCI-P3", e: "DCI-P3", a: "P3", d: "디지털 시네마 색공간(SMPTE RP 431-2). 원색 R(0.680, 0.320) G(0.265, 0.690) B(0.150, 0.060), 백색 (0.314, 0.351), 감마 2.6, 백색 휘도 48 cd/m².", c: "rgb", g: "space" },
+    { k: "Display P3", e: "Display P3", a: "", d: "DCI-P3 원색에 D65 백색과 sRGB 전달 곡선을 결합한 Apple의 디스플레이 색공간. 웹 CSS의 color(display-p3 …)가 이를 가리킨다.", c: "rgb", g: "space" },
+    { k: "Adobe RGB (1998)", e: "Adobe RGB (1998)", a: "", d: "녹색 원색을 (0.21, 0.71)로 넓혀 CMYK 인쇄 가멋의 청록 영역을 포함하도록 한 색공간. D65 백색, 감마 563/256 ≈ 2.2.", c: "rgb", g: "space" },
+    { k: "ProPhoto RGB", e: "ProPhoto RGB (ROMM RGB)", a: "ROMM", d: "D50 백색, 감마 1.8의 매우 넓은 색공간(ISO 22028-2). 녹색과 청색 원색이 스펙트럼 궤적 밖의 가상 원색이라 16비트 저장이 권장된다.", c: "rgb", g: "space" },
+    { k: "ACES", e: "Academy Color Encoding System", a: "ACES", d: "영화·VFX용 장면 기준 색 관리 체계. 교환용 ACES2065-1(AP0, 선형)과 작업용 ACEScg(AP1, 선형)·ACEScct(AP1, 로그형) 등으로 구성되며 백색은 D60 근방(0.32168, 0.33767)이다.", c: "management", g: "space" },
+    { k: "ACES AP0", e: "ACES primaries 0", a: "AP0", d: "스펙트럼 궤적 전체를 포함하도록 고른 ACES 원색(일부 가상 원색). ACES2065-1 아카이브·교환 인코딩에 쓴다.", c: "management", g: "space" },
+    { k: "ACES AP1", e: "ACES primaries 1", a: "AP1", d: "BT.2020에 가까운 실용 원색. 렌더링·합성 작업 공간 ACEScg와 그레이딩용 ACEScct가 이 원색을 쓴다.", c: "management", g: "space" },
+    { k: "장면 기준 / 디스플레이 기준", e: "Scene-referred / display-referred", a: "", d: "값이 촬영 장면의 상대 광량을 나타내는지, 특정 디스플레이에서 낼 광량을 나타내는지의 구분. 장면 기준 데이터는 1.0을 넘는 값을 가질 수 있다.", c: "transfer", g: "space" },
+    { k: "선형광", e: "Linear light", a: "", d: "물리적 광량에 비례하는 값. 빛의 혼합·블러·리사이즈·알파 합성은 선형광에서 해야 맞고, 감마 인코딩 값으로 평균하면 어두운 쪽으로 틀린다.", c: "transfer", g: "space" },
+    { k: "감마", e: "Gamma", a: "γ", d: "신호와 광량 사이의 거듭제곱 관계 V = L^(1/γ) 또는 L = V^γ의 지수. 제한된 비트를 지각적으로 고르게 배분하는 인코딩 역할을 한다.", c: "transfer", g: "space" },
+    { k: "광전 전달 함수", e: "Opto-electronic transfer function", a: "OETF", d: "장면 광량을 비선형 신호 값으로 바꾸는 함수(카메라 쪽). 예: BT.709 OETF, HLG OETF.", c: "transfer", g: "space" },
+    { k: "전광 전달 함수", e: "Electro-optical transfer function", a: "EOTF", d: "신호 값을 디스플레이 출력 광량으로 바꾸는 함수. 예: BT.1886(감마 2.4), PQ(ST 2084).", c: "transfer", g: "space" },
+    { k: "광광 전달 함수", e: "Opto-optical transfer function", a: "OOTF", d: "장면 광량에서 디스플레이 광량까지의 전체 전달 특성(OETF와 EOTF의 합성). 어두운 시청 환경을 보상하려고 의도적으로 1보다 큰 시스템 감마(SDR에서 약 1.2)를 둔다.", c: "transfer", g: "space" },
+    { k: "BT.1886", e: "ITU-R BT.1886", a: "", d: "평판 디스플레이 기준 EOTF. L = a·max(V + b, 0)^2.4이며 a, b는 백색·흑색 휘도에서 정해진다. 흑색 휘도가 0이면 순수 감마 2.4가 된다.", c: "transfer", g: "space" },
+    { k: "sRGB 전달 함수", e: "sRGB transfer function", a: "", d: "인코딩: L ≤ 0.0031308이면 12.92·L, 아니면 1.055·L^(1/2.4) − 0.055. 선형 구간 때문에 전체적으로는 감마 약 2.2에 가깝다.", c: "transfer", g: "space" },
+    { k: "양자화", e: "Quantization", a: "", d: "연속 값을 유한한 코드 값으로 반올림하는 과정. n비트는 2ⁿ 단계를 가지며, 전달 함수가 단계 간격의 지각적 크기를 결정한다.", c: "transfer", g: "space" },
+    { k: "밴딩", e: "Banding (contouring)", a: "", d: "부드러운 그라데이션에서 양자화 단계가 띠 모양 계단으로 보이는 결함. 비트 깊이 부족, 선형 인코딩, 여러 번의 8비트 재양자화가 원인이다.", c: "transfer", g: "space" },
+    { k: "디더링", e: "Dithering", a: "", d: "양자화 전에 작은 잡음(또는 패턴)을 더해 양자화 오차를 공간·시간으로 흩는 기법. 평균 계조를 보존하면서 밴딩을 미세한 잡음으로 바꾼다.", c: "transfer", g: "space" },
+    { k: "비트 깊이", e: "Bit depth", a: "", d: "채널당 코드 값의 비트 수. SDR은 8비트, HDR(PQ·HLG)은 10비트 이상이 기본이다.", c: "transfer", g: "space" },
+
+    // ---------------------------------------------------------- 균등 색공간·색차
+    { k: "균등 색공간", e: "Uniform color space", a: "UCS", d: "공간상의 같은 거리가 대략 같은 지각 차이에 대응하도록 만든 색공간. CIELAB, CIELUV, CAM16-UCS, OKLab 등이 있으며 완전한 균등은 없다.", c: "uniform", g: "diff" },
+    { k: "CIELAB", e: "CIE 1976 L*a*b*", a: "Lab", d: "기준 백색으로 나눈 XYZ에 세제곱근 비선형을 적용하고 반대색 축(a*: 적–녹, b*: 황–청)을 만든 색공간. 표면색 품질 관리의 표준 좌표다.", c: "uniform", g: "diff" },
+    { k: "CIE 명도", e: "CIE lightness", a: "L*", d: "L* = 116 f(Y/Yn) − 16(0–100). 반사율 약 18.4 %인 회색이 L* ≈ 50이다.", c: "uniform", g: "diff" },
+    { k: "LCh", e: "CIE LCh(ab)", a: "LCh", d: "CIELAB의 극좌표 표현. 크로마 C*ab = √(a*² + b*²), 색상각 hab = atan2(b*, a*). 색상·채도 조정 UI에 쓴다.", c: "uniform", g: "diff" },
+    { k: "CIELUV", e: "CIE 1976 L*u*v*", a: "Luv", d: "u* = 13L*(u′ − u′n), v* = 13L*(v′ − v′n). u′v′ 색도도를 바탕으로 해 가산 혼합의 직선성을 보존하므로 광원·디스플레이 분야에서 쓰인다.", c: "uniform", g: "diff" },
+    { k: "ΔE*ab (CIE76)", e: "CIE 1976 color difference", a: "ΔE76", d: "CIELAB의 유클리드 거리. 계산이 단순하지만 채도가 높은 색에서 지각 차이를 과대평가한다.", c: "uniform", g: "diff" },
+    { k: "CIE94", e: "CIE 1994 color difference", a: "ΔE94", d: "명도·크로마·색상 차를 가중하는 색차식. SC = 1 + 0.045C*, SH = 1 + 0.015C*로 채도가 높을수록 허용폭을 넓힌다.", c: "uniform", g: "diff" },
+    { k: "CIEDE2000", e: "CIEDE2000 color difference", a: "ΔE00", d: "CIE94에 무채색 근처 a* 보정, 명도 가중 SL 수정, 청색 영역 회전 항 RT를 더한 현행 표준 색차식(ISO/CIE 11664-6). 인쇄 허용차는 흔히 ΔE00 1–3이다.", c: "uniform", g: "diff" },
+    { k: "CMC l:c", e: "CMC color difference", a: "ΔE CMC", d: "명도와 크로마 가중을 l:c 비로 조절하는 색차식. 섬유 산업에서 2:1(허용성 판정)로 주로 쓴다.", c: "uniform", g: "diff" },
+    { k: "OKLab", e: "OKLab", a: "", d: "Björn Ottosson(2020)이 제안한 지각 색공간. 선형 sRGB → LMS형 행렬 → 세제곱근 → 행렬의 단순한 구조로 색상 균일성이 좋아 그라데이션·색 보간에 널리 쓰인다. CIE 표준은 아니다.", c: "uniform", g: "diff" },
+    { k: "최소 식별 차", e: "Just noticeable difference", a: "JND", d: "관측자가 겨우 알아챌 수 있는 자극 차이. 색차에서는 대략 ΔE00 ≈ 1을 기준으로 삼는 경우가 많지만 시료 크기·조건에 따라 달라진다.", c: "uniform", g: "diff" },
+    { k: "색차 허용차", e: "Color tolerance", a: "", d: "합격·불합격 판정을 위한 색차 한계. 한 숫자(ΔE)뿐 아니라 ΔL·ΔC·ΔH 성분별 타원 허용역으로 정하기도 한다.", c: "uniform", g: "diff" },
+    { k: "먼셀 표색계", e: "Munsell color system", a: "H V/C", d: "색상(Hue)·명도(Value)·크로마(Chroma)를 지각적 등간격으로 배열한 색 견본 체계. 측색값과의 대응표(1943 Renotation)가 있다.", c: "uniform", g: "diff" },
+
+    // ---------------------------------------------------------- 색온도·색순응
+    { k: "흑체 궤적", e: "Planckian locus", a: "", d: "온도를 바꿔 가며 흑체 색도를 이은 곡선. 낮은 온도는 주황, 높은 온도는 푸른 백색 쪽이다.", c: "adaptation", g: "white" },
+    { k: "색온도", e: "Color temperature", a: "", d: "광원의 색도가 흑체 궤적 위에 있을 때 그 흑체의 온도(K).", c: "adaptation", g: "white" },
+    { k: "상관 색온도", e: "Correlated color temperature", a: "CCT", d: "CIE 1960 uv(u, v = 2/3 v′) 평면에서 광원 색도에 가장 가까운 흑체 궤적 점의 온도. 궤적에서 멀리 떨어진 색에는 의미가 없다.", c: "adaptation", g: "white" },
+    { k: "Duv", e: "Delta uv", a: "Duv", d: "CIE 1960 uv 평면에서 광원 색도와 흑체 궤적 사이의 부호 있는 거리. 양수는 궤적 위(녹색 쪽), 음수는 아래(마젠타 쪽)이며 일반 조명은 대략 ±0.006 이내를 목표로 한다.", c: "adaptation", g: "white" },
+    { k: "McCamy 근사식", e: "McCamy's formula", a: "", d: "xy 색도에서 CCT를 구하는 3차 다항 근사식. 약 2856–6504 K 범위에서 오차가 작아 실무에 널리 쓰인다.", c: "adaptation", g: "white" },
+    { k: "주광 궤적", e: "Daylight locus", a: "", d: "CIE 주광(D 계열) 색도를 CCT에 따라 이은 곡선. 흑체 궤적보다 약간 위(+Duv, 녹색 쪽)에 있다.", c: "adaptation", g: "white" },
+    { k: "표준 광원", e: "CIE standard illuminant", a: "", d: "수치표로 정의된 SPD(illuminant). 실제 램프인 광원(source)과 구분하며, 표준 광원을 완벽히 재현하는 물리 광원이 없을 수도 있다(D65가 대표적).", c: "adaptation", g: "white" },
+    { k: "D65", e: "CIE standard illuminant D65", a: "D65", d: "CCT 약 6504 K의 평균 주광. xy = (0.3127, 0.3290)이며 sRGB·BT.709·BT.2020의 백색점이다.", c: "adaptation", g: "white" },
+    { k: "D50", e: "CIE illuminant D50", a: "D50", d: "CCT 약 5003 K의 주광. xy = (0.3457, 0.3585)이며 인쇄물 관찰 표준(ISO 3664)과 ICC PCS의 기준 백색이다.", c: "adaptation", g: "white" },
+    { k: "표준 광원 A", e: "CIE standard illuminant A", a: "A", d: "약 2856 K 흑체 복사에 해당하는 텅스텐 전구 대표 광원. xy = (0.4476, 0.4074).", c: "adaptation", g: "white" },
+    { k: "F 계열 광원", e: "CIE fluorescent illuminants", a: "FL", d: "형광등 대표 SPD. FL2는 약 4230 K 표준 냉백색, FL7은 약 6500 K 광대역, FL11은 약 4000 K 3파장형이다.", c: "lighting", g: "white" },
+    { k: "색순응", e: "Chromatic adaptation", a: "", d: "조명 색이 바뀌어도 물체 색이 비슷하게 보이도록 시각계가 감도를 조절하는 현상. 주로 원추별 이득 조절로 모델링한다.", c: "adaptation", g: "white" },
+    { k: "색순응 변환", e: "Chromatic adaptation transform", a: "CAT", d: "한 백색 조건의 XYZ를 다른 백색 조건에서 같은 외관을 주는 XYZ(대응색)로 옮기는 변환. 보통 M⁻¹·diag(이득)·M 꼴의 3×3 행렬이다.", c: "adaptation", g: "white" },
+    { k: "von Kries 변환", e: "von Kries transform", a: "", d: "원추(LMS) 공간에서 각 채널을 원래 백색 응답과 목표 백색 응답의 비로 독립적으로 스케일하는 대각 행렬 순응 모델. 모든 CAT의 기본 형태다.", c: "adaptation", g: "white" },
+    { k: "Bradford 변환", e: "Bradford transform", a: "", d: "Lam(1985)이 대응색 데이터로 만든 '날카롭게 한' RGB 응답 공간의 순응 변환. 실무에서는 선형화 버전을 쓰며 ICC 프로파일의 D50 순응에 권장된다.", c: "adaptation", g: "white" },
+    { k: "CAT02", e: "CAT02", a: "", d: "CIECAM02에 포함된 순응 변환. Bradford와 비슷한 날카로운 행렬에 순응 정도 D를 결합한다.", c: "adaptation", g: "white" },
+    { k: "CAT16", e: "CAT16", a: "", d: "CAM16에서 쓰는 순응 변환. CAT02를 CIECAM02 구조에 쓸 때 생기던 음수·불안정 문제를 줄이도록 행렬을 다시 정했다.", c: "adaptation", g: "white" },
+    { k: "순응 정도", e: "Degree of adaptation", a: "D", d: "0(무순응)–1(완전 순응) 값. CIECAM02/CAM16은 D = F[1 − (1/3.6)·exp((−LA − 42)/92)]로 순응 휘도 LA와 서라운드 계수 F에서 구한다.", c: "adaptation", g: "white" },
+    { k: "불완전 순응", e: "Incomplete adaptation", a: "", d: "백색이 완전히 무채색으로 보이지 않을 만큼 순응이 덜 된 상태(D < 1). 낮은 휘도나 저색온도 조명에서 따뜻한 기운이 남는 현상을 설명한다.", c: "adaptation", g: "white" },
+    { k: "대응색", e: "Corresponding colors", a: "", d: "서로 다른 순응 조건에서 같은 외관을 주는 두 자극. CAT를 만들고 검증하는 실험 데이터다.", c: "adaptation", g: "white" },
+
+    // ---------------------------------------------------------- 색 외관
+    { k: "색 외관 모델", e: "Color appearance model", a: "CAM", d: "3자극치와 관찰 조건(백색, 순응 휘도, 배경, 서라운드)을 입력받아 명도·밝기·크로마·컬러풀니스·포화도·색상 같은 외관 속성을 계산하는 모델.", c: "appearance", g: "appear" },
+    { k: "CIECAM02", e: "CIECAM02", a: "", d: "CIE 159:2004의 색 외관 모델. CAT02 순응, 원추 응답 압축, 반대색 신호를 거쳐 J, Q, C, M, s, h를 출력한다.", c: "appearance", g: "appear" },
+    { k: "CAM16", e: "CAM16", a: "", d: "Li 등(2017)이 CIECAM02를 단순화·안정화한 모델. CAT16을 쓰며, 균등 색공간 CAM16-UCS가 함께 제안되었다.", c: "appearance", g: "appear" },
+    { k: "명도", e: "Lightness", a: "J, L*", d: "같은 조건에서 백색으로 보이는 것의 밝기에 대한 상대적 밝기. 조명이 밝아져도 대체로 유지된다.", c: "appearance", g: "appear" },
+    { k: "밝기", e: "Brightness", a: "Q", d: "자극이 내는 빛의 양에 대한 절대적 지각. 같은 종이라도 조도를 높이면 밝기는 커지지만 명도는 거의 같다.", c: "appearance", g: "appear" },
+    { k: "크로마", e: "Chroma", a: "C", d: "같은 조건의 백색 밝기에 대한 컬러풀니스의 상대량. 우리말 '채도'로 흔히 번역되며 CIELAB C*ab가 그 근사다.", c: "appearance", g: "appear" },
+    { k: "컬러풀니스", e: "Colorfulness", a: "M", d: "색이 띠는 색감의 절대적 정도. 조도가 높아지면 증가한다(Hunt 효과).", c: "appearance", g: "appear" },
+    { k: "포화도", e: "Saturation", a: "s", d: "자신의 밝기에 대한 컬러풀니스의 비. 같은 물체 면에서 조명 세기가 달라도 거의 일정하게 보인다.", c: "appearance", g: "appear" },
+    { k: "색상", e: "Hue", a: "h", d: "빨강·노랑·초록·파랑 또는 그 조합과 비슷하게 보이는 속성. 색공간에서는 색상각으로 나타낸다.", c: "appearance", g: "appear" },
+    { k: "서라운드", e: "Surround", a: "", d: "관찰 대상 주변 시야의 상대 휘도 조건. CIECAM02는 average·dim·dark로 나누고 계수 F = 1.0, 0.9, 0.8 등을 쓴다.", c: "appearance", g: "appear" },
+    { k: "순응 휘도", e: "Adapting luminance", a: "LA", d: "순응 시야의 휘도(cd/m²). 흔히 백색 휘도의 20 %로 가정한다.", c: "appearance", g: "appear" },
+    { k: "Hunt 효과", e: "Hunt effect", a: "", d: "휘도가 높아질수록 같은 색도의 컬러풀니스가 커 보이는 현상. 맑은 날 야외 색이 실내보다 선명하게 보이는 이유다.", c: "appearance", g: "appear" },
+    { k: "Stevens 효과", e: "Stevens effect", a: "", d: "휘도가 높아질수록 밝기 대비가 커지는 현상. 어두운 곳의 영상이 더 낮은 대비로 보이므로 시스템 감마를 높여 보상한다.", c: "appearance", g: "appear" },
+    { k: "헬름홀츠–콜라우슈 효과", e: "Helmholtz–Kohlrausch effect", a: "H–K", d: "휘도가 같아도 채도가 높은 색이 무채색보다 더 밝게 보이는 현상. 휘도(Y)만으로는 밝기를 예측할 수 없음을 보여 준다.", c: "appearance", g: "appear" },
+    { k: "베졸트–브뤼케 효과", e: "Bezold–Brücke effect", a: "", d: "세기가 변하면 같은 파장의 색상이 이동해 보이는 현상. 밝아지면 몇 개의 불변 색상을 제외하고 대체로 노랑 또는 파랑 쪽으로 이동한다.", c: "appearance", g: "appear" },
+    { k: "애브니 효과", e: "Abney effect", a: "", d: "단색광에 백색광을 섞어 순도를 낮추면 주파장이 같아도 색상이 변해 보이는 현상. 색도도의 직선이 일정 색상선이 아님을 뜻한다.", c: "appearance", g: "appear" },
+    { k: "동시 대비", e: "Simultaneous contrast", a: "", d: "같은 색이 주변 색에 따라 반대 방향(밝은 배경에서 더 어둡게, 빨간 배경에서 청록 쪽으로)으로 달라 보이는 현상.", c: "appearance", g: "appear" },
+    { k: "동화 효과", e: "Assimilation (spreading effect)", a: "", d: "가는 무늬나 작은 영역에서 색이 동시 대비와 반대로 주변 색 쪽으로 끌려가 보이는 현상.", c: "appearance", g: "appear" },
+    { k: "관찰 조건", e: "Viewing conditions", a: "", d: "조명 휘도·색, 배경, 서라운드, 시료 크기 등 색 외관에 영향을 주는 환경 조건의 묶음. ISO 3664는 인쇄물·사진 비교 관찰 조건을 정한다.", c: "appearance", g: "appear" },
+
+    // ---------------------------------------------------------- 조명
+    { k: "연색성", e: "Color rendering", a: "", d: "광원이 물체 색을 기준 광원 아래에서처럼 보이게 하는 정도. 같은 CCT라도 SPD가 다르면 연색성이 달라진다.", c: "lighting", g: "lighting" },
+    { k: "연색 평가수", e: "Color rendering index", a: "CRI, Ra", d: "CIE 13.3의 지표. 시험색 TCS01–08의 기준 광원 대비 색차 ΔEi(CIE 1964 U*V*W*)로 Ri = 100 − 4.6ΔEi를 구하고 Ra는 그 평균이다. 기준 광원은 5000 K 미만 흑체, 이상은 CIE 주광.", c: "lighting", g: "lighting" },
+    { k: "R9", e: "Special color rendering index R9", a: "R9", d: "포화된 빨강 시험색(TCS09)의 특수 연색 평가수. Ra 평균에 들어가지 않아, Ra가 높아도 R9가 낮은 백색 LED가 흔하다.", c: "lighting", g: "lighting" },
+    { k: "시험색", e: "Test color samples", a: "TCS", d: "CRI 계산에 쓰는 14개 먼셀 시료의 분광 반사율. 01–08은 중간 채도, 09–12는 포화된 적·황·녹·청, 13은 피부색, 14는 잎 녹색이다.", c: "lighting", g: "lighting" },
+    { k: "TM-30", e: "ANSI/IES TM-30", a: "TM-30", d: "99개 색 평가 시료(CES)와 CAM02-UCS로 연색성을 평가하는 방법. 충실도 Rf와 가멋 지수 Rg, 색상별 채도 변화 그래픽을 제공한다.", c: "lighting", g: "lighting" },
+    { k: "충실도 지수", e: "Fidelity index", a: "Rf", d: "기준 광원 대비 평균 색 재현 정확도(0–100). TM-30 Rf와 CIE 224:2017 Rf가 같은 계산을 쓴다.", c: "lighting", g: "lighting" },
+    { k: "가멋 지수", e: "Gamut index", a: "Rg", d: "TM-30에서 시험 광원이 만드는 평균 색 가멋 면적의 기준 광원 대비 비(×100). 100보다 크면 평균적으로 채도를 높여 보이게 한다.", c: "lighting", g: "lighting" },
+    { k: "복사의 시감 효능", e: "Luminous efficacy of radiation", a: "LER", d: "광원 SPD 자체의 lm/W(광속 ÷ 복사속) = 683 ∫S V dλ / ∫S dλ. 눈이 덜 민감한 파장에 에너지를 쓰면 떨어지므로 연색성과 트레이드오프 관계다.", c: "lighting", g: "lighting" },
+    { k: "광원 효율", e: "Luminous efficacy of a source", a: "lm/W", d: "전기 입력 1 W당 광속. LER에 전기→광 변환 효율(wall-plug efficiency)을 곱한 값이다.", c: "lighting", g: "lighting" },
+    { k: "인광체 변환 LED", e: "Phosphor-converted LED", a: "pc-LED", d: "청색 InGaN LED(약 450 nm)의 일부를 YAG:Ce 등 인광체로 장파장으로 변환해 백색을 만드는 LED. 적색 인광체를 더하면 연색성(특히 R9)이 좋아지고 LER은 낮아진다.", c: "lighting", g: "lighting" },
+    { k: "RGB · 다채널 LED", e: "Multi-channel LED", a: "", d: "여러 색 LED를 섞어 백색이나 색을 만드는 방식. 채널별 구동으로 CCT를 조절할 수 있지만 좁은 피크 때문에 연색성이 떨어지기 쉽다.", c: "lighting", g: "lighting" },
+    { k: "빈닝", e: "Binning", a: "", d: "제조 편차가 있는 LED를 측정된 색도·광속에 따라 등급으로 분류하는 공정. 색도 빈은 u′v′ 또는 맥아담 단계로 정한다.", c: "lighting", g: "lighting" },
+
+    // ---------------------------------------------------------- 계측
+    { k: "분광광도계", e: "Spectrophotometer", a: "", d: "내장 광원으로 시료를 비추고 기준 백색 대비 파장별 반사율·투과율을 측정하는 장비. 결과를 원하는 광원·관측자로 계산해 측색값을 얻는다.", c: "measurement", g: "meas" },
+    { k: "분광복사계", e: "Spectroradiometer", a: "", d: "광원·디스플레이가 내는 빛의 절대 분광 복사량을 측정하는 장비. 휘도, 색도, CCT, CRI 등을 한 번에 계산할 수 있다.", c: "measurement", g: "meas" },
+    { k: "색채계", e: "Colorimeter (tristimulus)", a: "", d: "등색 함수를 흉내 낸 필터 3–4개로 3자극치를 직접 측정하는 장비. 빠르고 저렴하지만 필터 불일치로 측정 대상 스펙트럼에 따라 오차가 생겨 디스플레이 종류별 보정 행렬이 필요하다.", c: "measurement", g: "meas" },
+    { k: "f1′", e: "Spectral mismatch index f1′", a: "f1′", d: "측광기·색채계의 분광 감도가 V(λ)에서 얼마나 벗어났는지 나타내는 지표(CIE S 023/ISO/CIE 19476). 작을수록 다양한 광원에서 정확하다.", c: "measurement", g: "meas" },
+    { k: "측정 기하 45°/0°", e: "45°/0° geometry", a: "45°a:0°", d: "45°에서 조명(환형 등)하고 법선 방향에서 보는 기하. 정반사광이 들어가지 않아 사람의 시각 판단과 비슷하며 인쇄 측정(ISO 13655)의 표준이다.", c: "measurement", g: "meas" },
+    { k: "측정 기하 d/8", e: "d/8° geometry", a: "d:8°", d: "적분구로 확산 조명하고 8°에서 관측하는 기하. 정반사 포함(di:8°, SCI)과 제외(de:8°, SCE)를 고를 수 있다.", c: "measurement", g: "meas" },
+    { k: "SCI / SCE", e: "Specular component included / excluded", a: "SCI, SCE", d: "적분구 측정에서 정반사 성분을 포함(SCI)하거나 광택 트랩으로 제외(SCE)하는 모드. SCI는 표면 광택과 무관한 재료 색, SCE는 보이는 외관에 가깝다.", c: "measurement", g: "meas" },
+    { k: "적분구", e: "Integrating sphere", a: "", d: "내벽을 고반사 확산 물질로 칠한 구. 빛을 균일하게 섞어 확산 조명을 만들거나 광원의 총 광속을 측정한다.", c: "measurement", g: "meas" },
+    { k: "형광 증백제", e: "Optical brightening agent", a: "OBA", d: "자외선(약 340–400 nm)을 흡수해 청색(약 420–470 nm) 형광을 내는 첨가제. 종이·섬유를 더 희게 보이게 하지만 측정·관찰 광원의 UV 성분에 따라 측색값이 달라진다.", c: "measurement", g: "meas" },
+    { k: "측정 조건 M0–M3", e: "ISO 13655 measurement conditions", a: "M0/M1/M2/M3", d: "M0은 광원 A 근사(UV 미규정), M1은 D50(UV 포함, 형광 반영), M2는 UV 차단, M3은 M2에 편광 필터를 더한 조건. OBA 용지는 M1으로 측정해야 관찰 조건과 맞는다.", c: "measurement", g: "meas" },
+    { k: "기준 백색", e: "White reference standard", a: "", d: "반사율이 교정된 백색 타일(세라믹, PTFE 등). 분광광도계는 측정마다 이를 기준으로 반사율 비를 구한다.", c: "measurement", g: "meas" },
+    { k: "교정", e: "Calibration", a: "", d: "측정기의 지시값과 표준값 사이 관계를 확인하고 보정하는 작업. 디스플레이에서는 장치를 목표 상태로 맞추는 작업을 뜻하기도 한다.", c: "measurement", g: "meas" },
+    { k: "추적성", e: "Metrological traceability", a: "", d: "측정 결과가 문서화된 끊기지 않은 교정 사슬을 통해 국가 표준(NMI)과 SI 단위에 연결되는 성질. 각 단계의 불확도가 함께 전달되어야 한다.", c: "measurement", g: "meas" },
+    { k: "측정 불확도", e: "Measurement uncertainty", a: "", d: "측정값 주위에 참값이 있을 것으로 합리적으로 기대되는 범위를 나타내는 매개변수(GUM). 반복성, 기준 표준, 파장 정확도, 미광 등의 성분을 합성한다.", c: "measurement", g: "meas" },
+    { k: "기기 간 일치", e: "Inter-instrument agreement", a: "IIA", d: "같은 시료를 여러 장비로 측정할 때의 색차. 같은 모델끼리도 ΔE 수십 분의 일에서 1 수준의 차이가 나므로 공급망에서는 장비를 맞춰 쓴다.", c: "measurement", g: "meas" },
+
+    // ---------------------------------------------------------- 카메라
+    { k: "분광 감도", e: "Spectral sensitivity", a: "", d: "카메라 R·G·B 채널의 파장별 응답. 센서 QE, 컬러 필터, IR 차단 필터, 렌즈 투과율의 곱이다.", c: "camera", g: "camera" },
+    { k: "루터–아이브스 조건", e: "Luther–Ives condition", a: "", d: "카메라 분광 감도가 등색 함수의 (가역) 선형 결합이라는 조건. 만족하면 하나의 3×3 행렬로 모든 스펙트럼의 XYZ를 정확히 복원할 수 있다. 실제 카메라는 근사적으로만 만족한다.", c: "camera", g: "camera" },
+    { k: "카메라 메타머리즘", e: "Camera (sensor) metamerism", a: "", d: "사람에게 같은 색인 스펙트럼이 카메라에서는 다른 RGB가 되거나 그 반대인 현상. 루터 조건 위반에서 생기며 어떤 행렬로도 완전히 고칠 수 없다.", c: "camera", g: "camera" },
+    { k: "색 보정 행렬", e: "Color correction matrix", a: "CCM", d: "화이트 밸런스된 카메라 선형 RGB를 XYZ나 선형 sRGB로 옮기는 3×3 행렬. 시험 차트의 측정값으로 최소제곱(또는 ΔE 최소화)하며, 백색 보존을 위해 행 합 = 1 제약을 두는 경우가 많다.", c: "camera", g: "camera" },
+    { k: "화이트 밸런스", e: "White balance", a: "WB", d: "장면 광원의 색을 추정해 무채색 물체가 R = G = B가 되도록 채널별 이득을 곱하는 처리. 카메라 RAW 공간의 von Kries형 대각 보정이다.", c: "camera", g: "camera" },
+    { k: "Gray World 가정", e: "Gray World assumption", a: "", d: "장면 반사율의 평균이 무채색이라는 가정. 영상 채널 평균이 같아지도록 이득을 정하며, 한 색이 화면을 채우면 실패한다.", c: "camera", g: "camera" },
+    { k: "White Patch 가정", e: "White Patch (max-RGB)", a: "", d: "장면에서 가장 밝은 부분(또는 채널별 최댓값)이 광원 색이라는 가정. 정반사 하이라이트가 있으면 잘 맞지만 포화 화소에 약하다.", c: "camera", g: "camera" },
+    { k: "RAW", e: "Raw image data", a: "", d: "디모자이킹·화이트 밸런스·색 보정·톤 커브를 거치기 전의 센서 데이터. 대체로 광량에 선형이며 카메라 고유 색공간에 있다.", c: "camera", g: "camera" },
+    { k: "디모자이킹", e: "Demosaicing", a: "", d: "컬러 필터 배열(베이어 등)로 화소마다 한 색만 얻은 RAW에서 빠진 두 색을 보간해 RGB를 만드는 처리.", c: "camera", g: "camera" },
+    { k: "컬러체커", e: "ColorChecker chart", a: "", d: "자연물·피부·원색·회색 단계로 구성된 24패치 색 시험 차트. 카메라 CCM 산출과 색 재현 평가의 사실상 표준이다.", c: "camera", g: "camera" },
+
+    // ---------------------------------------------------------- 디스플레이·HDR
+    { k: "가산 혼합", e: "Additive color mixing", a: "", d: "여러 빛을 더해 색을 만드는 방식. 출력 SPD가 원색 SPD의 합이므로 XYZ도 원색 XYZ의 선형 합이 된다.", c: "display", g: "display" },
+    { k: "채널 가산성", e: "Channel additivity", a: "", d: "R, G, B를 동시에 켠 출력이 각각 켠 출력의 합과 같은 성질. 이것과 채널 독립성이 성립해야 3×3 행렬 + 1D 곡선 모델이 정확하다.", c: "display", g: "display" },
+    { k: "GOG 모델", e: "Gain-offset-gamma model", a: "GOG", d: "채널별 광 출력을 L = (kg·d + ko)^γ(d는 정규화 디지털 값)로 표현하는 디스플레이 특성화 모델. CRT에서 출발했고 3×3 행렬과 결합해 쓴다.", c: "display", g: "display" },
+    { k: "특성화", e: "Characterization", a: "", d: "장치의 현재 상태에서 장치 값 ↔ 측색 값 관계를 측정해 모델로 기술하는 작업. 장치를 바꾸는 교정과 구분된다.", c: "display", g: "display" },
+    { k: "1D LUT", e: "1D lookup table", a: "", d: "채널마다 독립적으로 입력→출력 값을 매핑하는 표. 감마·톤 커브·그레이 밸런스 보정에 쓰며 채널 간 색 혼합은 바꿀 수 없다.", c: "display", g: "display" },
+    { k: "3D LUT", e: "3D lookup table", a: "", d: "RGB 입력 격자(예: 17³, 33³, 65³)의 각 노드에 출력 RGB를 저장한 표. 격자 사이는 보간하며 비선형 가멋 매핑·룩 변환까지 표현한다.", c: "display", g: "display" },
+    { k: "사면체 보간", e: "Tetrahedral interpolation", a: "", d: "3D LUT 격자의 정육면체를 6개 사면체로 나누고 입력이 속한 사면체의 4개 꼭짓점으로 보간하는 방법. 삼선형 보간(8점)보다 연산이 적고 회색 대각선을 따라 회색이 보존된다.", c: "display", g: "display" },
+    { k: "삼선형 보간", e: "Trilinear interpolation", a: "", d: "격자 정육면체의 8개 꼭짓점을 세 축 방향 선형 보간으로 섞는 방법.", c: "display", g: "display" },
+    { k: "그레이 트래킹", e: "Gray tracking", a: "", d: "흑에서 백까지 모든 회색 단계의 색도가 목표 백색점에 유지되는 정도. 단계별 Δu′v′나 ΔE로 평가한다.", c: "display", g: "display" },
+    { k: "명암비", e: "Contrast ratio", a: "", d: "백색 휘도 ÷ 흑색 휘도. LCD는 백라이트 누설로 흑색이 0이 아니고, OLED는 화소를 끌 수 있어 매우 크다. 주변광 반사가 실효 명암비를 크게 낮춘다.", c: "display", g: "display" },
+    { k: "양자점", e: "Quantum dot", a: "QD", d: "크기로 방출 파장을 조절하는 나노 결정 발광체. 반치폭이 좁은 녹·적 원색을 만들어 디스플레이 가멋을 넓힌다.", c: "display", g: "display" },
+    { k: "OLED", e: "Organic light-emitting diode", a: "OLED", d: "화소마다 유기 발광층이 스스로 빛을 내는 디스플레이. 완전 흑색이 가능하지만 휘도 제한(ABL)으로 밝은 화면 면적이 커지면 피크 휘도가 낮아진다.", c: "display", g: "display" },
+    { k: "HDR", e: "High dynamic range", a: "HDR", d: "기존 SDR(약 100 cd/m² 기준)보다 훨씬 높은 피크 휘도와 깊은 흑색을 표현하는 영상 체계. 절대 휘도 PQ와 상대 휘도 HLG 두 방식이 BT.2100에 있다.", c: "hdr", g: "display" },
+    { k: "PQ", e: "Perceptual quantizer (SMPTE ST 2084)", a: "PQ", d: "0–10,000 cd/m² 절대 휘도를 인간 대비 감도(Barten 모델)에 맞춰 코드 값에 배분하는 EOTF. 같은 코드 값은 어떤 디스플레이에서든 같은 nit를 뜻한다.", c: "hdr", g: "display" },
+    { k: "HLG", e: "Hybrid log-gamma", a: "HLG", d: "어두운 부분은 제곱근(감마형), 밝은 부분은 로그 곡선인 장면 기준 상대 OETF(ARIB STD-B67, BT.2100). 메타데이터 없이 SDR 수상기와 어느 정도 호환된다.", c: "hdr", g: "display" },
+    { k: "BT.2100", e: "ITU-R BT.2100", a: "", d: "HDR-TV 권고. BT.2020 원색, PQ와 HLG 전달 함수, 10/12비트, Y′CbCr와 ICtCp 신호 형식을 정의한다.", c: "hdr", g: "display" },
+    { k: "ICtCp", e: "ICtCp", a: "ICtCp", d: "BT.2100의 색 표현. 크로스토크를 넣은 LMS를 PQ(또는 HLG)로 비선형화한 뒤 세기 I와 색차 Ct, Cp로 변환한다. Y′CbCr보다 색상 선형성과 휘도·색 분리가 좋다.", c: "hdr", g: "display" },
+    { k: "톤 매핑", e: "Tone mapping", a: "TM", d: "콘텐츠의 휘도 범위를 표시 장치의 범위로 압축하는 곡선 처리(HDR→SDR, 4000 nit 마스터 → 1000 nit 디스플레이 등). BT.2390은 PQ 영역의 기준 EETF를 제시한다.", c: "hdr", g: "display" },
+    { k: "MaxCLL", e: "Maximum content light level", a: "MaxCLL", d: "콘텐츠 전체에서 가장 밝은 화소의 휘도(화소의 max(R,G,B) 선형 값 기준, cd/m²). HDR10 정적 메타데이터의 하나다.", c: "hdr", g: "display" },
+    { k: "MaxFALL", e: "Maximum frame-average light level", a: "MaxFALL", d: "프레임별 평균 휘도 중 최댓값(cd/m²). 디스플레이의 전력·밝기 제한을 고려한 톤 매핑에 쓰인다.", c: "hdr", g: "display" },
+    { k: "마스터링 디스플레이 메타데이터", e: "Mastering display color volume (SMPTE ST 2086)", a: "ST 2086", d: "콘텐츠를 만든 디스플레이의 원색·백색점·최소/최대 휘도를 전달하는 정적 메타데이터.", c: "hdr", g: "display" },
+    { k: "HDR10", e: "HDR10", a: "", d: "PQ, BT.2020 원색, 10비트, ST 2086과 MaxCLL/MaxFALL 정적 메타데이터를 쓰는 HDR 배포 형식. 장면별 동적 메타데이터를 더한 형식으로 HDR10+, Dolby Vision이 있다.", c: "hdr", g: "display" },
+    { k: "HDR 기준 백색", e: "HDR reference white", a: "203 nit", d: "BT.2408이 권고하는 HDR의 그래픽 백색·확산 백색 수준 203 cd/m²(PQ 약 58 %, HLG 75 %). SDR 콘텐츠를 HDR에 섞을 때의 기준이 된다.", c: "hdr", g: "display" },
+    { k: "피크 휘도", e: "Peak luminance", a: "", d: "디스플레이가 낼 수 있는 최대 휘도. 측정 창 크기(예: 화면 10 % 면적)에 따라 값이 달라지므로 조건을 함께 밝혀야 한다.", c: "hdr", g: "display" },
+
+    // ---------------------------------------------------------- 영상 신호
+    { k: "Y′CbCr", e: "Y′CbCr", a: "YCbCr", d: "감마 보정된 R′G′B′에서 루마 Y′와 두 색차 Cb, Cr을 만드는 영상 신호 형식. 색차의 대역을 줄여 압축 효율을 얻는다.", c: "encoding", g: "video" },
+    { k: "루마", e: "Luma", a: "Y′", d: "비선형 R′G′B′의 가중합 Y′ = KR·R′ + KG·G′ + KB·B′. 선형광의 가중합인 휘도 Y와 다르며, 채도가 높은 색에서 실제 휘도 정보 일부가 색차 쪽으로 새어 나간다.", c: "encoding", g: "video" },
+    { k: "루마 계수", e: "Luma coefficients", a: "KR, KB", d: "BT.601: 0.299/0.114, BT.709: 0.2126/0.0722, BT.2020: 0.2627/0.0593(KG = 1 − KR − KB). 각 원색 세트의 휘도 비율에서 나온다.", c: "encoding", g: "video" },
+    { k: "색차 신호", e: "Color difference signals", a: "Cb, Cr", d: "Cb = (B′ − Y′)/(2(1 − KB)), Cr = (R′ − Y′)/(2(1 − KR)). 정규화로 각각 −0.5–+0.5 범위를 갖는다.", c: "encoding", g: "video" },
+    { k: "크로마 서브샘플링", e: "Chroma subsampling", a: "4:2:2, 4:2:0", d: "눈이 색차의 공간 해상도에 덜 민감한 점을 이용해 Cb, Cr을 낮은 해상도로 저장하는 방식. 4:2:2는 가로 1/2, 4:2:0은 가로·세로 1/2이며 4:2:0의 데이터 양은 4:4:4의 절반이다.", c: "encoding", g: "video" },
+    { k: "크로마 사이팅", e: "Chroma siting", a: "", d: "서브샘플링된 색차 표본이 루마 격자의 어디에 위치하는지에 대한 규약. 인코더와 디코더가 다르게 해석하면 색 번짐이 반 화소 어긋난다.", c: "encoding", g: "video" },
+    { k: "리미티드 레인지", e: "Limited (narrow) range", a: "", d: "방송 신호 범위. 8비트 Y′ 16–235, Cb·Cr 16–240(중심 128), 10비트 Y′ 64–940, Cb·Cr 64–960. 풀 레인지와 혼동하면 흑색이 뜨거나 섀도가 뭉개진다.", c: "encoding", g: "video" },
+    { k: "풀 레인지", e: "Full range", a: "", d: "코드 전체(8비트 0–255)를 쓰는 범위. PC 그래픽과 JPEG가 이를 쓴다.", c: "encoding", g: "video" },
+    { k: "일정 휘도", e: "Constant luminance", a: "CL", d: "선형 RGB로 진짜 휘도 Y를 만든 뒤 비선형화하는 방식(BT.2020의 YcCbcCrc). 루마의 휘도 누설 문제를 없애지만 널리 쓰이지는 않는다.", c: "encoding", g: "video" },
+
+    // ---------------------------------------------------------- 색 관리
+    { k: "색 관리 시스템", e: "Color management system", a: "CMS", d: "장치별 프로파일을 연결해 한 장치의 색 값을 다른 장치에서 같은(또는 의도된) 외관으로 재현하도록 변환하는 체계.", c: "management", g: "cms" },
+    { k: "장치 종속 / 장치 독립", e: "Device-dependent / device-independent", a: "", d: "RGB·CMYK 값처럼 장치에 따라 의미가 달라지는 색 표현과, XYZ·Lab처럼 측색으로 정의된 색 표현의 구분.", c: "management", g: "cms" },
+    { k: "ICC 프로파일", e: "ICC profile", a: "ICC", d: "장치 색 값과 PCS 사이의 변환을 행렬·톤 곡선(TRC) 또는 LUT로 담은 파일 형식(ICC.1, ISO 15076-1).", c: "management", g: "cms" },
+    { k: "프로파일 연결 공간", e: "Profile connection space", a: "PCS", d: "ICC 프로파일들이 만나는 공통 색공간. D50 기준의 CIEXYZ 또는 CIELAB이며, 다른 백색의 장치는 색순응(chad 태그)으로 D50에 맞춘다.", c: "management", g: "cms" },
+    { k: "색 관리 모듈", e: "Color management module", a: "CMM", d: "프로파일을 읽어 실제 화소 변환을 수행하는 엔진. 같은 프로파일이라도 CMM의 보간·정밀도 차이로 결과가 조금 다를 수 있다.", c: "management", g: "cms" },
+    { k: "렌더링 인텐트", e: "Rendering intent", a: "", d: "가멋이 다른 장치 사이에서 색을 어떻게 옮길지 정한 방침. 지각적, 상대 측색, 채도, 절대 측색 네 가지가 있다.", c: "management", g: "cms" },
+    { k: "지각적 인텐트", e: "Perceptual intent", a: "", d: "원본 전체 가멋을 목적 가멋으로 압축해 색 사이의 관계(계조)를 보존하는 인텐트. 가멋 안의 색도 바뀐다.", c: "management", g: "cms" },
+    { k: "상대 측색 인텐트", e: "Media-relative colorimetric intent", a: "", d: "원본 매체 백색을 목적 매체 백색에 맞춘 뒤 가멋 안 색은 측색적으로 그대로, 밖의 색은 경계로 클리핑하는 인텐트.", c: "management", g: "cms" },
+    { k: "절대 측색 인텐트", e: "ICC-absolute colorimetric intent", a: "", d: "백색점 보정 없이 측색값을 그대로 재현하는 인텐트. 교정쇄에서 인쇄 용지의 색까지 흉내 낼 때 쓴다.", c: "management", g: "cms" },
+    { k: "채도 인텐트", e: "Saturation intent", a: "", d: "정확성보다 선명한 채도를 우선하는 인텐트. 비즈니스 그래픽용이며 구현이 CMM·프로파일마다 다르다.", c: "management", g: "cms" },
+    { k: "블랙 포인트 보정", e: "Black point compensation", a: "BPC", d: "원본의 흑점을 목적 장치의 흑점에 선형 스케일로 맞추는 보정(ISO 18619). 상대 측색 인텐트에서 섀도 디테일이 뭉개지는 것을 막는다.", c: "management", g: "cms" },
+    { k: "소프트 프루핑", e: "Soft proofing", a: "", d: "출력 장치(인쇄기 등)에서 나올 결과를 모니터에서 미리 시뮬레이션하는 것. 원본 → 출력 프로파일 → 모니터 프로파일 순으로 변환한다.", c: "management", g: "cms" },
+    { k: "디바이스 링크 프로파일", e: "Device link profile", a: "", d: "두 장치 사이 변환을 PCS를 거치지 않고 한 번에 담은 프로파일. 순수 K 보존처럼 PCS 경유로 잃는 장치 고유 구조를 유지할 수 있다.", c: "management", g: "cms" },
+    { k: "작업 색공간", e: "Working color space", a: "", d: "편집·합성·렌더링이 수행되는 기준 색공간(예: 선형 ACEScg, Adobe RGB). 입력은 여기로 변환되고 출력은 여기서 변환된다.", c: "management", g: "cms" },
+    { k: "OpenColorIO", e: "OpenColorIO", a: "OCIO", d: "VFX·애니메이션용 오픈소스 색 관리 프레임워크(ASWF). config 파일에 색공간, 변환, 디스플레이·뷰를 정의해 여러 애플리케이션이 같은 파이프라인을 공유한다.", c: "management", g: "cms" },
+    { k: "IDT · RRT · ODT", e: "Input / reference rendering / output transform", a: "", d: "ACES 1.x 파이프라인의 단계. 카메라 데이터를 ACES로 옮기는 입력 변환, 장면 기준을 표시용으로 렌더링하는 RRT, 특정 디스플레이용 출력 변환이다.", c: "management", g: "cms" },
+
+    // ---------------------------------------------------------- 인쇄·색료
+    { k: "감산 혼합", e: "Subtractive color mixing", a: "", d: "착색제가 빛의 일부를 흡수해 색을 만드는 방식. 겹친 층의 투과율이 파장별로 곱해지므로 측색값은 선형으로 더해지지 않는다.", c: "print", g: "print" },
+    { k: "베르–람베르트 법칙", e: "Beer–Lambert law", a: "", d: "흡광도 A = −log₁₀T = ε·c·l로 농도와 경로 길이에 비례한다는 법칙. 농도를 두 배로 하면 투과율은 제곱이 된다(T = 0.5 → 0.25).", c: "print", g: "print" },
+    { k: "광학 농도", e: "Optical density", a: "D", d: "D = −log₁₀R(또는 T). 인쇄에서는 필터 농도계로 잉크 농도를 관리한다.", c: "print", g: "print" },
+    { k: "쿠벨카–뭉크 이론", e: "Kubelka–Munk theory", a: "K–M", d: "흡수 계수 K와 산란 계수 S로 탁한 층의 반사를 기술하는 2광속 모델. 불투명 층은 K/S = (1 − R∞)²/(2R∞)이며, 혼합물의 K와 S가 성분 농도의 가중합이라 페인트·안료 배합 계산에 쓴다.", c: "print", g: "print" },
+    { k: "하프톤", e: "Halftone", a: "", d: "잉크를 찍거나 안 찍는 이진 점의 면적률로 중간 계조를 표현하는 기법.", c: "print", g: "print" },
+    { k: "AM / FM 스크리닝", e: "Amplitude- / frequency-modulated screening", a: "", d: "AM은 일정 간격 망점의 크기로, FM(확률적 스크리닝)은 같은 크기 미세 점의 밀도로 계조를 만든다. AM은 스크린 각도를 달리해 판 사이 모아레를 줄인다.", c: "print", g: "print" },
+    { k: "머레이–데이비스 식", e: "Murray–Davies equation", a: "", d: "망점 면적률 a에서 반사율 R = a·R잉크 + (1 − a)·R종이로 보는 선형 모델. 광학적 도트 게인을 무시하므로 실제보다 밝게 예측한다.", c: "print", g: "print" },
+    { k: "도트 게인", e: "Dot gain (tone value increase)", a: "TVI", d: "인쇄된 망점 면적률이 데이터 값보다 커지는 현상. 잉크 번짐 같은 물리적 성분과 종이 속 빛 산란에 의한 광학적 성분이 있으며 중간 톤에서 가장 크다.", c: "print", g: "print" },
+    { k: "율–닐슨 효과", e: "Yule–Nielsen effect", a: "", d: "종이 내부 산란으로 빛이 망점 아래와 사이를 오가 망점이 실제보다 크게 보이는 광학적 도트 게인. 반사율을 R^(1/n) 공간에서 선형 혼합하는 경험식(n 계수)으로 보정한다.", c: "print", g: "print" },
+    { k: "노이게바우어 모델", e: "Neugebauer model", a: "", d: "하프톤 인쇄 색을 잉크 겹침으로 생기는 2ⁿ개 원색(CMY는 8개)의 반사율을 면적률로 가중해 더해 예측하는 모델. 셀룰러·율–닐슨 수정판이 실무에 쓰인다.", c: "print", g: "print" },
+    { k: "드미셸 식", e: "Demichel equations", a: "", d: "각 잉크 망점이 서로 독립적으로 놓인다고 가정하고, 잉크 면적률로부터 노이게바우어 원색 각각의 면적률을 계산하는 식.", c: "print", g: "print" },
+    { k: "CMYK", e: "Cyan, magenta, yellow, key (black)", a: "CMYK", d: "인쇄의 4원색. 이론상 CMY만으로 검정을 만들 수 있지만 실제 잉크는 불완전해 K를 더해 농도·회색 안정성·잉크량을 관리한다.", c: "print", g: "print" },
+    { k: "UCR", e: "Under color removal", a: "UCR", d: "어두운 무채색 영역에서 CMY의 공통 회색 성분을 줄이고 K로 대체하는 색 분해 방식.", c: "print", g: "print" },
+    { k: "GCR", e: "Gray component replacement", a: "GCR", d: "유채색 영역까지 포함해 CMY 공통 회색 성분을 K로 대체하는 색 분해 방식. 잉크 사용량과 인쇄 중 회색 변동을 줄인다.", c: "print", g: "print" },
+    { k: "총 잉크량", e: "Total area coverage", a: "TAC", d: "한 지점의 C+M+Y+K 면적률 합의 최댓값(%). 잉크 건조·뒷묻음 한계로 용지·인쇄 방식마다 다르며, 대략 240–350 % 범위에서 정한다.", c: "print", g: "print" },
+    { k: "ISO 12647", e: "ISO 12647 (process control for halftone printing)", a: "", d: "오프셋·그라비어·디지털 등 인쇄 공정별로 원색 Lab 목표, 허용차, TVI 곡선을 정한 표준 시리즈.", c: "print", g: "print" },
+    { k: "별색", e: "Spot color", a: "", d: "CMYK 망점 조합이 아니라 미리 조색된 전용 잉크로 찍는 색. 브랜드 색처럼 정확하거나 CMYK 가멋 밖인 색에 쓴다.", c: "print", g: "print" },
+
+    // ---------------------------------------------------------- UI·시각화
+    { k: "상대 휘도 (WCAG)", e: "Relative luminance", a: "L", d: "sRGB 값을 선형화한 뒤 0.2126R + 0.7152G + 0.0722B로 구한 0–1 값. WCAG 대비비 계산의 입력이다.", c: "dataviz", g: "ui" },
+    { k: "WCAG 대비비", e: "WCAG contrast ratio", a: "", d: "(L밝은 + 0.05)/(L어두운 + 0.05), 1:1–21:1. AA 기준은 본문 4.5:1, 큰 글자 3:1이며 AAA는 7:1이다.", c: "dataviz", g: "ui" },
+    { k: "APCA", e: "Accessible Perceptual Contrast Algorithm", a: "APCA", d: "글자와 배경의 극성(밝은 글자/어두운 배경)에 따라 비대칭인 지각 대비 Lc를 계산하는 방법. 글꼴 크기·굵기와 함께 기준을 정하며 WCAG 3 작업 초안에서 후보로 논의되었다.", c: "dataviz", g: "ui" },
+    { k: "지각 균일 컬러맵", e: "Perceptually uniform colormap", a: "", d: "데이터 값의 같은 간격이 같은 지각 차이(주로 명도 변화)가 되도록 설계한 컬러맵. viridis, cividis 등이 있다.", c: "dataviz", g: "ui" },
+    { k: "무지개 컬러맵 문제", e: "Rainbow (jet) colormap problem", a: "", d: "jet 같은 무지개 컬러맵은 명도가 단조롭지 않아 데이터에 없는 경계가 보이고, 흑백 인쇄와 색각 이상에서 순서를 잃는다.", c: "dataviz", g: "ui" },
+    { k: "순차 · 발산 · 범주형 팔레트", e: "Sequential / diverging / qualitative palettes", a: "", d: "크기 순서가 있는 데이터, 기준값 양쪽으로 갈라지는 데이터, 순서 없는 범주에 각각 맞춘 색 배열. 데이터 성격과 팔레트 유형을 맞춰야 한다.", c: "dataviz", g: "ui" },
+    { k: "viridis", e: "viridis colormap", a: "", d: "CAM02-UCS에서 명도가 단조 증가하도록 설계된 청보라–녹–황 컬러맵. matplotlib 2.0부터 기본값이며 흔한 색각 이상에서도 순서가 유지된다.", c: "dataviz", g: "ui" },
+    { k: "색각 이상 시뮬레이션", e: "CVD simulation", a: "", d: "이색형(또는 이상 삼색형) 관측자에게 보일 색을 LMS 공간의 투영으로 계산하는 방법. Brettel(1997), Viénot(1999), Machado(2009) 모델이 널리 쓰인다.", c: "dataviz", g: "ui" },
+    { k: "등휘도", e: "Isoluminance", a: "", d: "색상만 다르고 휘도가 같은 상태. 등휘도 색 경계는 가장자리와 세부를 알아보기 어려우므로 글자·선에는 명도 대비를 함께 준다.", c: "dataviz", g: "ui" }
+  ];
+
+  /* =============================================================== 용어집 렌더 */
+  var CH = {}; CB.CHAPTERS.forEach(function (c) { CH[c.slug] = c; });
+  var CHO = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  var MERGE = { "ㄲ": "ㄱ", "ㄸ": "ㄷ", "ㅃ": "ㅂ", "ㅆ": "ㅅ", "ㅉ": "ㅈ" };
+  function initial(s) {
+    var c = s.charCodeAt(0);
+    if (c >= 0xac00 && c <= 0xd7a3) { var j = CHO[Math.floor((c - 0xac00) / 588)]; return MERGE[j] || j; }
+    if (/[0-9]/.test(s[0])) return "0–9";
+    return "A–Z";
+  }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function norm(s) { return String(s).toLowerCase().replace(/[\s\-–·_/()′,.:]/g, ""); }
+  function hl(text, q) {
+    var t = esc(text);
+    if (!q) return t;
+    var i = text.toLowerCase().indexOf(q);
+    if (i < 0) return t;
+    return esc(text.slice(0, i)) + "<mark>" + esc(text.slice(i, i + q.length)) + "</mark>" + esc(text.slice(i + q.length));
+  }
+  function gOrd(g) { var i = CHO.indexOf(g); return i >= 0 ? i : g === "A–Z" ? 100 : 101; }
+  TERMS.forEach(function (t) { t._key = norm(t.k + " " + t.e + " " + t.a); t._def = norm(t.d); t._ini = initial(t.k); });
+
+  var qEl = document.getElementById("gl-q"), listEl = document.getElementById("gl-list"), countEl = document.getElementById("gl-count");
+  var catSel = CB.seg("gl-cat", renderGlossary), sortSel = CB.seg("gl-sort", renderGlossary);
+  qEl.addEventListener("input", renderGlossary);
+
+  function renderGlossary() {
+    var raw = qEl.value.trim(), q = norm(raw), qLow = raw.toLowerCase(), cat = catSel(), mode = sortSel();
+    var items = TERMS.filter(function (t) {
+      if (cat !== "all" && t.g !== cat) return false;
+      if (!q) return true;
+      return t._key.indexOf(q) >= 0 || t._def.indexOf(q) >= 0;
+    });
+    var rank = function (t) { return q && t._key.indexOf(q) < 0 ? 1 : 0; };
+    items.sort(function (a, b) {
+      if (mode === "cat") { var d = CAT_ORDER.indexOf(a.g) - CAT_ORDER.indexOf(b.g); if (d) return d; }
+      else {
+        var r = rank(a) - rank(b); if (r) return r;
+        var g = gOrd(a._ini) - gOrd(b._ini); if (g) return g;
+      }
+      return a.k.localeCompare(b.k, "ko");
+    });
+    countEl.textContent = items.length + " / " + TERMS.length + "개 용어";
+    if (!items.length) { listEl.innerHTML = '<div class="gl-empty">“' + esc(raw) + '”에 해당하는 용어가 없습니다. 영어나 약어로도 검색해 보세요.</div>'; return; }
+    var html = [], last = null;
+    items.forEach(function (t) {
+      var g = mode === "cat" ? t.g : (q && rank(t) ? "본문 일치" : t._ini);
+      if (g !== last) {
+        last = g;
+        html.push('<div class="gl-group">' + esc(mode === "cat" ? CATS[g] : g) + "</div>");
+      }
+      var c = CH[t.c];
+      html.push('<div class="gl-item"><h4>' + hl(t.k, qLow) + '<span class="en">' + hl(t.e, qLow) + "</span>" +
+        (t.a ? '<span class="abbr">' + hl(t.a, qLow) + "</span>" : "") + "</h4><p>" + esc(t.d) + "</p>" +
+        '<div class="meta"><a class="ch" href="' + t.c + '.html">→ Ch.' + c.num + " " + esc(c.title) + '</a><span class="cat">' + esc(CATS[t.g]) + "</span></div></div>");
+    });
+    listEl.innerHTML = html.join("");
+  }
+  renderGlossary();
+
+  /* =============================================================== 종합 퀴즈 데이터
+     ch: 관련 장, q: 질문, o: 보기, a: 정답 인덱스, e: 해설 */
+  var QUIZ = [
+    { ch: "light", q: "555 nm 단색광 1 W의 광속은 약 얼마인가?", o: ["1 lm", "100 lm", "683 lm", "1700 lm"], a: 2, e: "SI는 540×10¹² Hz(약 555 nm) 단색 복사의 시감 효능을 683 lm/W로 정의한다. V(555) = 1이므로 1 W × 683 lm/W × 1 = 683 lm. 1700 lm/W는 암소시 V′(λ)의 최대 효능이다." },
+    { ch: "light", q: "650 nm 단색광 1 W의 광속은? (V(650) ≈ 0.107)", o: ["약 7 lm", "약 73 lm", "약 683 lm", "약 107 lm"], a: 1, e: "Φv = 683 × V(650) × 1 W ≈ 683 × 0.107 ≈ 73 lm. 같은 복사 파워라도 눈의 감도가 낮은 파장은 광속이 크게 줄어든다." },
+    { ch: "vision", q: "단일 변수 원리(principle of univariance)가 뜻하는 것은?", o: ["원추세포 하나는 파장 변화와 세기 변화를 구분할 수 없다", "모든 원추세포의 감도 곡선은 같은 모양이다", "색각은 한 가지 변수(파장)로 완전히 기술된다", "막대세포는 색을 구분한다"], a: 0, e: "광수용체 출력은 흡수한 광자 수 하나에만 의존한다. 그래서 감도가 다른 수용체 여러 개의 출력을 비교해야 색을 구분할 수 있고, 이것이 색이 3차원인 이유다." },
+    { ch: "vision", q: "가게의 형광등 아래에서 같아 보이던 두 원단이 햇빛 아래에서 달라 보였다. 이 현상은?", o: ["관측자 메타머리즘", "광원 메타머리즘", "기하 메타머리즘", "동시 대비"], a: 1, e: "분광 반사율이 다른 메타머 쌍은 특정 광원에서만 3자극치가 같다. 광원이 바뀌면 일치가 깨지는 것이 광원 메타머리즘이다." },
+    { ch: "colorimetry", q: "CIE 1931 RGB 등색 함수 r̄(λ)가 일부 파장에서 음수가 되는 이유는?", o: ["측정 잡음 때문", "그 파장의 단색광은 세 원색 혼합으로 맞출 수 없어 빨강 원색을 시험광 쪽에 더해야 했기 때문", "빨강 원색의 파워가 음수였기 때문", "막대세포가 개입했기 때문"], a: 1, e: "청록 영역의 단색광은 원색 삼각형 밖에 있어, 빨강을 시험광 쪽에 더해야 등색된다. 이를 원색 쪽에서 빼는 것, 즉 음의 양으로 기록한다." },
+    { ch: "colorimetry", q: "CIE XYZ에서 Y가 특별한 이유는?", o: ["ȳ(λ)를 V(λ)와 같게 정의해 Y가 휘도에 비례하기 때문", "Y 원색이 실재하는 초록 빛이기 때문", "Y는 항상 0–1 범위이기 때문", "Y는 색도를 나타내기 때문"], a: 0, e: "XYZ 변환은 ȳ = V(λ)가 되도록 정해졌다. 그래서 Y는 측광량(휘도·조도·반사물체의 휘도 계수)이고 색도는 x, y가 담당한다." },
+    { ch: "chromaticity", q: "두 빛을 섞은 색도는 두 색도점을 잇는 선분 위에 놓인다. 선분 위의 위치를 정하는 각 성분의 가중치는?", o: ["각 빛의 휘도 Y", "각 빛의 X+Y+Z", "각 빛의 복사 파워", "항상 1:1"], a: 1, e: "x = X/(X+Y+Z)이므로 혼합 색도는 각 성분의 X+Y+Z로 가중한 평균이다. Y로 가중하면 틀린다." },
+    { ch: "chromaticity", q: "맥아담 타원이 xy 색도도에서 위치마다 크기·방향이 크게 다르다는 사실이 보여 주는 것은?", o: ["xy 색도도는 지각적으로 균등하지 않다", "관측자마다 색각이 다르다", "스펙트럼 궤적이 잘못 측정되었다", "녹색 영역의 색은 구분이 더 쉽다"], a: 0, e: "같은 크기의 지각 차이가 녹색 영역에서는 큰 타원, 청색 영역에서는 작은 타원이 된다. 그래서 u′v′, CIELAB 같은 균등 색공간이 필요하다(녹색 영역은 오히려 구분이 어렵다)." },
+    { ch: "rgb", q: "BT.2020 원색의 특징으로 옳은 것은?", o: ["세 원색이 모두 가상 원색이다", "630, 532, 467 nm 단색광으로 스펙트럼 궤적 위에 있다", "백색점이 D50이다", "sRGB와 녹색 원색이 같다"], a: 1, e: "BT.2020 원색은 단색광 630, 532, 467 nm에 해당하는 궤적 위의 점이고 백색점은 D65다. 가상 원색을 쓰는 것은 ProPhoto나 ACES AP0다." },
+    { ch: "rgb", q: "XYZ를 sRGB 행렬로 변환했더니 선형 R이 −0.08이 나왔다. 무엇을 의미하는가?", o: ["행렬 계산 오류다", "그 색이 sRGB 가멋 밖에 있다", "그 색이 아주 어둡다", "감마를 먼저 적용해야 한다"], a: 1, e: "원색 삼각형(가멋) 밖의 색은 원색의 음수 양이 필요하다. 표시하려면 클리핑하거나 가멋 매핑을 해야 한다." },
+    { ch: "transfer", q: "sRGB 8비트 회색 (128, 128, 128)의 상대 휘도에 가장 가까운 것은?", o: ["0.50", "0.36", "0.216", "0.18"], a: 2, e: "128/255 = 0.502, ((0.502 + 0.055)/1.055)^2.4 ≈ 0.216. 코드 값의 중간은 광량의 중간이 아니다." },
+    { ch: "transfer", q: "검정(0)과 흰색(255) 화소를 반씩 섞은 영역을 sRGB 한 화소로 축소할 때 물리적으로 맞는 코드 값은?", o: ["128", "약 188", "약 64", "255"], a: 1, e: "선형광 평균은 0.5이고 이를 인코딩하면 1.055 × 0.5^(1/2.4) − 0.055 ≈ 0.735, × 255 ≈ 188이다. 인코딩된 값으로 평균하면 128이 되어 너무 어둡다." },
+    { ch: "uniform", q: "D65 아래 반사율 18.4 %인 무채색 시료의 L*은 약 얼마인가?", o: ["18", "35", "50", "75"], a: 2, e: "L* = 116 × 0.184^(1/3) − 16 ≈ 116 × 0.569 − 16 ≈ 50. 세제곱근 비선형 때문에 18 % 회색이 명도의 중간이 된다." },
+    { ch: "uniform", q: "CIEDE2000이 CIE76(ΔE*ab)보다 개선한 점이 아닌 것은?", o: ["채도가 높을수록 크로마 차의 가중을 줄였다", "청색 영역의 타원 회전을 반영하는 RT 항을 넣었다", "무채색 근처의 a* 축을 보정했다", "XYZ에서 바로 계산해 Lab 변환이 필요 없다"], a: 3, e: "CIEDE2000도 CIELAB 값을 입력으로 쓴다. SC·SH 가중, G에 의한 a* 보정, RT 회전 항이 CIE76 대비 개선점이다." },
+    { ch: "adaptation", q: "von Kries 색순응 모델의 핵심은?", o: ["XYZ 각 성분에 같은 배율을 곱한다", "원추(LMS) 각 채널을 백색 응답의 비로 독립적으로 스케일한다", "Lab의 a*, b*를 0으로 만든다", "색도도에서 백색점을 평행 이동한다"], a: 1, e: "M⁻¹·diag(L₂/L₁, M₂/M₁, S₂/S₁)·M 꼴의 대각 이득 모델이다. Bradford, CAT02, CAT16은 M(응답 공간)을 바꾼 변형이다." },
+    { ch: "adaptation", q: "CCT가 같은 두 LED 중 하나는 Duv = +0.008이다. 이 광원은 흑체에 비해 어떻게 보이는가?", o: ["약간 녹색 기운", "약간 마젠타 기운", "더 따뜻하게", "차이 없음"], a: 0, e: "Duv > 0은 CIE 1960 uv에서 흑체 궤적 위쪽, 즉 녹색 쪽이다. 음수면 마젠타(분홍) 쪽이다. CCT 하나만으로 광원 색을 다 나타낼 수 없는 이유다." },
+    { ch: "appearance", q: "같은 사진이 맑은 날 야외에서 실내보다 더 선명(컬러풀)하게 보이는 현상은?", o: ["Stevens 효과", "Hunt 효과", "Abney 효과", "Bezold–Brücke 효과"], a: 1, e: "Hunt 효과는 휘도가 높을수록 컬러풀니스가 커지는 현상이다. Stevens 효과는 휘도에 따른 밝기 대비 증가다." },
+    { ch: "appearance", q: "휘도가 같은 회색과 채도 높은 빨강을 비교하면 빨강이 더 밝게 보인다. 이 현상은?", o: ["헬름홀츠–콜라우슈 효과", "동시 대비", "Hunt 효과", "애브니 효과"], a: 0, e: "헬름홀츠–콜라우슈 효과다. 휘도 Y가 밝기 지각을 완전히 예측하지 못하며, 색상·채도도 밝기에 기여한다." },
+    { ch: "lighting", q: "CRI Ra에 대한 설명으로 옳은 것은?", o: ["14개 시험색 전체의 평균이다", "TCS01–08의 특수 연색 평가수 평균이고 포화 빨강 R9는 포함되지 않는다", "CAM02-UCS 색차를 쓴다", "기준 광원은 항상 D65다"], a: 1, e: "Ra는 중간 채도 시료 8개의 평균이다. R9는 별도로 보고하며, 기준 광원은 5000 K 미만에서 흑체, 이상에서 CIE 주광이다. CAM02-UCS는 TM-30이 쓴다." },
+    { ch: "lighting", q: "TM-30에서 Rf = 85, Rg = 108인 광원은?", o: ["기준 광원보다 평균적으로 채도를 높여 보이게 한다", "기준 광원보다 색을 탁하게 만든다", "기준 광원과 완전히 같다", "CRI가 108이다"], a: 0, e: "Rg > 100은 시험 광원 아래 색 가멋이 기준 광원보다 넓다는 뜻이다. Rf 85는 평균 충실도가 다소 떨어진다는 뜻이다." },
+    { ch: "measurement", q: "광택이 다른 같은 잉크의 두 시료를 비교할 때 '재료 자체의 색'을 비교하려면 어떤 모드가 적합한가?", o: ["SCE", "SCI", "45°/0°", "M0"], a: 1, e: "SCI(정반사 포함)는 표면 광택 차이의 영향을 거의 받지 않아 재료 색 비교에 적합하다. SCE와 45°/0°는 광택이 반영된 외관에 가깝다." },
+    { ch: "measurement", q: "형광 증백제(OBA)가 든 용지를 D50 관찰 조건에 맞춰 측정하려면 ISO 13655의 어느 조건을 써야 하는가?", o: ["M0", "M1", "M2", "M3"], a: 1, e: "M1은 D50에 맞춘 UV 성분을 포함해 OBA 형광을 관찰 조건처럼 반영한다. M2는 UV를 차단하므로 형광 기여가 빠진다." },
+    { ch: "camera", q: "루터–아이브스 조건을 만족하는 카메라의 성질은?", o: ["모든 장면에서 화이트 밸런스가 필요 없다", "하나의 3×3 행렬로 모든 스펙트럼의 XYZ를 정확히 복원할 수 있다", "노이즈가 최소다", "RAW가 sRGB와 같다"], a: 1, e: "분광 감도가 등색 함수의 선형 결합이면 카메라 RGB와 XYZ가 선형 관계로 묶여 메타머 오류가 없다. 화이트 밸런스(순응)는 여전히 별개의 문제다." },
+    { ch: "camera", q: "Gray World 화이트 밸런스가 실패하기 쉬운 장면은?", o: ["여러 색 물체가 고루 있는 거리 풍경", "화면 대부분이 초록 잔디인 장면", "회색 차트를 찍은 장면", "흰 벽과 다양한 소품이 있는 실내"], a: 1, e: "Gray World는 장면 평균이 무채색이라고 가정한다. 한 색이 화면을 채우면 그 색을 광원 색으로 오인해 반대색 쪽으로 틀어진다." },
+    { ch: "display", q: "33×33×33 3D LUT의 노드 수와 사면체 보간에 쓰이는 꼭짓점 수는?", o: ["35,937개, 4개", "1,089개, 8개", "35,937개, 8개", "99개, 4개"], a: 0, e: "33³ = 35,937개 노드. 사면체 보간은 정육면체를 6개 사면체로 나눠 4개 꼭짓점을 쓰고, 삼선형 보간은 8개를 쓴다." },
+    { ch: "display", q: "디스플레이 특성화에서 '3×3 행렬 + 채널별 1D 곡선' 모델이 정확하려면 필요한 조건은?", o: ["채널 가산성과 채널 독립성(원색 색도 일정)", "OLED일 것", "감마가 정확히 2.2일 것", "백색점이 D50일 것"], a: 0, e: "R+G+B 동시 출력이 개별 출력의 합이고, 구동값이 바뀌어도 각 원색의 색도가 일정해야 한다. 그렇지 않으면 3D LUT 같은 더 일반적인 모델이 필요하다." },
+    { ch: "hdr", q: "PQ(SMPTE ST 2084) 신호의 최대 코드 값이 나타내는 휘도는?", o: ["100 cd/m²", "1,000 cd/m²", "4,000 cd/m²", "10,000 cd/m²"], a: 3, e: "PQ는 0–10,000 cd/m² 절대 휘도를 인코딩한다. 실제 디스플레이가 낼 수 없는 영역은 톤 매핑으로 처리한다." },
+    { ch: "hdr", q: "BT.2408이 권고하는 HDR 기준 백색(그래픽 백색) 수준은?", o: ["80 cd/m²", "100 cd/m²", "203 cd/m²", "1,000 cd/m²"], a: 2, e: "203 cd/m²로 PQ 약 58 %, HLG 75 % 신호에 해당한다. 그 위의 범위는 하이라이트용 헤드룸이다." },
+    { ch: "encoding", q: "BT.709의 루마 계수 KR은?", o: ["0.299", "0.2126", "0.2627", "0.7152"], a: 1, e: "BT.709는 KR = 0.2126, KB = 0.0722(KG = 0.7152). 0.299는 BT.601, 0.2627은 BT.2020이다." },
+    { ch: "encoding", q: "10비트 리미티드 레인지에서 Y′의 흑색과 공칭 백색 코드 값은?", o: ["0과 1023", "16과 235", "64와 940", "64와 960"], a: 2, e: "10비트 Y′는 64–940, Cb·Cr는 64–960(중심 512)이다. 8비트는 Y′ 16–235, 색차 16–240." },
+    { ch: "encoding", q: "4:2:0 크로마 서브샘플링의 데이터 양은 4:4:4의 몇 배인가?", o: ["1/4", "1/3", "1/2", "2/3"], a: 2, e: "Y′는 그대로(1), Cb와 Cr은 각각 1/4 해상도라 (1 + 1/4 + 1/4)/3 = 1/2이다." },
+    { ch: "management", q: "인쇄 교정쇄에서 실제 인쇄 용지의 누르스름한 백색까지 그대로 재현하려면 어떤 렌더링 인텐트를 쓰는가?", o: ["지각적", "상대 측색", "절대 측색", "채도"], a: 2, e: "절대 측색 인텐트는 매체 백색을 보정하지 않으므로 대상 용지 색까지 시뮬레이션한다. 상대 측색은 용지 백색을 교정쇄 용지 백색으로 맞춘다." },
+    { ch: "management", q: "ICC 프로파일 연결 공간(PCS)의 기준 백색은?", o: ["D65", "D50", "광원 A", "등에너지 백색 E"], a: 1, e: "PCS는 D50 기준 CIEXYZ 또는 CIELAB이다. D65 장치는 색순응 변환(보통 선형 Bradford, chad 태그)으로 D50에 맞춘다." },
+    { ch: "print", q: "불투명한 페인트 층의 반사율이 R∞ = 0.5일 때 쿠벨카–뭉크 K/S는?", o: ["0.125", "0.25", "0.5", "1.0"], a: 1, e: "K/S = (1 − R∞)²/(2R∞) = 0.25/1.0 = 0.25. 혼합 안료의 K, S가 농도 가중합이라는 성질로 배합을 계산한다." },
+    { ch: "dataviz", q: "흰 배경(#FFFFFF) 위 회색 글자 #777777의 WCAG 2.x 대비비는 약 4.48:1이다. 본문 글자 AA 판정은?", o: ["통과(3:1 이상)", "불통과(4.5:1 미만)", "AAA 통과", "판정 불가"], a: 1, e: "본문 AA 기준은 4.5:1이다. #777777은 근소하게 미달이고, 한 단계 어두운 #767676(약 4.54:1)은 통과한다. 3:1은 큰 글자 기준이다." },
+    { ch: "workbench", q: "발광 스펙트럼 하나를 sRGB 8비트 화면 값으로 바꾸는 올바른 순서는?", o: ["SPD → sRGB 감마 → XYZ → 행렬 → 8비트", "SPD × 등색 함수 적분(XYZ) → 행렬로 선형 RGB → 가멋 처리 → sRGB 인코딩 → 8비트 양자화", "SPD → Lab → Y′CbCr → 8비트", "SPD → 8비트 양자화 → XYZ → 행렬"], a: 1, e: "색 계산은 선형 영역에서 끝내고 비선형 인코딩과 양자화는 마지막에 한다. 행렬 후 음수나 1 초과 값이 나오면 인코딩 전에 클리핑 또는 가멋 매핑한다." }
+  ];
+
+  /* =============================================================== 퀴즈 로직 */
+  var fq = { order: [], i: 0, score: 0, answered: false, results: [], cv: null };
+  function $(id) { return document.getElementById(id); }
+  document.getElementById("fq-count").textContent = "문제 1 / " + QUIZ.length;
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function startQuiz(shuf) {
+    var idx = QUIZ.map(function (_, i) { return i; });
+    if (shuf) shuffle(idx);
+    fq.order = idx.map(function (qi) {
+      var perm = QUIZ[qi].o.map(function (_, k) { return k; });
+      shuffle(perm);
+      return { qi: qi, perm: perm };
+    });
+    fq.i = 0; fq.score = 0; fq.results = [];
+    $("fq-card").hidden = false; $("fq-result").hidden = true;
+    showQ();
+  }
+  function showQ() {
+    var item = fq.order[fq.i], Q = QUIZ[item.qi], c = CH[Q.ch];
+    fq.answered = false;
+    $("fq-count").textContent = "문제 " + (fq.i + 1) + " / " + QUIZ.length;
+    $("fq-score").textContent = "정답 " + fq.score;
+    $("fq-fill").style.width = (fq.i / QUIZ.length) * 100 + "%";
+    $("fq-ch").textContent = "Ch." + c.num + " · " + c.title;
+    $("fq-q").textContent = Q.q;
+    var box = $("fq-opts");
+    box.innerHTML = "";
+    item.perm.forEach(function (k, n) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "fq-opt"; b.dataset.k = k;
+      b.innerHTML = '<span class="n">' + String.fromCharCode(65 + n) + "</span><span>" + esc(Q.o[k]) + "</span>";
+      b.addEventListener("click", function () { answer(k); });
+      box.appendChild(b);
+    });
+    $("fq-exp").hidden = true;
+    $("fq-next").hidden = true;
+  }
+  function answer(k) {
+    if (fq.answered) return;
+    fq.answered = true;
+    var item = fq.order[fq.i], Q = QUIZ[item.qi], ok = k === Q.a, c = CH[Q.ch];
+    if (ok) fq.score++;
+    fq.results.push({ ch: Q.ch, ok: ok });
+    [].forEach.call($("fq-opts").querySelectorAll(".fq-opt"), function (b) {
+      var bk = Number(b.dataset.k);
+      b.disabled = true;
+      if (bk === Q.a) b.classList.add("right");
+      else if (bk === k) b.classList.add("wrong");
+    });
+    var exp = $("fq-exp");
+    exp.innerHTML = (ok ? '<b class="ok">정답!</b> ' : '<b class="bad">오답.</b> ') + esc(Q.e) +
+      ' <a href="' + Q.ch + '.html">→ Ch.' + c.num + " " + esc(c.title) + " 복습</a>";
+    exp.hidden = false;
+    $("fq-score").textContent = "정답 " + fq.score;
+    $("fq-fill").style.width = ((fq.i + 1) / QUIZ.length) * 100 + "%";
+    var nx = $("fq-next");
+    nx.textContent = fq.i + 1 < QUIZ.length ? "다음 문제 →" : "결과 보기 →";
+    nx.hidden = false;
+    nx.focus({ preventScroll: true });
+  }
+  $("fq-next").addEventListener("click", function () {
+    if (!fq.answered) return;
+    if (fq.i + 1 < QUIZ.length) { fq.i++; showQ(); } else showResult();
+  });
+  $("fq-retry").addEventListener("click", function () {
+    startQuiz(true);
+    $("final-quiz").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  var RANKS = [
+    [0, "색채 입문자", "스펙트럼과 3자극치부터 차근차근 다시 시작하자. 1–4장 시뮬레이터가 출발점이다."],
+    [12, "측색 실습생", "기본 개념은 잡혔다. 틀린 장을 골라 다시 읽으면 금방 올라간다."],
+    [22, "컬러 엔지니어", "색공간 변환과 색차, 장치 특성을 숫자로 다룰 수 있는 수준이다."],
+    [30, "컬러 사이언티스트!", "빛에서 잉크까지 꿰뚫고 있다. 이제 CIE·ITU·ICC 표준 원문을 읽어 볼 차례다."]
+  ];
+  function perChapter() {
+    var m = {};
+    fq.results.forEach(function (r) { (m[r.ch] = m[r.ch] || { n: 0, ok: 0 }); m[r.ch].n++; if (r.ok) m[r.ch].ok++; });
+    return CB.CHAPTERS.filter(function (c) { return m[c.slug]; }).map(function (c) { return { c: c, n: m[c.slug].n, ok: m[c.slug].ok }; });
+  }
+  function drawResult(ctx, w, h) {
+    var P = CB.palette(), rows = perChapter();
+    var left = Math.min(170, Math.max(96, w * 0.34)), right = 46, top = 12, rh = (h - top - 8) / Math.max(1, rows.length);
+    var font = CB.color("font") || "sans-serif", mono = CB.color("mono") || "monospace";
+    ctx.textBaseline = "middle";
+    rows.forEach(function (r, i) {
+      var y = top + i * rh + rh / 2, frac = r.ok / r.n, bw = w - left - right;
+      var label = r.c.num + " " + r.c.title;
+      ctx.font = "12px " + font;
+      ctx.fillStyle = P.dim; ctx.textAlign = "right";
+      while (ctx.measureText(label).width > left - 10 && label.length > 4) label = label.slice(0, -2) + "…";
+      ctx.fillText(label, left - 8, y);
+      ctx.fillStyle = P.surface; ctx.fillRect(left, y - rh * 0.3, bw, rh * 0.6);
+      ctx.fillStyle = frac >= 0.99 ? P.ok : frac >= 0.5 ? P.warn : P.bad;
+      ctx.fillRect(left, y - rh * 0.3, Math.max(2, bw * frac), rh * 0.6);
+      ctx.fillStyle = P.text; ctx.textAlign = "left"; ctx.font = "12px " + mono;
+      ctx.fillText(r.ok + "/" + r.n, left + bw + 6, y);
+    });
+  }
+  function showResult() {
+    $("fq-card").hidden = true;
+    $("fq-result").hidden = false;
+    $("fq-fill").style.width = "100%";
+    $("fq-count").textContent = "완료";
+    var s = fq.score, rank = RANKS[0];
+    RANKS.forEach(function (r) { if (s >= r[0]) rank = r; });
+    $("fq-title").textContent = rank[1];
+    $("fq-big").innerHTML = s + "<small> / " + QUIZ.length + "</small>";
+    $("fq-msg").textContent = "정답률 " + Math.round((s / QUIZ.length) * 100) + " % · " + rank[2];
+    var weak = perChapter().filter(function (r) { return r.ok < r.n; });
+    $("fq-review").innerHTML = weak.length
+      ? "다시 볼 장: " + weak.map(function (r) { return '<a href="' + r.c.slug + '.html">Ch.' + r.c.num + " " + esc(r.c.title) + "</a>"; }).join(" · ")
+      : "모든 장 만점! 19장 워크벤치에서 자신만의 스펙트럼을 분석해 보자.";
+    var rowsN = perChapter().length;
+    if (!fq.cv) fq.cv = CB.canvas("#cv-fq", drawResult, { height: rowsN * 26 + 20 });
+    else fq.cv.resize();
+    $("fq-result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  startQuiz(false);
+})();
+</script>
+</body>
+</html>

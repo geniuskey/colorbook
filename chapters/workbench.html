@@ -1,0 +1,1497 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>컬러 엔지니어링 워크벤치 · ColorBook</title>
+<meta name="description" content="스펙트럼을 붙여넣으면 XYZ·xy·u′v′·정밀 CCT·Duv·주파장·Lab·sRGB/P3/Rec.2020·LER까지, 색 값 상호 변환, ΔE76/94/2000 분해, RGB 변환 행렬, 가멋 커버리지를 한 화면에서 계산하는 실무 도구 모음.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/workbench.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="컬러 엔지니어링 워크벤치 · ColorBook">
+<meta property="og:description" content="스펙트럼을 붙여넣으면 XYZ·xy·u′v′·정밀 CCT·Duv·주파장·Lab·sRGB/P3/Rec.2020·LER까지, 색 값 상호 변환, ΔE76/94/2000 분해, RGB 변환 행렬, 가멋 커버리지를 한 화면에서 계산하는 실무 도구 모음.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/workbench.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"컬러 엔지니어링 워크벤치","name":"컬러 엔지니어링 워크벤치 · ColorBook","url":"https://colorbook.euiyun.com/chapters/workbench.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/workbench.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":19,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"스펙트럼을 붙여넣으면 XYZ·xy·u′v′·정밀 CCT·Duv·주파장·Lab·sRGB/P3/Rec.2020·LER까지, 색 값 상호 변환, ΔE76/94/2000 분해, RGB 변환 행렬, 가멋 커버리지를 한 화면에서 계산하는 실무 도구 모음."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"19 컬러 엔지니어링 워크벤치","item":"https://colorbook.euiyun.com/chapters/workbench.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  [hidden] { display: none !important; }
+  .wb-views { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; background: var(--border); }
+  @media (min-width: 720px) { .wb-views { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); } }
+  .wb-views > div { background: var(--canvas-bg); position: relative; min-width: 0; }
+  .wb-views canvas { display: block; width: 100%; }
+  .wb-views .cap { position: absolute; left: 12px; top: 8px; font-size: 12px; color: var(--text-faint); pointer-events: none; }
+  .sim-controls .grp { grid-column: 1 / -1; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--text-faint); border-bottom: 1px dashed var(--border); padding-bottom: 4px; margin-top: 4px; }
+  .sim-controls .wide { grid-column: 1 / -1; }
+  .wb-in { font-family: var(--mono); font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); width: 100%; min-width: 0; box-sizing: border-box; }
+  .wb-in:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .wb-in.err { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--surface)); }
+  textarea.wb-in { min-height: 150px; resize: vertical; line-height: 1.45; }
+  select.wb-in { font-family: var(--font); }
+  .wb-msg { padding: 10px 18px; font-size: 14px; border-top: 1px solid var(--border); color: var(--text); background: color-mix(in srgb, var(--warn) 14%, transparent); line-height: 1.6; }
+  .wb-msg:empty { display: none; }
+  .wb-msg.err { background: color-mix(in srgb, var(--bad) 14%, transparent); }
+  .wb-res { padding: 4px 18px 6px; }
+  .wb-res .table-wrap { margin: 12px 0; }
+  .wb-res table { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .wb-res th, .wb-res td { padding: 6px 10px; white-space: nowrap; }
+  .wb-res td.lbl { font-family: var(--font); color: var(--text-dim); font-size: 13.5px; }
+  .wb-res td.nt { font-family: var(--font); color: var(--text-faint); font-size: 12.5px; white-space: normal; min-width: 140px; }
+  .c-ok { color: var(--ok); font-weight: 700; } .c-bad { color: var(--bad); font-weight: 700; } .c-warn { color: var(--warn); font-weight: 700; }
+  .wb-sw { display: flex; gap: 12px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border); flex-wrap: wrap; font-size: 13px; color: var(--text-dim); }
+  .wb-sw .chip { width: 88px; height: 52px; border-radius: 8px; border: 1px solid var(--border); flex: none; }
+  .wb-sw .chip.pair { width: 64px; }
+  .wb-fields { display: grid; gap: 12px; padding: 16px 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .wb-fields label { display: grid; gap: 5px; font-size: 13.5px; color: var(--text-dim); }
+  .wb-fields label b { color: var(--text); font-weight: 700; }
+  .wb-fields label small { color: var(--text-faint); font-size: 12px; }
+  pre.wb-mat { font-family: var(--mono); font-size: 13px; background: var(--surface); color: var(--text); padding: 10px 12px; border-radius: 8px; overflow-x: auto; margin: 6px 0 4px; line-height: 1.5; }
+  .wb-mats { display: grid; gap: 10px 18px; padding: 14px 18px 4px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .wb-mats h4 { margin: 0; font-size: 13px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .wb-mats .btn { font-size: 12px; padding: 4px 10px; }
+  .wb-checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .ex { margin: 26px 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elev); padding: 18px 20px 8px; }
+  .ex h3 { margin-top: 0 !important; }
+  .ex .q { font-weight: 600; }
+  .ex ol li { margin: 6px 0 !important; }
+  .ex .ans { border-left: 3px solid var(--ok); padding: 8px 12px; background: color-mix(in srgb, var(--ok) 9%, transparent); border-radius: 0 8px 8px 0; margin: 12px 0; }
+  .ex .btn { font-size: 13px; padding: 6px 12px; margin: 0 6px 10px 0; }
+  table.mono td, table.mono th.num { font-family: var(--mono); font-size: 13.5px; }
+</style>
+</head>
+<body data-chapter="workbench">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 19</div>
+    <h1>컬러 엔지니어링 워크벤치</h1>
+    <p class="lead">앞의 열여덟 장에서 배운 공식들은 실무에서 몇 개의 고정된 질문으로 되돌아온다. “이 스펙트럼의 색온도와 Duv는?”, “이 hex 값의 Lab은?”, “두 시편이 허용차 안인가?”, “sRGB를 P3 패널에 정확히 띄우는 행렬은?”, “이 패널은 Rec.2020을 몇 % 덮는가?” 이 장은 개념 설명 대신 그 질문들에 바로 답하는 계산 도구와, 도구를 써서 실무 문제를 끝까지 푸는 예제로 구성된다. 모든 계산은 다른 장과 같은 CIE 원표와 같은 <code>CB</code> 헬퍼로 이뤄지므로, 여기서 얻은 숫자는 책 전체의 숫자와 일치한다.</p>
+    <ul class="objectives">
+      <li>임의의 분광 분포(표준 광원, 흑체, 가우시안 합성, 측정값 붙여넣기)에서 XYZ·xyY·u′v′·CCT·Duv·주파장·Lab·RGB·LER을 한 번에 계산할 수 있다.</li>
+      <li>hex, 8비트 sRGB, 선형 RGB, XYZ, xyY, Lab, LCh, OKLab 사이를 백색점과 색순응 방법을 명시한 채 오갈 수 있다.</li>
+      <li>ΔE76·ΔE94·ΔE2000을 항별로 분해해 “왜 이 값이 나왔는가”를 설명하고 허용차 판정을 내릴 수 있다.</li>
+      <li>원색·백색점만으로 RGB→RGB 3×3 행렬과 역행렬을 만들고, 원색·백색 변환으로 그 행렬을 검증할 수 있다.</li>
+      <li>가멋의 면적비와 커버리지를 구별하고, xy와 u′v′에서 수치가 왜 다른지 설명할 수 있다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 0. 사용법 -->
+  <section id="overview">
+    <h2>워크벤치 사용법과 계산 규약</h2>
+    <p>색 계산의 오류 대부분은 공식이 아니라 <b>규약</b>에서 생긴다. 같은 시료라도 XYZ를 Y=1로 쓰는지 Y=100으로 쓰는지, 2° 관측자인지 10° 관측자인지, Lab의 기준 백색이 D65인지 D50인지에 따라 숫자가 달라진다. 숫자를 남에게 넘길 때는 값과 함께 이 세 가지를 반드시 적어야 한다. 이 장의 도구는 아래 흐름을 따라 계산하고, 각 단계의 규약을 결과 표에 함께 표시한다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="스펙트럼에서 각 색 좌표까지의 계산 흐름">
+        <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <rect x="14" y="110" width="128" height="70" rx="10" class="f-acc-soft"/>
+        <text x="78" y="138" text-anchor="middle" class="t">스펙트럼 S(λ)</text>
+        <text x="78" y="158" text-anchor="middle" class="t-mono">또는 R(λ)·S(λ)</text>
+        <rect x="186" y="110" width="110" height="70" rx="10" class="f-elev"/>
+        <text x="241" y="138" text-anchor="middle" class="t">∫ x̄ ȳ z̄ dλ</text>
+        <text x="241" y="158" text-anchor="middle" class="t-mono">2° / 10°</text>
+        <rect x="340" y="110" width="96" height="70" rx="10" class="f-acc2-soft"/>
+        <text x="388" y="150" text-anchor="middle" class="t">XYZ</text>
+        <rect x="490" y="14" width="140" height="52" rx="9" class="f-elev"/>
+        <text x="560" y="37" text-anchor="middle" class="t">xyY · u′v′</text>
+        <text x="560" y="55" text-anchor="middle" class="t-mono">투영(정규화)</text>
+        <rect x="652" y="14" width="136" height="52" rx="9" class="f-surface"/>
+        <text x="720" y="37" text-anchor="middle" class="t">CCT · Duv</text>
+        <text x="720" y="55" text-anchor="middle" class="t-mono">주파장 · 순도</text>
+        <rect x="490" y="90" width="140" height="52" rx="9" class="f-elev"/>
+        <text x="560" y="113" text-anchor="middle" class="t">CAT → 백색 W</text>
+        <text x="560" y="131" text-anchor="middle" class="t-mono">Bradford 등</text>
+        <rect x="652" y="90" width="136" height="52" rx="9" class="f-surface"/>
+        <text x="720" y="113" text-anchor="middle" class="t">Lab · LCh</text>
+        <text x="720" y="131" text-anchor="middle" class="t-mono">ΔE76/94/00</text>
+        <rect x="490" y="166" width="140" height="52" rx="9" class="f-elev"/>
+        <text x="560" y="189" text-anchor="middle" class="t">M⁻¹ (원색·백색)</text>
+        <text x="560" y="207" text-anchor="middle" class="t-mono">선형 RGB</text>
+        <rect x="652" y="166" width="136" height="52" rx="9" class="f-surface"/>
+        <text x="720" y="189" text-anchor="middle" class="t">OETF → 신호</text>
+        <text x="720" y="207" text-anchor="middle" class="t-mono">8비트 · hex</text>
+        <rect x="490" y="242" width="140" height="44" rx="9" class="f-elev"/>
+        <text x="560" y="269" text-anchor="middle" class="t">선형 sRGB → OKLab</text>
+        <path d="M142,145 H182" class="s-acc" marker-end="url(#ar1)"/>
+        <path d="M296,145 H336" class="s-acc" marker-end="url(#ar1)"/>
+        <path d="M436,135 C462,110 462,50 486,42" class="s-line" marker-end="url(#ar1)"/>
+        <path d="M436,140 C462,130 466,118 486,116" class="s-line" marker-end="url(#ar1)"/>
+        <path d="M436,152 C462,162 466,184 486,190" class="s-line" marker-end="url(#ar1)"/>
+        <path d="M560,218 V238" class="s-line" marker-end="url(#ar1)"/>
+        <path d="M630,40 H648" class="s-line" marker-end="url(#ar1)"/>
+        <path d="M630,116 H648" class="s-line" marker-end="url(#ar1)"/>
+        <path d="M630,192 H648" class="s-line" marker-end="url(#ar1)"/>
+        <text x="78" y="214" text-anchor="middle" class="t-dim">발광체: Y=100 정규화</text>
+        <text x="78" y="232" text-anchor="middle" class="t-dim">반사체: 완전 확산면 Y=100</text>
+        <text x="388" y="214" text-anchor="middle" class="t-dim">모든 좌표의 출발점</text>
+      </svg>
+      <figcaption><b>그림 19-1.</b> 워크벤치의 계산 흐름. XYZ 하나에서 세 갈래가 나온다: 투영 좌표(xy, u′v′와 그 파생인 CCT·주파장), 기준 백색이 필요한 지각 좌표(Lab·LCh와 색차), 원색이 필요한 장치 좌표(선형 RGB, 인코딩 신호). 백색과 원색이 개입하는 지점마다 규약을 명시해야 한다.</figcaption>
+    </figure>
+
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>이 장의 규약</th><th>흔한 다른 규약</th></tr></thead>
+      <tbody>
+        <tr><td>XYZ 스케일</td><td>표시는 Y=100 (반사체는 완전 확산면 Y=100, 발광체는 Y=100으로 정규화)</td><td>Y=1 (영상·셰이더), 절대값 cd/m²</td></tr>
+        <tr><td>관측자</td><td>XYZ·xyY·u′v′·Lab은 선택한 관측자. CCT·Duv·주파장·RGB는 항상 2° (CIE 1931)</td><td>10° 관측자(인쇄·도료 측정에 흔함)</td></tr>
+        <tr><td>Lab 기준 백색</td><td>도구마다 선택. 백색이 D65가 아니면 지정한 CAT로 적응한 뒤 계산</td><td>ICC PCS는 D50 + Bradford</td></tr>
+        <tr><td>RGB 공간</td><td>sRGB·P3·Rec.2020 모두 D65 백색, 원색은 <a href="rgb.html">5장</a>의 표준값</td><td>DCI-P3(DCI 백색), Adobe RGB</td></tr>
+        <tr><td>인코딩</td><td>sRGB·Display P3: IEC 61966-2-1 곡선, Rec.2020: BT.2020 OETF</td><td>BT.1886 감마 2.4 (표시 측)</td></tr>
+        <tr><td>CCT</td><td>CIE 1960 uv에서 흑체 궤적 최근접점 직접 탐색, |Duv| ≤ 0.05에서만 유효</td><td>McCamy 근사, Robertson 표</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout warn"><strong>공학자 관점: 숫자 세 개만 넘기지 마라</strong>
+      <p>“Lab = (54.3, 80.8, 69.9)”는 그 자체로는 불완전한 정보다. sRGB 빨강의 Lab은 D65 백색 기준이면 (53.24, 80.09, 67.20), ICC 방식대로 Bradford로 D50에 적응하면 (54.29, 80.80, 69.89)이다. 두 값의 ΔE00은 약 1.1로, 인쇄 허용차의 절반을 이미 써 버린다. 보고서에는 “D50, 2°, Bradford”처럼 규약을 함께 적는다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 1. 스펙트럼 -->
+  <section id="spectrum">
+    <h2>스펙트럼 → 모든 좌표 변환기</h2>
+    <p>측정 장비가 내놓는 가장 원초적인 데이터는 분광 분포다. 분광복사계는 광원의 \(S(\lambda)\)를, 분광광도계는 시료의 반사율 \(R(\lambda)\)를 준다(<a href="measurement.html">11장</a>). 이 도구는 둘 중 무엇이든 받아 3자극치를 적분하고, 거기서 파생되는 모든 좌표를 한 표에 낸다. 적분은 380–780 nm, 5 nm 간격의 CIE 원표 위에서 이뤄진다(<a href="colorimetry.html">3장</a>).</p>
+
+    <div class="formula">$$X = k\sum_\lambda \Phi(\lambda)\,\bar x(\lambda)\,\Delta\lambda,\qquad \Phi(\lambda)=\begin{cases}S(\lambda) & \text{발광체}\\ R(\lambda)\,S_{\text{조명}}(\lambda) & \text{반사체}\end{cases},\qquad k=\frac{100}{\sum S_{\text{조명}}\,\bar y\,\Delta\lambda}$$
+      <div class="where">발광체는 Y=100이 되도록 \(k\)를 정한다(상대 측색). 반사체는 완전 확산 반사면(R=1)의 Y가 100이 되도록 정한다. LER은 \(K_m=683\ \text{lm/W}\)와 \(V(\lambda)=\bar y(\lambda)\)로 \(\text{LER}=K_m\sum S\bar y\,\Delta\lambda / \sum S\,\Delta\lambda\)이며, 분모도 380–780 nm만 적분한다.</div>
+    </div>
+
+    <h3>정밀 CCT와 Duv</h3>
+    <p>상관 색온도는 “시료 색도에서 가장 가까운 흑체의 온도”이고, 거리는 CIE 1960 UCS \((u,v)\)에서 잰다(CIE 015:2018). McCamy 3차식은 xy만으로 빠르게 근사하지만 궤적에서 멀어지면 오차가 커지고 Duv는 주지 않는다. 이 도구는 흑체 궤적을 CMF로 직접 적분해 1–1000 mired 격자에서 최근접점을 찾은 뒤, 황금분할 탐색으로 거리를 최소화하는 온도를 구한다. Duv는 그 최소 거리이며, 궤적 위쪽(녹색 쪽)이 양수, 아래쪽(마젠타 쪽)이 음수다.</p>
+
+    <div class="formula">$$u=\frac{4x}{-2x+12y+3},\quad v=\frac{6y}{-2x+12y+3}=\tfrac23 v',\qquad T_{cp}=\arg\min_T \big\|(u,v)-(u_P(T),v_P(T))\big\|,\qquad D_{uv}=\pm\min_T\|\cdot\|$$
+      <div class="where">\((u_P,v_P)\)는 플랑크 분포를 CIE 1931 CMF로 적분한 흑체 색도. 탐색은 온도 대신 mired(\(10^6/T\))로 한다. 궤적이 mired에 대해 거의 등간격이기 때문이다. \(|D_{uv}|>0.05\)이면 CCT는 정의되지 않는다.</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="CIE 1960 uv 평면에서 흑체 궤적과 Duv의 기하">
+        <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <path d="M60,240 L760,240 M60,240 L60,24" class="s-axis"/>
+        <text x="760" y="262" text-anchor="end" class="t-mono">u (CIE 1960)</text>
+        <text x="68" y="34" class="t-mono">v</text>
+        <path d="M110,112 C260,96 400,118 520,150 S700,214 750,226" class="s-line" style="stroke-width:2.4"/>
+        <text x="742" y="212" text-anchor="end" class="t-dim">흑체 궤적</text>
+        <text x="132" y="96" class="t-mono">1000 K 쪽 →</text>
+        <text x="690" y="250" text-anchor="end" class="t-mono">← ∞ K 쪽</text>
+        <path d="M402,120 L372,240" class="s-axis" style="stroke-dasharray:4 4"/>
+        <path d="M402,120 L430,10" class="s-axis" style="stroke-dasharray:4 4"/>
+        <text x="436" y="22" class="t-mono">등온선 T_cp</text>
+        <circle cx="402" cy="120" r="5" class="f-acc"/>
+        <text x="412" y="140" class="t-dim">궤적 위 최근접점</text>
+        <circle cx="388" cy="62" r="7" class="f-acc2-soft" style="stroke-width:2"/>
+        <text x="300" y="58" text-anchor="end" class="t">시료 (u, v)</text>
+        <path d="M400,116 L390,72" class="s-acc" marker-end="url(#ar2)"/>
+        <text x="352" y="98" text-anchor="end" class="t-acc">Duv &gt; 0</text>
+        <text x="560" y="70" class="t-dim">위쪽: 녹색을 띤 백색 (+Duv)</text>
+        <text x="560" y="200" class="t-dim">아래쪽: 마젠타를 띤 백색 (−Duv)</text>
+        <circle cx="300" cy="170" r="6" class="f-surface" style="stroke-width:1.5"/>
+        <text x="290" y="190" text-anchor="end" class="t-dim">Duv &lt; 0 시료</text>
+      </svg>
+      <figcaption><b>그림 19-2.</b> CCT와 Duv의 기하. 시료에서 흑체 궤적에 내린 수선의 발이 CCT를 정하고(그 발을 지나는 수직선이 등온선), 수선의 길이가 |Duv|다. 같은 6500 K라도 Duv가 +0.006이면 눈에 띄게 녹색, −0.006이면 분홍색을 띤다.</figcaption>
+    </figure>
+
+    <h3>주파장과 자극 순도</h3>
+    <p>주파장 \(\lambda_d\)는 기준 백색 W에서 시료 S를 지나 스펙트럼 궤적까지 그은 반직선이 만나는 단색광의 파장이다. 반직선이 궤적 대신 보라 직선(380–700 nm를 잇는 선)과 만나면 주파장이 없으므로, 반대 방향의 교점 파장을 <b>여색 파장</b> \(\lambda_c\)로 보고하고 관례상 음수 부호나 “c”를 붙인다. 자극 순도는 \(p_e=\overline{WS}/\overline{WB}\) (B는 경계 위의 교점)로, 백색이면 0, 단색광이면 1이다. 주파장은 기준 백색에 따라 달라지므로 반드시 백색을 함께 적는다(<a href="chromaticity.html">4장</a>).</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="주파장과 여색 파장의 작도">
+        <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <path d="M250,280 C150,276 92,230 96,150 C100,90 140,30 200,22 C260,18 330,60 400,120 C450,162 500,212 540,262 Z" class="f-surface"/>
+        <path d="M250,280 L540,262" class="s-axis" style="stroke-dasharray:5 4"/>
+        <text x="400" y="292" text-anchor="middle" class="t-mono">보라 직선 (주파장 없음)</text>
+        <circle cx="290" cy="170" r="5" class="f-elev" style="stroke:var(--text);stroke-width:1.5"/>
+        <text x="300" y="186" class="t">W</text>
+        <circle cx="370" cy="140" r="5" class="f-acc"/>
+        <text x="358" y="130" text-anchor="end" class="t-acc">S₁</text>
+        <path d="M290,170 L432,112" class="s-acc" marker-end="url(#ar3)"/>
+        <circle cx="436" cy="111" r="4" class="f-acc"/>
+        <text x="444" y="104" class="t-mono">λd</text>
+        <circle cx="330" cy="232" r="5" class="f-acc"/>
+        <text x="318" y="250" text-anchor="end" class="t-acc">S₂</text>
+        <path d="M290,170 L360,272" class="s-line" marker-end="url(#ar3)"/>
+        <path d="M290,170 L196,30" class="s-line" style="stroke-dasharray:4 4"/>
+        <circle cx="194" cy="27" r="4" class="f-acc"/>
+        <text x="206" y="22" class="t-mono">λc (여색 파장)</text>
+        <text x="600" y="90" class="t-dim">S₁: 주파장 λd,</text>
+        <text x="600" y="110" class="t-dim">순도 = WS₁ / Wλd</text>
+        <text x="600" y="160" class="t-dim">S₂: 보라 직선과 만남 →</text>
+        <text x="600" y="180" class="t-dim">반대쪽 교점이 여색 파장 λc</text>
+        <text x="600" y="200" class="t-dim">순도 분모는 보라 직선까지</text>
+      </svg>
+      <figcaption><b>그림 19-3.</b> 주파장과 여색 파장. 마젠타·보라 계열 시료(S₂)는 단색광으로 등색할 수 없으므로, 백색 반대쪽 교점의 파장(여색 파장)으로 색상을 표기한다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-spec">
+      <div class="sim-head"><span class="sim-tag">TOOL 1</span><h3>스펙트럼 → XYZ · xy · u′v′ · CCT · Duv · 주파장 · Lab · RGB · LER</h3></div>
+      <div class="wb-views">
+        <div><span class="cap" id="s1-cap">분광 분포</span><canvas id="cv-s1-spec"></canvas></div>
+        <div><span class="cap">CIE 1931 xy (2°)</span><canvas id="cv-s1-xy"></canvas></div>
+      </div>
+      <div class="sim-controls">
+        <div class="grp">모드 · 입력</div>
+        <div class="ctrl"><span>시료 종류</span><div class="seg" id="s1-mode"><button data-value="emit" class="on">발광체</button><button data-value="refl">반사체 + 조명</button></div></div>
+        <div class="ctrl"><span>입력 방식</span><div class="seg" id="s1-src"><button data-value="preset" class="on">프리셋</button><button data-value="bb">흑체/주광</button><button data-value="gauss">가우시안</button><button data-value="paste">붙여넣기</button></div></div>
+        <div class="ctrl"><span>관측자</span><div class="seg" id="s1-obs"><button data-value="1931" class="on">2° (1931)</button><button data-value="1964">10° (1964)</button></div></div>
+        <label class="ctrl" data-src="preset"><span>프리셋 스펙트럼</span><select id="s1-preset" class="wb-in"></select></label>
+        <div class="ctrl" data-src="bb"><span>분포</span><div class="seg" id="s1-bbk"><button data-value="planck" class="on">플랑크 흑체</button><button data-value="day">CIE 주광</button></div></div>
+        <label class="ctrl" data-src="bb"><span>온도 <output id="s1-T-out"></output></span><input type="range" id="s1-T" min="1000" max="25000" step="1" value="6500"></label>
+        <div class="grp" data-src="gauss">가우시안 합성 (중심 · 반치폭 · 가중치)</div>
+        <label class="ctrl" data-src="gauss"><span>① 중심 <output id="s1-g1c-out"></output></span><input type="range" id="s1-g1c" min="380" max="780" step="0.1" value="450"></label>
+        <label class="ctrl" data-src="gauss"><span>① FWHM <output id="s1-g1w-out"></output></span><input type="range" id="s1-g1w" min="2" max="200" step="1" value="20"></label>
+        <label class="ctrl" data-src="gauss"><span>① 가중치 <output id="s1-g1a-out"></output></span><input type="range" id="s1-g1a" min="0" max="3" step="0.001" value="2.01"></label>
+        <label class="ctrl" data-src="gauss"><span>② 중심 <output id="s1-g2c-out"></output></span><input type="range" id="s1-g2c" min="380" max="780" step="0.1" value="561.1"></label>
+        <label class="ctrl" data-src="gauss"><span>② FWHM <output id="s1-g2w-out"></output></span><input type="range" id="s1-g2w" min="2" max="200" step="1" value="120"></label>
+        <label class="ctrl" data-src="gauss"><span>② 가중치 <output id="s1-g2a-out"></output></span><input type="range" id="s1-g2a" min="0" max="3" step="0.001" value="1"></label>
+        <label class="ctrl" data-src="gauss"><span>③ 중심 <output id="s1-g3c-out"></output></span><input type="range" id="s1-g3c" min="380" max="780" step="0.1" value="630"></label>
+        <label class="ctrl" data-src="gauss"><span>③ FWHM <output id="s1-g3w-out"></output></span><input type="range" id="s1-g3w" min="2" max="200" step="1" value="25"></label>
+        <label class="ctrl" data-src="gauss"><span>③ 가중치 <output id="s1-g3a-out"></output></span><input type="range" id="s1-g3a" min="0" max="3" step="0.001" value="0"></label>
+        <label class="ctrl wide" data-src="paste"><span>“nm, 값” 한 줄에 한 점 (쉼표·탭·공백 구분, # 주석·머리글 무시, 간격 자유)</span><textarea id="s1-paste" class="wb-in" spellcheck="false"></textarea></label>
+        <div class="ctrl-row wide" data-src="paste"><button class="btn primary" id="s1-paste-go">붙여넣은 데이터 계산</button><button class="btn" id="s1-paste-ex">예시 데이터(LED-B3, 10 nm)</button></div>
+        <div class="grp">조명 · 기준 백색</div>
+        <label class="ctrl" id="s1-illum-wrap"><span>조명 (반사체 모드)</span><select id="s1-illum" class="wb-in"></select></label>
+        <label class="ctrl"><span>Lab·주파장 기준 백색</span><select id="s1-white" class="wb-in">
+          <option value="auto">자동 (발광체: D65 · 반사체: 조명 자체)</option>
+          <option value="D65">D65</option><option value="D50">D50</option><option value="A">A</option><option value="E">E (등에너지)</option>
+        </select></label>
+        <div class="ctrl"><span>색도도 범위</span><div class="seg" id="s1-zoom"><button data-value="full" class="on">전체</button><button data-value="white">백색 근처</button></div></div>
+      </div>
+      <div class="wb-msg" id="s1-msg"></div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">xy (관측자)</span><span class="v" id="o1-xy">—</span></div>
+        <div class="stat"><span class="k">CCT (정밀)</span><span class="v" id="o1-cct">—</span></div>
+        <div class="stat"><span class="k">Duv</span><span class="v" id="o1-duv">—</span></div>
+        <div class="stat"><span class="k">주파장 · 순도</span><span class="v" id="o1-dom">—</span></div>
+        <div class="stat"><span class="k">hex (sRGB)</span><span class="v" id="o1-hex">—</span></div>
+      </div>
+      <div class="wb-sw"><div class="chip" id="s1-chip"></div><span id="s1-chip-note">—</span></div>
+      <div class="wb-res"><div class="table-wrap"><table><thead><tr><th>양</th><th>값</th><th>규약 · 비고</th></tr></thead><tbody id="s1-res"></tbody></table></div></div>
+      <div class="sim-note">해볼 것: ① 프리셋 D65 → x 0.3127, y 0.3290, CCT ≈ 6504 K, Duv ≈ +0.0032, sRGB (1, 1, 1)을 확인하자. 관측자를 10°로 바꾸면 xy는 (0.3138, 0.3310)으로 움직이지만 CCT·Duv는 2° 기준이라 그대로다. ② 흑체 2856 K는 Duv = 0.0000, 광원 A와 같은 색도다. ③ 반사체 모드에서 TCS09(진한 빨강)를 D65와 A 아래에서 비교하고, 기준 백색을 “자동”과 “D65”로 바꿔 보자. ④ 붙여넣기에 머리글이나 감소하는 파장을 넣어 오류 메시지를 확인하자.</div>
+    </div>
+
+    <p>아래 표는 이 도구로 계산한 표준 광원의 기준값이다. 다른 소프트웨어와 결과를 대조할 때 출발점으로 쓴다. 표의 LER은 380–780 nm만 적분했으므로 적외선을 많이 내는 백열광(A)의 실제 발광 효율(약 15 lm/W 수준)과는 전혀 다른 양이다. 이는 “가시광 안에서 스펙트럼 모양이 얼마나 ȳ에 집중되어 있는가”를 뜻한다(<a href="lighting.html">10장</a>).</p>
+
+    <div class="table-wrap"><table class="mono">
+      <thead><tr><th>광원</th><th class="num">x</th><th class="num">y</th><th class="num">CCT 정밀 (K)</th><th class="num">McCamy (K)</th><th class="num">Duv</th><th class="num">LER₃₈₀₋₇₈₀ (lm/W)</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td class="num">0.4476</td><td class="num">0.4074</td><td class="num">2856</td><td class="num">2857</td><td class="num">0.0000</td><td class="num">154.1</td></tr>
+        <tr><td>D50</td><td class="num">0.3457</td><td class="num">0.3585</td><td class="num">5002</td><td class="num">5002</td><td class="num">+0.0032</td><td class="num">206.2</td></tr>
+        <tr><td>D65</td><td class="num">0.3127</td><td class="num">0.3290</td><td class="num">6504</td><td class="num">6504</td><td class="num">+0.0032</td><td class="num">203.5</td></tr>
+        <tr><td>FL2 (냉백색 형광)</td><td class="num">0.3721</td><td class="num">0.3751</td><td class="num">4225</td><td class="num">4230</td><td class="num">+0.0018</td><td class="num">336.4</td></tr>
+        <tr><td>FL11 (3파장 형광)</td><td class="num">0.3805</td><td class="num">0.3769</td><td class="num">3999</td><td class="num">4007</td><td class="num">0.0000</td><td class="num">336.7</td></tr>
+        <tr><td>LED-B3 (청색+형광체)</td><td class="num">0.3756</td><td class="num">0.3723</td><td class="num">4103</td><td class="num">4112</td><td class="num">−0.0007</td><td class="num">316.9</td></tr>
+        <tr><td>LED-RGB1</td><td class="num">0.4557</td><td class="num">0.4211</td><td class="num">2840</td><td class="num">2842</td><td class="num">+0.0043</td><td class="num">291.4</td></tr>
+        <tr><td>HP1 (고압 나트륨)</td><td class="num">0.5330</td><td class="num">0.4150</td><td class="num">1959</td><td class="num">1944</td><td class="num">+0.0008</td><td class="num">394.5</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout"><strong>공학자 관점: McCamy는 어디까지 믿을 수 있나</strong>
+      <p>표에서 보듯 궤적 근처(|Duv| &lt; 0.005)의 2,800–6,500 K에서는 McCamy 근사와 정밀 탐색이 10 K 안에서 맞는다(D65·D50은 1 K 이내). 그러나 고압 나트륨(1959 K)에서는 15 K, 3파장 형광(FL11)에서는 8 K가 벌어진다. 사양서의 CCT 허용 범위가 수백 K이므로 판정에는 대개 충분하지만, Duv가 필요하거나 2,000 K 이하·10,000 K 이상을 다룬다면 직접 탐색(또는 Ohno 2014 방법)을 써야 한다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2. 색 값 변환 -->
+  <section id="convert">
+    <h2>색 값 상호 변환기</h2>
+    <p>코드 리뷰나 디자인 협업에서 가장 자주 나오는 질문은 “이 hex의 Lab은?”이나 “이 Lab을 sRGB로 표시하면?”이다. 변환 자체는 <a href="rgb.html">5장</a>(RGB↔XYZ), <a href="transfer.html">6장</a>(전달 함수), <a href="uniform.html">7장</a>(Lab·OKLab), <a href="adaptation.html">8장</a>(색순응)의 공식을 차례로 적용하는 것뿐이지만, 단계가 많아 실수하기 쉽다. 이 도구는 여덟 표현 중 어느 칸에 입력해도 나머지 일곱 칸을 즉시 갱신한다. 내부 기준값은 D65 백색 기준 XYZ(Y=1)이며, 모든 칸은 이 값에서 다시 계산된다.</p>
+
+    <div class="formula">$$\text{hex}\xrightarrow{\div255}\text{sRGB}'\xrightarrow{\text{EOTF}^{-1}}\text{RGB}_{lin}\xrightarrow{M_{sRGB}}\text{XYZ}_{D65}\xrightarrow{\text{CAT}(D65\to W)}\text{XYZ}_W\xrightarrow{f(\cdot)}L^*a^*b^*\xrightarrow{\text{극좌표}}L^*C^*_{ab}h_{ab}$$
+      <div class="where">sRGB 디코딩: \(V\le0.04045\)이면 \(V/12.92\), 아니면 \(((V+0.055)/1.055)^{2.4}\) (IEC 61966-2-1). OKLab은 선형 sRGB에서 바로 계산된다(Ottosson 2020, D65 전제). Lab 기준 백색 W가 D65이면 CAT 단계는 항등 변환이다.</div>
+    </div>
+
+    <div class="sim" id="sim-conv">
+      <div class="sim-head"><span class="sim-tag">TOOL 2</span><h3>hex · sRGB · 선형 RGB · XYZ · xyY · Lab · LCh · OKLab 양방향 변환</h3></div>
+      <div class="sim-controls">
+        <label class="ctrl"><span>Lab·LCh 기준 백색</span><select id="c2-white" class="wb-in"><option value="D65">D65 (sRGB 백색, 적응 없음)</option><option value="D50">D50 (ICC PCS)</option><option value="A">A</option><option value="E">E</option><option value="DCI">DCI (0.314, 0.351)</option></select></label>
+        <label class="ctrl"><span>색순응 방법 (백색이 D65가 아닐 때)</span><select id="c2-cat" class="wb-in"><option value="bradford">Bradford</option><option value="cat02">CAT02</option><option value="vonkries">von Kries (HPE)</option><option value="xyz">XYZ 스케일링</option></select></label>
+      </div>
+      <div class="wb-fields">
+        <label><span><b>hex</b> <small>#rrggbb 또는 #rgb</small></span><input id="c2-hex" class="wb-in" spellcheck="false" autocomplete="off"></label>
+        <label><span><b>sRGB 8비트</b> <small>R, G, B (0–255)</small></span><input id="c2-rgb8" class="wb-in" spellcheck="false" autocomplete="off"></label>
+        <label><span><b>선형 sRGB</b> <small>0–1, 가멋 밖이면 음수/1 초과</small></span><input id="c2-lin" class="wb-in" spellcheck="false" autocomplete="off"></label>
+        <label><span><b>XYZ</b> <small>D65 기준, Y=100 스케일</small></span><input id="c2-xyz" class="wb-in" spellcheck="false" autocomplete="off"></label>
+        <label><span><b>xyY</b> <small>x, y, Y(0–100)</small></span><input id="c2-xyy" class="wb-in" spellcheck="false" autocomplete="off"></label>
+        <label><span><b>CIELAB</b> <small>L*, a*, b* (선택한 백색)</small></span><input id="c2-lab" class="wb-in" spellcheck="false" autocomplete="off"></label>
+        <label><span><b>LCh(ab)</b> <small>L*, C*, h°</small></span><input id="c2-lch" class="wb-in" spellcheck="false" autocomplete="off"></label>
+        <label><span><b>OKLab</b> <small>L(0–1), a, b</small></span><input id="c2-oklab" class="wb-in" spellcheck="false" autocomplete="off"></label>
+      </div>
+      <div class="wb-msg" id="c2-msg"></div>
+      <div class="wb-sw"><div class="chip" id="c2-chip"></div><span id="c2-chip-note">—</span></div>
+      <div class="wb-res"><div class="table-wrap"><table><thead><tr><th>부가 정보</th><th>값</th><th>비고</th></tr></thead><tbody id="c2-res"></tbody></table></div></div>
+      <div class="sim-note">해볼 것: ① hex에 <code>#ff0000</code>을 넣으면 Lab = (53.24, 80.09, 67.20)이 나와야 한다. 백색을 D50(Bradford)으로 바꾸면 (54.29, 80.80, 69.89)가 된다. ② Lab 칸에 <code>50, 0, -90</code>을 넣어 sRGB 가멋 밖 색이 어떻게 표시되는지 보자. ③ 같은 상태에서 색순응 방법을 XYZ 스케일링으로 바꾸면 D50 Lab 값이 얼마나 달라지는지 확인하자.</div>
+    </div>
+
+    <div class="callout warn"><strong>흔한 실수: 인코딩된 값으로 계산하기</strong>
+      <p>hex를 읽어 8비트 값에 바로 3×3 행렬을 곱하거나, 두 색의 평균을 신호값으로 내는 코드는 흔하다. sRGB 신호 128은 선형 휘도 0.216이지 0.5가 아니다. 행렬·평균·보간·블렌딩은 모두 선형 값에서 하고, 마지막에 한 번만 인코딩한다(<a href="transfer.html">6장</a>). 이 도구에서 hex <code>#808080</code>의 선형 값을 확인해 보라.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3. 색차 -->
+  <section id="difference">
+    <h2>색차 계산기</h2>
+    <p>허용차 판정의 핵심은 어떤 ΔE를 쓰는지 합의하는 것이다. ΔE76은 Lab의 유클리드 거리라 계산은 쉽지만 채도가 높은 색에서 과대평가한다. ΔE94는 채도에 비례하는 가중치 \(S_C, S_H\)를 도입했고, ΔE2000은 명도 가중 \(S_L\), 저채도 a* 보정 \(G\), 색상 의존 \(T\), 청색 영역의 회전항 \(R_T\)까지 넣었다(<a href="uniform.html">7장</a>). 이 도구는 세 공식을 동시에 계산하고 각 항을 분해해 보여 준다.</p>
+
+    <div class="formula">$$\Delta E_{94}=\sqrt{\Big(\frac{\Delta L^*}{k_L}\Big)^2+\Big(\frac{\Delta C^*}{1+K_1C^*_1}\Big)^2+\Big(\frac{\Delta H^*}{1+K_2C^*_1}\Big)^2}$$
+    $$\Delta E_{00}=\sqrt{\Big(\frac{\Delta L'}{k_LS_L}\Big)^2+\Big(\frac{\Delta C'}{k_CS_C}\Big)^2+\Big(\frac{\Delta H'}{k_HS_H}\Big)^2+R_T\frac{\Delta C'}{k_CS_C}\frac{\Delta H'}{k_HS_H}}$$
+      <div class="where">ΔE94: 그래픽 아트 \(k_L=1, K_1=0.045, K_2=0.015\), 섬유 \(k_L=2, K_1=0.048, K_2=0.014\). 기준 시료(색 1)의 채도 \(C^*_1\)를 쓰므로 순서를 바꾸면 값이 달라진다. ΔE00의 \(\Delta H'=2\sqrt{C'_1C'_2}\sin(\Delta h'/2)\). 구현은 Sharma·Wu·Dalal(2005)의 시험 데이터로 검증된 <code>CB.dE2000</code>과 같은 식이며, 분해 결과의 합은 그 값과 일치한다.</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 260" role="img" aria-label="a*b* 평면에서 ΔC와 ΔH의 분해">
+        <defs><marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <path d="M60,220 H420 M90,240 V20" class="s-axis"/>
+        <text x="414" y="210" text-anchor="end" class="t-mono">a*</text>
+        <text x="100" y="30" class="t-mono">b*</text>
+        <path d="M90,220 L330,80" class="s-line" style="stroke-dasharray:4 4"/>
+        <path d="M90,220 L360,128" class="s-line" style="stroke-dasharray:4 4"/>
+        <circle cx="300" cy="98" r="6" class="f-acc"/>
+        <text x="292" y="86" text-anchor="end" class="t">색 1</text>
+        <circle cx="356" cy="130" r="6" class="f-acc2-soft" style="stroke-width:2"/>
+        <text x="368" y="146" class="t">색 2</text>
+        <path d="M300,98 L337,76" class="s-acc" marker-end="url(#ar4)"/>
+        <text x="342" y="68" class="t-acc">ΔC (반지름 방향)</text>
+        <path d="M335,77 L354,124" class="s-line" style="stroke-width:2" marker-end="url(#ar4)"/>
+        <text x="402" y="104" class="t-dim">ΔH (원주 방향)</text>
+        <path d="M200,220 A112,112 0 0 0 186,163" class="s-axis"/>
+        <text x="212" y="192" class="t-mono">h</text>
+        <rect x="470" y="30" width="300" height="200" rx="12" class="f-surface"/>
+        <text x="490" y="60" class="t">ΔE00 분해의 읽는 법</text>
+        <text x="490" y="88" class="t-dim">ΔL′/kLSL : 밝기 차 (중간 명도에서 엄격)</text>
+        <text x="490" y="112" class="t-dim">ΔC′/kCSC : 채도 차 (고채도일수록 관대)</text>
+        <text x="490" y="136" class="t-dim">ΔH′/kHSH : 색상 차</text>
+        <text x="490" y="160" class="t-dim">RT 항 : 청색(h≈275°)에서 C·H 상관</text>
+        <text x="490" y="190" class="t-mono">ΔE00² = ΣΔᵢ² + RT·ΔC·ΔH</text>
+        <text x="490" y="212" class="t-dim">가장 큰 항이 “수정할 방향”이다</text>
+      </svg>
+      <figcaption><b>그림 19-4.</b> a*b* 평면에서의 색차 분해. 채도 차 ΔC는 원점에서 멀어지는 방향, 색상 차 ΔH는 원주 방향이다. ΔH는 각도가 아니라 길이(Lab 단위)라서 ΔE² = ΔL² + ΔC² + ΔH²가 성립한다. 분해된 항 중 가장 큰 것이 공정 조정의 방향을 알려 준다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-de">
+      <div class="sim-head"><span class="sim-tag">TOOL 3</span><h3>색차 계산기 — ΔE76 · ΔE94 · ΔE2000 · ΔE_OK · Δu′v′</h3></div>
+      <div class="sim-controls">
+        <div class="ctrl"><span>입력 형식</span><div class="seg" id="d3-fmt"><button data-value="lab" class="on">Lab</button><button data-value="hex">hex (sRGB)</button><button data-value="xyz">XYZ (Y=100)</button></div></div>
+        <label class="ctrl"><span>Lab 기준 백색 (hex는 Bradford 적응)</span><select id="d3-white" class="wb-in"><option value="D50">D50 (인쇄·ICC)</option><option value="D65">D65 (디스플레이)</option></select></label>
+        <label class="ctrl"><span>색 1 — 기준 (target)</span><input id="d3-a" class="wb-in" spellcheck="false" autocomplete="off" value="70, -40, 55"></label>
+        <label class="ctrl"><span>색 2 — 시편 (sample)</span><input id="d3-b" class="wb-in" spellcheck="false" autocomplete="off" value="71, -43, 57.5"></label>
+        <label class="ctrl"><span>ΔE00 파라미터 kL, kC, kH</span><input id="d3-k" class="wb-in" spellcheck="false" autocomplete="off" value="1, 1, 1"></label>
+        <div class="ctrl"><span>ΔE94 용도</span><div class="seg" id="d3-94"><button data-value="ga" class="on">그래픽 아트</button><button data-value="tex">섬유</button></div></div>
+        <label class="ctrl"><span>허용차 ΔE00</span><input id="d3-tol" class="wb-in" type="number" step="0.1" min="0" value="2.0"></label>
+      </div>
+      <div class="wb-msg" id="d3-msg"></div>
+      <div class="wb-views">
+        <div><span class="cap">ΔE00² 항별 기여</span><canvas id="cv-d3"></canvas></div>
+        <div><span class="cap">a*b* 평면 (색 1 → 색 2)</span><canvas id="cv-d3ab"></canvas></div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">ΔE76</span><span class="v" id="o3-76">—</span></div>
+        <div class="stat"><span class="k">ΔE94</span><span class="v" id="o3-94">—</span></div>
+        <div class="stat"><span class="k">ΔE2000</span><span class="v" id="o3-00">—</span></div>
+        <div class="stat"><span class="k">판정 (ΔE00)</span><span class="v" id="o3-pass">—</span></div>
+      </div>
+      <div class="wb-sw"><div class="chip pair" id="d3-chip-a"></div><div class="chip pair" id="d3-chip-b"></div><span id="d3-chip-note">—</span></div>
+      <div class="wb-res"><div class="table-wrap"><table><thead><tr><th>항목</th><th>값</th><th>비고</th></tr></thead><tbody id="d3-res"></tbody></table></div></div>
+      <div class="sim-note">해볼 것: ① 기본값(고채도 녹색)은 ΔE76이 4.03인데 ΔE00은 1.26이다. 채도 가중 \(S_C\)가 4를 넘기 때문이다. ② Lab에 <code>50, 2.6772, -79.7751</code>과 <code>50, 0, -82.7485</code>를 넣으면 Sharma 시험 데이터 1번 쌍의 ΔE00 = 2.0425가 나와야 한다. ③ kL을 2로 바꾸면(섬유 관행) 밝기 차의 기여가 1/4로 줄어든다. ④ 색 1과 2를 바꿔 ΔE94만 달라지는 것을 확인하자.</div>
+    </div>
+
+    <div class="callout"><strong>공학자 관점: 허용차는 “어떤 ΔE, 어떤 백색, 어떤 측정 조건”까지가 한 세트</strong>
+      <p>인쇄 공정 관리(ISO 12647 계열)와 브랜드 색 관리에서는 D50·2°·M1 측정 조건의 Lab과 ΔE00이 흔하고, 섬유·도료는 D65·10°와 CMC(l:c) 또는 ΔE00(2:1:1)을 쓰기도 한다. 같은 시편 쌍이라도 공식에 따라 2–3배 차이가 나므로(아래 <a href="#examples">예제 3</a>), 계약서의 허용차 숫자는 공식·백색·관측자·측정 기하가 함께 적혀 있을 때만 의미가 있다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4. 행렬 -->
+  <section id="matrix">
+    <h2>RGB 공간 변환 행렬 생성기</h2>
+    <p>두 RGB 공간 사이의 변환은 선형 영역에서 3×3 행렬 하나로 끝난다. 원색 xy 세 개와 백색점 xy 하나면 RGB→XYZ 행렬(NPM)이 정해지고(<a href="rgb.html">5장</a>), 백색점이 다르면 그 사이에 색순응 행렬을 끼운다. 이 도구는 그 곱을 계산해 소수 6자리 텍스트로 내 주고, 원색과 백색을 실제로 변환해 결과를 검증한다.</p>
+
+    <div class="formula">$$M_{\text{src}\to\text{dst}} = M_{\text{dst}}^{-1}\;\underbrace{M_A^{-1}\,\mathrm{diag}\!\Big(\frac{\rho_{d}}{\rho_{s}},\frac{\gamma_{d}}{\gamma_{s}},\frac{\beta_{d}}{\beta_{s}}\Big)\,M_A}_{\text{CAT}(W_s\to W_d)}\;M_{\text{src}},\qquad M=\big[\,S_r\mathbf P_r\;\;S_g\mathbf P_g\;\;S_b\mathbf P_b\,\big],\ \ \mathbf S=P^{-1}\mathbf W$$
+      <div class="where">\(\mathbf P_i=(x_i/y_i,\,1,\,(1-x_i-y_i)/y_i)^T\)는 원색의 XYZ(Y=1), \(\mathbf W\)는 백색 XYZ(Y=1). \(M_A\)는 Bradford·CAT02·von Kries 등의 원추 공간 행렬, \((\rho,\gamma,\beta)\)는 각 백색을 그 공간으로 옮긴 값.</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 170" role="img" aria-label="RGB 공간 변환 행렬의 연쇄">
+        <defs><marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-acc"/></marker></defs>
+        <rect x="10" y="50" width="120" height="60" rx="10" class="f-acc-soft"/>
+        <text x="70" y="78" text-anchor="middle" class="t">RGB_src</text>
+        <text x="70" y="97" text-anchor="middle" class="t-mono">선형</text>
+        <rect x="176" y="50" width="130" height="60" rx="10" class="f-elev"/>
+        <text x="241" y="78" text-anchor="middle" class="t">XYZ (W_s)</text>
+        <text x="241" y="97" text-anchor="middle" class="t-mono">src 백색 기준</text>
+        <rect x="354" y="50" width="130" height="60" rx="10" class="f-elev"/>
+        <text x="419" y="78" text-anchor="middle" class="t">XYZ (W_d)</text>
+        <text x="419" y="97" text-anchor="middle" class="t-mono">dst 백색 기준</text>
+        <rect x="532" y="50" width="120" height="60" rx="10" class="f-acc2-soft"/>
+        <text x="592" y="78" text-anchor="middle" class="t">RGB_dst</text>
+        <text x="592" y="97" text-anchor="middle" class="t-mono">선형</text>
+        <path d="M130,80 H172" class="s-acc" marker-end="url(#ar5)"/>
+        <path d="M306,80 H350" class="s-acc" marker-end="url(#ar5)"/>
+        <path d="M484,80 H528" class="s-acc" marker-end="url(#ar5)"/>
+        <text x="152" y="40" text-anchor="middle" class="t-mono">M_src</text>
+        <text x="328" y="40" text-anchor="middle" class="t-mono">CAT</text>
+        <text x="506" y="40" text-anchor="middle" class="t-mono">M_dst⁻¹</text>
+        <text x="328" y="138" text-anchor="middle" class="t-dim">백색이 같으면 항등</text>
+        <path d="M680,80 H700" class="s-line"/>
+        <text x="704" y="76" class="t-dim">곱하면</text>
+        <text x="704" y="96" class="t-acc">3×3 하나</text>
+        <path d="M70,120 V150 H592 V120" class="s-line" style="stroke-dasharray:4 4"/>
+      </svg>
+      <figcaption><b>그림 19-5.</b> RGB→RGB 변환의 행렬 연쇄. 세 행렬을 미리 곱해 하나로 만들면 픽셀당 곱셈 9번이다. 입력은 반드시 선형화(디코딩)한 값이어야 하고, 출력은 목적 공간의 전달 함수로 다시 인코딩한다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-mat">
+      <div class="sim-head"><span class="sim-tag">TOOL 4</span><h3>RGB → RGB 3×3 행렬 생성 · 역행렬 · 검증</h3></div>
+      <div class="sim-controls">
+        <label class="ctrl"><span>원본 공간</span><select id="m4-src" class="wb-in"></select></label>
+        <label class="ctrl"><span>목적 공간</span><select id="m4-dst" class="wb-in"></select></label>
+        <label class="ctrl" id="m4-src-c-wrap"><span>원본 사용자 정의: xr yr xg yg xb yb xw yw</span><input id="m4-src-c" class="wb-in" spellcheck="false" autocomplete="off" value="0.64 0.33 0.30 0.60 0.15 0.06 0.3127 0.3290"></label>
+        <label class="ctrl" id="m4-dst-c-wrap"><span>목적 사용자 정의: xr yr xg yg xb yb xw yw</span><input id="m4-dst-c" class="wb-in" spellcheck="false" autocomplete="off" value="0.708 0.292 0.170 0.797 0.131 0.046 0.3127 0.3290"></label>
+        <label class="ctrl"><span>색순응 방법</span><select id="m4-cat" class="wb-in"><option value="bradford">Bradford</option><option value="cat02">CAT02</option><option value="vonkries">von Kries (HPE)</option><option value="xyz">XYZ 스케일링</option></select></label>
+        <div class="ctrl"><span>복사 형식</span><div class="seg" id="m4-fmt"><button data-value="plain" class="on">공백 정렬</button><button data-value="array">배열 [[…]]</button></div></div>
+      </div>
+      <div class="wb-msg" id="m4-msg"></div>
+      <div class="wb-mats">
+        <div><h4><span>M (원본 RGB → 목적 RGB)</span><button class="btn" id="m4-copy">복사</button></h4><pre class="wb-mat" id="m4-out">—</pre></div>
+        <div><h4><span>M⁻¹ (목적 → 원본)</span><button class="btn" id="m4-copy-inv">복사</button></h4><pre class="wb-mat" id="m4-inv">—</pre></div>
+        <div><h4><span>원본 RGB → XYZ (NPM)</span></h4><pre class="wb-mat" id="m4-npm-s">—</pre></div>
+        <div><h4><span>목적 RGB → XYZ (NPM)</span></h4><pre class="wb-mat" id="m4-npm-d">—</pre></div>
+      </div>
+      <div class="wb-views">
+        <div><span class="cap">원본(실선) · 목적(점선) 가멋</span><canvas id="cv-m4"></canvas></div>
+        <div class="wb-res" style="background:var(--bg-elev)"><div class="table-wrap"><table><thead><tr><th>입력 (원본 RGB)</th><th>→ 목적 RGB</th><th>판정</th></tr></thead><tbody id="m4-ver"></tbody></table></div></div>
+      </div>
+      <div class="sim-note">해볼 것: ① sRGB → Display P3: 첫 행이 0.822462, 0.177538, 0.000000이어야 한다. 백색 (1,1,1)은 정확히 (1,1,1)로 간다. ② 반대로 P3 → sRGB에서 P3 원색이 음수 성분을 갖는 것(= sRGB 가멋 밖)을 확인하자. ③ 목적을 DCI-P3(DCI 백색)로 바꾸고 색순응 방법을 바꿔 가며 행렬이 얼마나 달라지는지 보자. ④ 사용자 정의 원색에 일직선 위의 세 점을 넣으면 어떤 오류가 나는지 확인하자.</div>
+    </div>
+
+    <div class="callout tip"><strong>검증 습관: 행 합과 백색</strong>
+      <p>백색점이 같은 두 공간의 RGB→RGB 행렬은 각 행의 합이 1이다(백색 (1,1,1)이 (1,1,1)로 가야 하므로). 백색점이 다르더라도 색순응을 넣었다면 역시 행 합이 1이다. 행 합이 1이 아니면 CAT를 빠뜨렸거나 백색 Y를 1로 정규화하지 않은 것이다. NPM의 둘째 행은 휘도 계수이므로 sRGB에서는 (0.2126, 0.7152, 0.0722)가 나와야 한다(ITU-R BT.709).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5. 가멋 -->
+  <section id="gamut">
+    <h2>가멋 비교 도구</h2>
+    <p>디스플레이 사양서의 “NTSC 72 %”, “DCI-P3 98 %”, “Rec.2020 80 %” 같은 숫자는 두 종류다. <b>면적비</b>는 패널 삼각형 넓이를 기준 삼각형 넓이로 나눈 것이라, 삼각형이 기준 밖으로 삐져나가도 100 %를 넘을 수 있다. <b>커버리지</b>는 두 삼각형의 교집합 넓이를 기준 넓이로 나눈 것이라 최대 100 %이며, 실제로 기준 공간의 색을 얼마나 재현하는지를 뜻한다. 그리고 둘 다 xy에서 재는지 u′v′에서 재는지에 따라 값이 달라진다. xy는 녹색 영역을 과장하므로 u′v′ 쪽이 지각에 더 가깝다(<a href="rgb.html">5장</a>).</p>
+
+    <div class="formula">$$\text{면적비}=\frac{A(G_\text{패널})}{A(G_\text{기준})},\qquad \text{커버리지}=\frac{A(G_\text{패널}\cap G_\text{기준})}{A(G_\text{기준})}\le 1,\qquad A=\tfrac12\Big|\sum_i (x_iy_{i+1}-x_{i+1}y_i)\Big|$$
+      <div class="where">두 삼각형은 볼록이므로 교집합은 Sutherland–Hodgman 다각형 절단으로 정확히 구한다. 스펙트럼 궤적 면적은 380–700 nm 궤적과 보라 직선으로 닫은 다각형의 넓이다(xy 0.3333, u′v′ 0.1950).</div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 240" role="img" aria-label="면적비와 커버리지의 차이">
+        <path d="M60,210 L200,30 L330,210 Z" class="f-acc2-soft" style="stroke-width:2"/>
+        <path d="M110,190 L180,20 L380,170 Z" class="f-acc-soft" style="stroke-width:2;stroke-dasharray:6 4"/>
+        <text x="80" y="232" class="t-dim">기준 G_ref (실선)</text>
+        <text x="300" y="232" class="t-dim">패널 G_panel (점선)</text>
+        <rect x="440" y="30" width="330" height="180" rx="12" class="f-surface"/>
+        <text x="460" y="62" class="t">면적비 = A(panel) / A(ref)</text>
+        <text x="460" y="86" class="t-dim">→ 110 % 처럼 100 %를 넘을 수 있다</text>
+        <text x="460" y="122" class="t">커버리지 = A(panel ∩ ref) / A(ref)</text>
+        <text x="460" y="146" class="t-dim">→ 기준 색 중 재현 가능한 비율, ≤ 100 %</text>
+        <text x="460" y="184" class="t-mono">면적비가 커도 커버리지는 낮을 수 있다</text>
+      </svg>
+      <figcaption><b>그림 19-6.</b> 면적비와 커버리지. 패널 삼각형이 기준보다 넓어도 한쪽(예: 녹색)으로 치우쳐 있으면 기준의 다른 쪽(예: 빨강) 색은 재현하지 못한다. 마케팅 수치가 면적비인지 커버리지인지, xy인지 u′v′인지 확인해야 한다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-gam">
+      <div class="sim-head"><span class="sim-tag">TOOL 5</span><h3>가멋 면적 · 상호 커버리지 · 색도도 오버레이</h3></div>
+      <div class="wb-views">
+        <div><span class="cap" id="g5-cap">CIE 1931 xy</span><canvas id="cv-g5"></canvas></div>
+        <div class="sim-controls" style="background:var(--bg-elev);border-top:0">
+          <div class="ctrl"><span>평면</span><div class="seg" id="g5-plane"><button data-value="xy" class="on">xy (1931)</button><button data-value="uv">u′v′ (1976)</button></div></div>
+          <div class="ctrl"><span>비교할 공간</span><div class="wb-checks" id="g5-checks"></div></div>
+          <label class="ctrl"><span>사용자 정의 (체크 시): xr yr xg yg xb yb</span><input id="g5-custom" class="wb-in" spellcheck="false" autocomplete="off" value="0.690 0.305 0.225 0.715 0.148 0.052"></label>
+        </div>
+      </div>
+      <div class="wb-msg" id="g5-msg"></div>
+      <div class="wb-res">
+        <div class="table-wrap"><table><thead><tr><th>공간</th><th class="num">면적</th><th class="num">궤적 대비</th><th class="num">sRGB 대비 면적비</th><th class="num">sRGB 커버리지</th><th class="num">Rec.2020 커버리지</th></tr></thead><tbody id="g5-tab"></tbody></table></div>
+        <div class="table-wrap"><table><thead id="g5-cov-h"></thead><tbody id="g5-cov"></tbody></table></div>
+      </div>
+      <div class="sim-note">해볼 것: ① P3의 Rec.2020 커버리지는 xy에서 71.7 %다. u′v′로 바꾸면 얼마가 되는가? ② NTSC 1953 대비 면적비를 sRGB와 비교해 “NTSC 72 %” 패널이 대략 sRGB 정도의 크기라는 관행을 확인하자. ③ Adobe RGB와 P3는 면적이 거의 같지만 서로를 100 % 덮지 못한다. 상호 커버리지 표에서 확인하자. ④ 사용자 정의에 QD-OLED 패널 원색 같은 값을 넣어 보자(기본값은 가상의 예).</div>
+    </div>
+
+    <div class="callout deep"><strong>2D 커버리지의 한계</strong>
+      <p>xy·u′v′ 커버리지는 색도만 본다. 실제 재현 가능한 색 집합은 명도까지 포함한 3차원 입체이며, 원색이 밝기 면에서 백색을 얼마나 지탱하는지(예: RGBW 패널, 광원 피크 휘도)에 따라 고명도 고채도 영역이 깎인다. 이를 정량화하려면 CIELAB 또는 ICtCp에서 가멋 부피를 계산한다(<a href="display.html">13장</a>, <a href="hdr.html">14장</a>). 2D 수치는 비교의 출발점일 뿐이다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6. 예제 -->
+  <section id="examples">
+    <h2>예제 풀이: 실무 문제를 끝까지</h2>
+    <p>아래 네 문제는 현업에서 실제로 받는 질문의 형태다. 각 문제는 손계산 단계와 함께 결과를 위 도구로 다시 열어 볼 수 있는 버튼을 단다. 버튼을 누르면 해당 도구에 조건이 입력되고 화면이 이동한다.</p>
+
+    <div class="ex" id="ex1">
+      <h3>예제 1 · 6500 K 백색 LED의 Duv가 +0.006이다. 무엇을 바꿔야 하나?</h3>
+      <p class="q">청색 LED(450 nm, FWHM 20 nm) + 황색 형광체(FWHM 120 nm) 구조의 백색 LED가 CCT 6500 K, Duv +0.0060으로 측정됐다. 목표는 Duv 0이다. 형광체 조성이나 적색 성분을 어떻게 바꾸면 되는가?</p>
+      <ol>
+        <li><b>현상 진단.</b> Duv &gt; 0은 흑체 궤적 위쪽, 즉 녹색 쪽이다(그림 19-2). 6500 K에서 궤적의 법선은 거의 +v 방향이므로, 시료가 같은 CCT의 흑체보다 v가 0.006 크다. u′v′로는 \(\Delta v'=1.5\times0.006=0.009\)에 해당한다.</li>
+        <li><b>모델 세우기.</b> 가우시안 두 개로 측정 스펙트럼을 근사한다. 수치 풀이로 청색 가중치 2.010, 형광체 중심 561.1 nm(가중치 1)에서 CCT 6500 K, Duv +0.0060, xy = (0.3121, 0.3339), LER 337.7 lm/W를 재현한다.</li>
+        <li><b>해법 A: 적색 성분 추가.</b> 630 nm(FWHM 25 nm) 적색을 가중치 0.175만큼 더하고, 색온도를 지키려 청색을 2.195로 올리면 CCT 6500 K, Duv 0.0000, xy = (0.3135, 0.3237)이 된다. 이동량은 Δu′v′ = 0.0072다. LER은 327.0 lm/W로 3.2 % 떨어진다. 적색이 ȳ의 꼬리에 있어 시감 효율이 낮기 때문이다.</li>
+        <li><b>해법 B: 형광체 피크 이동.</b> 적색 칩 없이 형광체 중심을 564.2 nm로 3 nm 장파장 쪽으로 옮기고 청색을 2.192로 맞춰도 Duv 0이 된다. LER은 330.0 lm/W로 손실이 2.3 %에 그친다. 대신 적색 성분이 부족해 연색성(특히 R9)은 해법 A보다 나쁠 것이다(<a href="lighting.html">10장</a>).</li>
+      </ol>
+      <div class="ans"><b>결론.</b> Duv를 낮추려면 스펙트럼의 무게중심을 “녹색에서 멀리”, 즉 적색 쪽으로 옮긴다. 적색 형광체나 칩을 추가하면 Duv와 연색성을 함께 잡지만 LER을 약 3 % 잃고, 황색 형광체의 피크를 장파장으로 옮기면 효율 손실은 작지만 연색성 개선은 제한적이다. 참고로 ANSI C78.377의 6500 K 등급은 Duv 목표가 약간 양수(≈ +0.003)이고 허용 폭이 약 ±0.006이므로, +0.006은 규격 경계 근처의 “녹색 끼가 도는” 제품이다.</div>
+      <button class="btn" id="ex1-a">도구 1에서 원래 LED 열기</button><button class="btn" id="ex1-b">해법 A (적색 추가) 열기</button><button class="btn" id="ex1-c">해법 B (형광체 이동) 열기</button>
+    </div>
+
+    <div class="ex" id="ex2">
+      <h3>예제 2 · Display P3 패널에서 sRGB 이미지를 정확히 보여 주는 행렬</h3>
+      <p class="q">색 관리가 없는 펌웨어 파이프라인에 sRGB 콘텐츠가 들어온다. 패널은 Display P3(D65)로 교정되어 있다. 픽셀 처리 단계와 행렬, 그리고 sRGB 순수 빨강과 (200, 120, 60)의 출력 신호를 구하라.</p>
+      <ol>
+        <li><b>백색 확인.</b> 두 공간 모두 D65이므로 CAT는 항등이다. \(M=M_{P3}^{-1}M_{sRGB}\).</li>
+        <li><b>행렬.</b> \(M=\begin{bmatrix}0.822462&0.177538&0\\0.033194&0.966806&0\\0.017083&0.072397&0.910520\end{bmatrix}\). 행 합은 모두 1이다. 빨강·녹색 원색이 공유하는 파랑(0.15, 0.06)이 같으므로 첫 두 행의 셋째 열이 0이다.</li>
+        <li><b>순수 빨강 (255, 0, 0).</b> 선형화 → (1, 0, 0). 곱하면 P3 선형 (0.8225, 0.0332, 0.0171). P3도 sRGB 곡선을 쓰므로 인코딩하면 (0.9175, 0.2003, 0.1386), 8비트 (234, 51, 35).</li>
+        <li><b>(200, 120, 60).</b> 선형 (0.5776, 0.1878, 0.0452) → P3 선형 (0.5084, 0.2008, 0.0646) → 인코딩 (0.7409, 0.4854, 0.2819), 8비트 (189, 124, 72).</li>
+      </ol>
+      <div class="ans"><b>결론.</b> 처리 순서는 “sRGB 디코딩 → 3×3 행렬 → sRGB 곡선 인코딩”이다. 행렬을 생략하고 신호를 그대로 보내면 sRGB 빨강이 P3 빨강(0.68, 0.32)으로 늘어나 과포화된다. 그 오차는 sRGB 빨강 기준 ΔE00 6.8이다(D65 Lab (53.24, 80.09, 67.20) 대 P3 빨강 (54.97, 94.09, 94.77) — 도구 2의 XYZ 칸에 P3 빨강 <code>48.657, 22.897, 0</code>을 넣어 확인해 보라). 8비트 정수 파이프라인이라면 행렬 연산은 최소 12비트 이상 정밀도로 하고 마지막에 반올림해야 밴딩이 생기지 않는다(<a href="transfer.html">6장</a>).</div>
+      <button class="btn" id="ex2-a">도구 4에서 sRGB → P3 열기</button><button class="btn" id="ex2-b">도구 2에서 (200, 120, 60) 보기</button>
+    </div>
+
+    <div class="ex" id="ex3">
+      <h3>예제 3 · 인쇄 시안 허용차 ΔE00 2.0 판정</h3>
+      <p class="q">D50·2° 조건에서 측정한 세 쌍의 기준/시편 Lab이 있다. 고객 사양은 ΔE00 ≤ 2.0이다. 각 쌍을 판정하고, 불합격이면 무엇을 고쳐야 하는지 말하라.</p>
+      <div class="table-wrap"><table class="mono">
+        <thead><tr><th>쌍</th><th>기준 Lab</th><th>시편 Lab</th><th class="num">ΔE76</th><th class="num">ΔE94</th><th class="num">ΔE00</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr><td>① 녹색</td><td>70, −40, 55</td><td>71, −43, 57.5</td><td class="num">4.03</td><td class="num">1.44</td><td class="num">1.26</td><td class="c-ok">합격</td></tr>
+          <tr><td>② 청색</td><td>35, 10, −55</td><td>35.6, 13.2, −53.5</td><td class="num">3.58</td><td class="num">1.98</td><td class="num">2.78</td><td class="c-bad">불합격</td></tr>
+          <tr><td>③ 회색</td><td>50, 0, 0</td><td>50.4, 1.1, −1.0</td><td class="num">1.54</td><td class="num">1.54</td><td class="num">1.89</td><td class="c-warn">합격 (경계)</td></tr>
+        </tbody>
+      </table></div>
+      <ol>
+        <li><b>① 녹색.</b> ΔE76은 4.03으로 크지만 대부분 채도 차(ΔC′ ≈ 3.8)다. 평균 채도가 약 70이라 \(S_C=1+0.045\times70\approx4.1\)로 나눠지며 채도항이 0.92로 줄어든다. ΔE00 1.26으로 합격. 고채도 색의 채도 차는 눈에 잘 띄지 않는다는 실험 사실이 반영된 것이다.</li>
+        <li><b>② 청색.</b> ΔE94로는 1.98로 아슬아슬하게 합격이지만 ΔE00은 2.78이다. 분해하면 색상항 ΔH′/S_H = 2.55가 지배적이고, 평균 색상각 282°가 청색 회전 영역(275° 중심)에 있어 \(R_T=-1.64\)의 교차항이 +0.95를 더한다. 시편이 보라 쪽으로 돌았다(a* 증가). 시안(C) 대비 마젠타(M) 농도를 낮추는 방향으로 조정한다.</li>
+        <li><b>③ 회색.</b> ΔE76은 1.54인데 ΔE00은 1.89로 오히려 커졌다. 저채도에서 \(G=0.5\)가 a*를 1.5배로 늘리기 때문이다. 회색 균형은 눈이 가장 민감한 영역이다. 합격이지만 여유가 0.11밖에 없으므로 회색 균형(CMY 비율)을 점검할 대상이다.</li>
+      </ol>
+      <div class="ans"><b>결론.</b> ①, ③ 합격, ② 불합격. 같은 데이터로 ΔE76 기준이면 ①, ②가 모두 불합격, ΔE94 기준이면 모두 합격이 된다. 공식 선택이 판정을 뒤집는다는 것, 그리고 분해된 항 중 가장 큰 것이 조정 방향(②는 색상, ③은 a*)을 가리킨다는 것이 핵심이다.</div>
+      <button class="btn" id="ex3-1">쌍 ① 열기</button><button class="btn" id="ex3-2">쌍 ② 열기</button><button class="btn" id="ex3-3">쌍 ③ 열기</button>
+    </div>
+
+    <div class="ex" id="ex4">
+      <h3>예제 4 · 조명이 바뀌면 시료 색은 얼마나 변하나 (색 불변성)</h3>
+      <p class="q">CRI 시험색 TCS01(7.5R 6/4, 연한 회적색)을 D65 아래에서 승인했다. 같은 시료를 광원 A(2856 K) 아래에서 본 관찰자가 A에 완전히 순응했다고 할 때, 승인 색과 얼마나 다르게 보이는가?</p>
+      <ol>
+        <li><b>각 조명 아래 XYZ.</b> 반사율 × 조명 × CMF 적분. D65: (32.99, 29.78, 24.51), A: (42.34, 32.71, 7.97). A 아래에서 X가 크고 Z가 작은 것은 조명 자체가 붉기 때문이다.</li>
+        <li><b>D65 기준 Lab.</b> (61.47, 17.49, 11.89).</li>
+        <li><b>A 아래의 대응색.</b> A 백색 (109.85, 100, 35.58)에서 D65 백색 (95.04, 100, 108.88)으로 Bradford 적응하면 Lab (62.81, 18.86, 14.38). D65 대비 ΔE00 = 1.96.</li>
+        <li><b>방법 비교.</b> CAT02로는 ΔE00 1.85, Lab 정규화만 쓰는 “XYZ 스케일링”(A 백색 기준 Lab을 그대로 비교)으로는 3.47이다. 적응을 무시하고 A 아래 XYZ를 D65 Lab으로 보면 17.96이라는 무의미한 값이 된다.</li>
+      </ol>
+      <div class="ans"><b>결론.</b> 완전 순응을 가정해도 TCS01은 A 아래에서 약 ΔE00 2만큼 더 노랗게(b* +2.5) 보인다. 이 잔차가 바로 연색성 지수 계산에서 측정하는 “색 이동”이다(CRI는 W*U*V*와 von Kries 변환을 쓰므로 숫자는 다르다, <a href="lighting.html">10장</a>). 같은 계산을 TCS09(진한 빨강)에 하면 Bradford 기준 ΔE00 4.58로, 채도 높은 빨강일수록 조명에 민감하다. 수치는 색순응 모델에 따라 10 % 이상 달라지므로 보고서에 CAT를 명시한다.</div>
+      <p>도구 1의 반사체 모드에서 기준 백색을 “자동”으로 두면 Lab은 조명 자체의 완전 확산면을 백색으로 쓴다. 즉 4단계의 “XYZ 스케일링” 값 (63.93, 19.37, 16.34)이 나온다. 이를 D65 아래 값 (61.47, 17.49, 11.89)과 함께 도구 3에 넣으면 ΔE00 3.47을 확인할 수 있다.</p>
+      <button class="btn" id="ex4-a">도구 1에서 TCS01 × A 열기</button><button class="btn" id="ex4-b">TCS01 × D65 열기</button>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7. 검증 -->
+  <section id="sanity">
+    <h2>검산표와 흔한 함정</h2>
+    <p>새로 짠 색 변환 코드는 반드시 알려진 값으로 검산한다. 아래 표는 이 장의 도구로 재현되는 기준값이며, 소수 넷째 자리까지 맞지 않으면 어딘가에서 규약이 어긋난 것이다. 단위 테스트에 그대로 옮겨 쓰기를 권한다.</p>
+    <div class="table-wrap"><table class="mono">
+      <thead><tr><th>입력</th><th>기대 출력</th><th>틀리면 의심할 것</th></tr></thead>
+      <tbody>
+        <tr><td>D65 SPD (2°)</td><td>xy (0.3127, 0.3290), CCT 6504 K, Duv +0.0032</td><td>CMF 표 간격·범위, 정규화</td></tr>
+        <tr><td>D65 SPD (10°)</td><td>xy (0.3138, 0.3310)</td><td>관측자 혼용</td></tr>
+        <tr><td>sRGB 백색 (255,255,255)</td><td>XYZ (95.05, 100, 108.91)</td><td>NPM 백색 정규화</td></tr>
+        <tr><td>sRGB 빨강, D65 Lab</td><td>(53.24, 80.09, 67.20)</td><td>디코딩 생략, 백색 Y 스케일 불일치</td></tr>
+        <tr><td>sRGB 빨강, D50 Lab (Bradford)</td><td>(54.29, 80.80, 69.89)</td><td>CAT 누락 또는 방법 차이</td></tr>
+        <tr><td>sRGB 빨강, OKLab</td><td>(0.6280, 0.2249, 0.1258)</td><td>선형화 누락</td></tr>
+        <tr><td>Sharma 쌍 1 ΔE00</td><td>2.0425</td><td>평균 색상각 분기, G 계수</td></tr>
+        <tr><td>sRGB → P3 행렬 1행</td><td>0.822462, 0.177538, 0</td><td>행·열 전치, 백색 불일치</td></tr>
+        <tr><td>NPM sRGB 2행</td><td>0.2126, 0.7152, 0.0722</td><td>원색 xy 오기</td></tr>
+        <tr><td>P3 ∩ Rec.2020 / Rec.2020 (xy)</td><td>71.7 %</td><td>면적비와 커버리지 혼동</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout warn"><strong>함정 모음</strong>
+      <p>① <b>Y 스케일 혼용</b>: XYZ는 Y=100인데 백색을 Y=1로 넣으면 L*가 400을 넘는다. ② <b>행/열 전치</b>: 행렬을 열 벡터 기준(\(\mathbf y=M\mathbf x\))으로 썼는지 행 벡터 기준(\(\mathbf y=\mathbf xM^T\))으로 썼는지 문서화한다. 셰이더·NumPy·MATLAB 관례가 다르다. ③ <b>클리핑 순서</b>: 가멋 밖 값은 선형 영역에서 처리하고 인코딩 전에 클리핑한다. 인코딩 뒤 클리핑하면 색상이 틀어진다. ④ <b>CCT 하나로 백색 지정</b>: 같은 6500 K에도 Duv에 따라 녹색·분홍 백색이 모두 존재한다. 백색 사양은 항상 (CCT, Duv) 또는 xy로 준다. ⑤ <b>ΔE 공식 미표기</b>: “ΔE 2 이내”는 ΔE76인지 ΔE00인지에 따라 전혀 다른 요구다.</p>
+    </div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>모든 색 좌표는 XYZ 하나에서 갈라져 나온다. 투영 좌표(xy, u′v′)는 규약이 필요 없지만, 지각 좌표(Lab)는 기준 백색을, 장치 좌표(RGB)는 원색·백색·전달 함수를 필요로 한다.</li>
+      <li>숫자를 넘길 때는 Y 스케일, 관측자(2°/10°), 기준 백색, 색순응 방법을 함께 적는다. sRGB 빨강의 Lab만 해도 D65와 D50(Bradford)에서 ΔE00 약 1이 차이 난다.</li>
+      <li>정밀 CCT는 CIE 1960 uv에서 흑체 궤적 최근접점이고, Duv는 그 거리다. D65는 6504 K, Duv +0.0032. McCamy 근사는 궤적 근처 2,800–6,500 K에서만 10 K 이내 정확도이고 Duv를 주지 않는다.</li>
+      <li>주파장은 기준 백색에 따라 바뀌고, 보라 계열은 주파장 대신 여색 파장으로 표기한다.</li>
+      <li>ΔE76·ΔE94·ΔE00은 같은 시편 쌍에 대해 두세 배 다른 값을 낼 수 있다. ΔE00을 항별로 분해하면 가장 큰 항이 공정 조정 방향을 알려 준다.</li>
+      <li>RGB→RGB 변환은 \(M_\text{dst}^{-1}\,\text{CAT}\,M_\text{src}\) 하나의 3×3 행렬이며, 선형 값에 적용한다. 행 합 = 1, 백색 → 백색이 1차 검증이다.</li>
+      <li>가멋 수치는 면적비와 커버리지, xy와 u′v′를 구별해야 한다. P3는 xy에서 Rec.2020의 71.7 %를 덮는다.</li>
+      <li>새 코드는 검산표(D65 xy·CCT, sRGB 빨강 Lab, Sharma 쌍, sRGB→P3 행렬)로 단위 테스트를 만든다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>1. 어떤 백색 LED가 CCT 5000 K, Duv −0.004로 측정됐다. 이 광원의 겉보기 색 특성은?</p><div class="opts">
+        <button class="opt">같은 CCT의 흑체보다 녹색을 띤다</button>
+        <button class="opt" data-correct>같은 CCT의 흑체보다 약간 분홍(마젠타)을 띤다</button>
+        <button class="opt">흑체보다 4 K 차갑게 보인다</button>
+        <button class="opt">CCT가 정의되지 않는다</button>
+      </div><div class="quiz-exp">Duv는 CIE 1960 uv에서 흑체 궤적까지의 부호 있는 거리다. 음수는 궤적 아래쪽(마젠타 쪽)을 뜻한다. |Duv| ≤ 0.05이므로 CCT는 정의된다.</div></div>
+
+      <div class="quiz-q"><p>2. sRGB 빨강의 Lab을 D65 기준으로 계산하면 (53.24, 80.09, 67.20)이다. ICC 워크플로처럼 D50 기준으로 다시 계산하려면 무엇이 필요한가?</p><div class="opts">
+        <button class="opt">Lab 공식의 백색만 D50으로 바꾸면 된다</button>
+        <button class="opt" data-correct>XYZ를 D65→D50으로 색순응(예: Bradford)한 뒤 D50 백색으로 Lab을 계산한다</button>
+        <button class="opt">감마를 2.2로 바꾼다</button>
+        <button class="opt">L*에 D50/D65 휘도비를 곱한다</button>
+      </div><div class="quiz-exp">백색만 바꾸면 XYZ 스케일링 적응을 암묵적으로 쓰는 것과 같고, 결과도 ICC 관행과 다르다. ICC PCS는 Bradford로 적응한 D50 XYZ에서 Lab을 계산해 (54.29, 80.80, 69.89)를 얻는다.</div></div>
+
+      <div class="quiz-q"><p>3. 정밀 CCT 계산에서 흑체 궤적을 온도 T 대신 mired(10⁶/T)로 탐색하는 이유로 가장 알맞은 것은?</p><div class="opts">
+        <button class="opt">mired가 SI 단위이기 때문</button>
+        <button class="opt" data-correct>궤적상의 색도 변화가 mired에 대해 훨씬 고르게 분포해 격자·탐색이 안정적이기 때문</button>
+        <button class="opt">플랑크 식이 mired에서 선형이 되기 때문</button>
+        <button class="opt">Duv의 부호를 정하기 위해</button>
+      </div><div class="quiz-exp">T로 등간격을 잡으면 고온 쪽은 색도가 거의 변하지 않고 저온 쪽은 급변한다. mired 간격은 색도 차이와 대략 비례해 1–1000 mired 격자 하나로 1000 K–10⁶ K를 고르게 덮는다.</div></div>
+
+      <div class="quiz-q"><p>4. 마젠타 시료의 주파장을 구하려 하는데, 백색에서 시료로 그은 반직선이 보라 직선과 만났다. 올바른 보고 방식은?</p><div class="opts">
+        <button class="opt">380 nm로 보고한다</button>
+        <button class="opt">700 nm로 보고한다</button>
+        <button class="opt" data-correct>반대 방향의 교점 파장을 여색 파장(예: 549c 또는 −549 nm)으로 보고한다</button>
+        <button class="opt">주파장은 언제나 정의되므로 계산 오류다</button>
+      </div><div class="quiz-exp">보라 직선 위의 색은 단색광이 아니다. 관례상 백색을 사이에 둔 반대쪽 스펙트럼 교점, 즉 여색 파장으로 표기한다. 순도의 분모는 보라 직선까지의 거리다.</div></div>
+
+      <div class="quiz-q"><p>5. 고채도 녹색 쌍에서 ΔE76 = 4.03인데 ΔE00 = 1.26이었다. 주된 이유는?</p><div class="opts">
+        <button class="opt">ΔE00이 명도 차를 무시하기 때문</button>
+        <button class="opt" data-correct>채도 가중 S_C = 1 + 0.045·C̄′가 4를 넘어 채도 차의 기여를 크게 줄이기 때문</button>
+        <button class="opt">RT 회전항이 음수이기 때문</button>
+        <button class="opt">G 계수가 a*를 줄이기 때문</button>
+      </div><div class="quiz-exp">평균 채도가 약 70이면 S_C ≈ 4.1이다. 차이의 대부분이 채도 방향이었으므로 ΔE00에서 크게 줄어든다. RT는 청색 영역에서만, G는 저채도에서만 의미가 있다.</div></div>
+
+      <div class="quiz-q"><p>6. ΔE94는 두 색의 순서를 바꾸면 값이 달라질 수 있다. 왜 그런가?</p><div class="opts">
+        <button class="opt" data-correct>S_C, S_H를 기준 색(첫째 색)의 채도 C*₁로 계산하기 때문</button>
+        <button class="opt">ΔH의 부호가 바뀌기 때문</button>
+        <button class="opt">Lab이 비선형이기 때문</button>
+        <button class="opt">실제로는 바뀌지 않는다</button>
+      </div><div class="quiz-exp">CIE 1994 공식은 기준 시료의 채도로 가중치를 정한다(대칭형 변형으로 기하 평균을 쓰기도 한다). ΔE76과 ΔE00은 대칭이다.</div></div>
+
+      <div class="quiz-q"><p>7. 백색점이 같은 두 RGB 공간 사이의 변환 행렬을 만들었더니 첫 행의 합이 1.04였다. 가장 가능성 높은 원인은?</p><div class="opts">
+        <button class="opt">정상이다. 행 합은 원색에 따라 달라진다</button>
+        <button class="opt" data-correct>NPM을 만들 때 백색 XYZ를 Y=1로 정규화하지 않았거나 원색·백색 값을 잘못 넣었다</button>
+        <button class="opt">감마 인코딩을 빼먹었다</button>
+        <button class="opt">역행렬은 행 합이 1이 아니어도 된다</button>
+      </div><div class="quiz-exp">백색 (1,1,1)은 (1,1,1)로 가야 하므로 행 합은 1이다. 이 조건이 깨지면 NPM 구성이나 입력값이 틀린 것이다. 감마는 행렬 밖의 문제다.</div></div>
+
+      <div class="quiz-q"><p>8. 패널 사양서에 “DCI-P3 105 %”라고 쓰여 있다. 이 숫자에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">P3 색을 105 % 재현한다는 뜻이다</button>
+        <button class="opt" data-correct>100 %를 넘으므로 커버리지가 아니라 면적비일 것이며, P3 커버리지는 100 % 미만일 수도 있다</button>
+        <button class="opt">u′v′에서 잰 값이 틀림없다</button>
+        <button class="opt">3D 가멋 부피다</button>
+      </div><div class="quiz-exp">커버리지는 교집합/기준이므로 100 %를 넘을 수 없다. 105 %는 면적비이며, 삼각형이 치우쳐 있으면 P3의 일부 색은 재현하지 못한다.</div></div>
+
+      <div class="quiz-q"><p>9. sRGB 신호 (128, 128, 128)과 (0, 0, 0)을 50 % 블렌딩하려 한다. 올바른 결과 신호값에 가까운 것은?</p><div class="opts">
+        <button class="opt">64</button>
+        <button class="opt" data-correct>약 92 (선형 0.108을 다시 인코딩)</button>
+        <button class="opt">128</button>
+        <button class="opt">약 32</button>
+      </div><div class="quiz-exp">128은 선형 0.216이다. 절반은 0.108이고, 이를 sRGB 곡선으로 인코딩하면 약 0.362 → 92가 된다. 신호값에서 평균 낸 64는 지나치게 어둡다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const fx = (v, d = 4) => { if (!isFinite(v)) return "—"; let s = v.toFixed(d); if (/^-0(\.0+)?$/.test(s)) s = s.slice(1); return s; };
+  const fv = (a, d = 4) => a.map((v) => fx(v, d)).join(", ");
+  const sgn = (v, d = 4) => (v >= 0 ? "+" : "−") + fx(Math.abs(v), d);
+  const row = (k, v, n = "") => `<tr><td class="lbl">${k}</td><td>${v}</td><td class="nt">${n}</td></tr>`;
+  const setMsg = (id, html, err) => { const el = $(id); el.innerHTML = html || ""; el.classList.toggle("err", !!err); };
+  const alpha = (c, a) => (/^#[0-9a-f]{6}$/i.test(c) ? c + Math.round(a * 255).toString(16).padStart(2, "0") : c);
+  const mono = () => getComputedStyle(document.body).getPropertyValue("--mono") || "monospace";
+  const go = (id) => { const el = $(id); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" }); };
+
+  const W_D65 = CB.whiteXYZ("D65");
+  const EXTRA = {
+    dci: { name: "DCI-P3 (DCI 백색)", r: [0.68, 0.32], g: [0.265, 0.69], b: [0.15, 0.06], w: CB.WHITE.DCI },
+    ap1: { name: "ACES AP1", r: [0.713, 0.293], g: [0.165, 0.83], b: [0.128, 0.044], w: [0.32168, 0.33767] },
+  };
+  const SPACE = (k) => CB.SPACES[k] || EXTRA[k];
+  const M_P3_INV = CB.mat.inv(CB.rgb2xyzMatrix(CB.SPACES.p3));
+  const M_2020_INV = CB.mat.inv(CB.rgb2xyzMatrix(CB.SPACES.rec2020));
+
+  /* ---------- 공통 계산 코어 (헬퍼에 없는 것만) ---------- */
+  const uv60 = ([x, y]) => { const d = -2 * x + 12 * y + 3; return [(4 * x) / d, (6 * y) / d]; };
+  const uv60toxy = ([u, v]) => { const d = 2 * u - 8 * v + 4; return [(3 * u) / d, (2 * v) / d]; };
+  let PLT = null;
+  const planckUV = (T) => uv60(CB.planckXY(T));
+  function planckTable() {
+    if (PLT) return PLT;
+    PLT = [];
+    for (let m = 1; m <= 1000; m += 2) { const T = 1e6 / m; PLT.push([m, planckUV(T)]); }
+    return PLT;
+  }
+  /** 정밀 CCT·Duv: CIE 1960 uv에서 흑체 궤적 최근접점(격자 탐색 + 황금분할) */
+  function cctDuv(xy) {
+    const [u, v] = uv60(xy), tab = planckTable();
+    let bi = 0, bd = Infinity;
+    tab.forEach(([, p], i) => { const d = (p[0] - u) ** 2 + (p[1] - v) ** 2; if (d < bd) { bd = d; bi = i; } });
+    let a = tab[Math.max(0, bi - 1)][0], b = tab[Math.min(tab.length - 1, bi + 1)][0];
+    const f = (m) => { const p = planckUV(1e6 / m); return (p[0] - u) ** 2 + (p[1] - v) ** 2; };
+    const g = (Math.sqrt(5) - 1) / 2;
+    let c = b - g * (b - a), d = a + g * (b - a), fc = f(c), fd = f(d);
+    for (let k = 0; k < 40; k++) {
+      if (fc < fd) { b = d; d = c; fd = fc; c = b - g * (b - a); fc = f(c); }
+      else { a = c; c = d; fc = fd; d = a + g * (b - a); fd = f(d); }
+    }
+    const m = (a + b) / 2, T = 1e6 / m, p = planckUV(T);
+    const duv = Math.sign(v - p[1] || 1) * Math.hypot(u - p[0], v - p[1]);
+    return { T, duv, valid: Math.abs(duv) <= 0.05 && T >= 1000 && T <= 1e5, uvp: p };
+  }
+  /** (CCT, Duv) → xy : 궤적 접선의 법선 방향으로 Duv만큼 이동 */
+  function cctDuv2xy(T, duv) {
+    const p = planckUV(T), q = planckUV(T * 1.0005);
+    let tx = q[0] - p[0], ty = q[1] - p[1];
+    const n = Math.hypot(tx, ty); tx /= n; ty /= n;
+    let nx = -ty, ny = tx;
+    if (ny < 0) { nx = -nx; ny = -ny; }
+    return uv60toxy([p[0] + duv * nx, p[1] + duv * ny]);
+  }
+  /** 주파장·여색 파장·자극 순도 */
+  let LOC = null;
+  function locus() {
+    if (LOC) return LOC;
+    LOC = [];
+    for (let l = 380; l <= 700; l += 0.5) LOC.push([l, CB.monoXY(l)]);
+    return LOC;
+  }
+  function rayHit(w, dir) {
+    const L = locus();
+    const segs = [];
+    for (let i = 0; i < L.length - 1; i++) segs.push([L[i][1], L[i + 1][1], L[i][0], L[i + 1][0]]);
+    segs.push([L[L.length - 1][1], L[0][1], null, null]);
+    let best = null;
+    for (const [p, q, l0, l1] of segs) {
+      const ex = q[0] - p[0], ey = q[1] - p[1];
+      const den = dir[0] * ey - dir[1] * ex;
+      if (Math.abs(den) < 1e-14) continue;
+      const wx = p[0] - w[0], wy = p[1] - w[1];
+      const t = (wx * ey - wy * ex) / den, s = (wx * dir[1] - wy * dir[0]) / den;
+      if (t > 1e-9 && s >= -1e-9 && s <= 1 + 1e-9 && (!best || t < best.t)) {
+        best = { t, pt: [w[0] + t * dir[0], w[1] + t * dir[1]], wl: l0 == null ? null : l0 + (l1 - l0) * s };
+      }
+    }
+    return best;
+  }
+  function dominant(xy, w) {
+    const dir = [xy[0] - w[0], xy[1] - w[1]], r = Math.hypot(dir[0], dir[1]);
+    if (r < 1e-5) return null;
+    const hit = rayHit(w, dir);
+    if (!hit) return null;
+    const purity = r / Math.hypot(hit.pt[0] - w[0], hit.pt[1] - w[1]);
+    if (hit.wl != null) return { wl: hit.wl, comp: false, purity, edge: hit.pt };
+    const back = rayHit(w, [-dir[0], -dir[1]]);
+    return { wl: back ? back.wl : NaN, comp: true, purity, edge: hit.pt };
+  }
+  /** 다각형 면적(shoelace, 부호 없음) */
+  const polyArea = (P) => { let s = 0; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; };
+  const ccw = (P) => { let s = 0; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; s += a[0] * b[1] - b[0] * a[1]; } return s < 0 ? P.slice().reverse() : P; };
+  /** 볼록 다각형 교집합(Sutherland–Hodgman) */
+  function clipPoly(subject, clip) {
+    let out = ccw(subject); const C = ccw(clip);
+    for (let i = 0; i < C.length && out.length; i++) {
+      const a = C[i], b = C[(i + 1) % C.length], inp = out; out = [];
+      const side = (p) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+      const X = (p, q) => { const sp = side(p), sq = side(q), t = sp / (sp - sq); return [p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]; };
+      for (let j = 0; j < inp.length; j++) {
+        const p = inp[j], q = inp[(j + 1) % inp.length], ip = side(p) >= 0, iq = side(q) >= 0;
+        if (ip && iq) out.push(q); else if (ip && !iq) out.push(X(p, q)); else if (!ip && iq) { out.push(X(p, q)); out.push(q); }
+      }
+    }
+    return out;
+  }
+  /** ΔE94 (K1,K2: 그래픽 아트 0.045/0.015, 섬유 0.048/0.014, kL 1/2). 첫째 색이 기준 */
+  function dE94(l1, l2, kL = 1, K1 = 0.045, K2 = 0.015) {
+    const dL = l1[0] - l2[0], C1 = Math.hypot(l1[1], l1[2]), C2 = Math.hypot(l2[1], l2[2]), dC = C1 - C2;
+    const dH2 = Math.max(0, (l1[1] - l2[1]) ** 2 + (l1[2] - l2[2]) ** 2 - dC * dC);
+    const SC = 1 + K1 * C1, SH = 1 + K2 * C1;
+    const tL = dL / kL, tC = dC / SC, tH = Math.sqrt(dH2) / SH;
+    return { dE: Math.sqrt(tL * tL + tC * tC + tH * tH), tL, tC, tH, SC, SH };
+  }
+  /** ΔE2000 항별 분해 (Sharma 2005). 합계는 CB.dE2000과 같다 */
+  function dE00parts(lab1, lab2, kL = 1, kC = 1, kH = 1) {
+    const [L1, a1, b1] = lab1, [L2, a2, b2] = lab2, rad = Math.PI / 180;
+    const Cb = (Math.hypot(a1, b1) + Math.hypot(a2, b2)) / 2;
+    const G = 0.5 * (1 - Math.sqrt(Cb ** 7 / (Cb ** 7 + 25 ** 7)));
+    const a1p = (1 + G) * a1, a2p = (1 + G) * a2, C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+    const hp = (a, b) => { if (a === 0 && b === 0) return 0; const h = Math.atan2(b, a) / rad; return h < 0 ? h + 360 : h; };
+    const h1p = hp(a1p, b1), h2p = hp(a2p, b2);
+    let dhp = 0;
+    if (C1p * C2p !== 0) { dhp = h2p - h1p; if (dhp > 180) dhp -= 360; else if (dhp < -180) dhp += 360; }
+    const dLp = L2 - L1, dCp = C2p - C1p, dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin((dhp / 2) * rad);
+    const Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+    let hbp = h1p + h2p;
+    if (C1p * C2p !== 0) { if (Math.abs(h1p - h2p) > 180) hbp += h1p + h2p < 360 ? 360 : -360; hbp /= 2; }
+    const T = 1 - 0.17 * Math.cos((hbp - 30) * rad) + 0.24 * Math.cos(2 * hbp * rad) + 0.32 * Math.cos((3 * hbp + 6) * rad) - 0.2 * Math.cos((4 * hbp - 63) * rad);
+    const dTh = 30 * Math.exp(-(((hbp - 275) / 25) ** 2)), RC = 2 * Math.sqrt(Cbp ** 7 / (Cbp ** 7 + 25 ** 7));
+    const SL = 1 + (0.015 * (Lbp - 50) ** 2) / Math.sqrt(20 + (Lbp - 50) ** 2), SC = 1 + 0.045 * Cbp, SH = 1 + 0.015 * Cbp * T;
+    const RT = -Math.sin(2 * dTh * rad) * RC;
+    const tL = dLp / (kL * SL), tC = dCp / (kC * SC), tH = dHp / (kH * SH);
+    return { dE: Math.sqrt(tL * tL + tC * tC + tH * tH + RT * tC * tH), tL, tC, tH, tR: RT * tC * tH, SL, SC, SH, RT, G, dLp, dCp, dHp, hbp };
+  }
+  /** 전달 함수 */
+  const bt2020oetf = (L) => (L < 0.018053968510807 ? 4.5 * L : 1.09929682680944 * Math.pow(L, 0.45) - 0.09929682680944);
+  /** 텍스트에서 숫자 n개 읽기 */
+  function parseNums(s, n) {
+    const t = String(s).trim().replace(/^[a-z]+\(|\)$/gi, "");
+    const parts = t.split(/[\s,;\/]+/).filter(Boolean);
+    if (parts.length !== n) return { err: `숫자 ${n}개가 필요하다 (입력 ${parts.length}개)` };
+    const v = parts.map(Number);
+    if (v.some((x) => !isFinite(x))) return { err: "숫자가 아닌 값이 있다" };
+    return { v };
+  }
+  /** "nm,value" 붙여넣기 파서 */
+  function parseSpectrum(text) {
+    const pts = [], warn = [];
+    const lines = String(text).split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i].trim();
+      if (!ln || ln[0] === "#") continue;
+      const parts = ln.split(/[\s,;\t]+/).filter(Boolean);
+      if (parts.length < 2) return { err: `${i + 1}번째 줄: "nm, 값" 두 열이 필요하다` };
+      const a = Number(parts[0]), b = Number(parts[1]);
+      if (!isFinite(a) || !isFinite(b)) { if (!pts.length) continue; return { err: `${i + 1}번째 줄: 숫자가 아니다 → "${ln.slice(0, 30)}"` }; }
+      if (pts.length && a <= pts[pts.length - 1][0]) return { err: `${i + 1}번째 줄: 파장이 증가하지 않는다 (${a} nm)` };
+      if (b < 0) warn.push(`${a} nm 값이 음수 → 0으로 처리`);
+      pts.push([a, Math.max(0, b)]);
+    }
+    if (pts.length < 3) return { err: "데이터 점이 3개 이상 필요하다" };
+    const lo = pts[0][0], hi = pts[pts.length - 1][0];
+    if (lo > 380 || hi < 780) warn.push(`데이터 범위 ${lo}–${hi} nm: 범위 밖 380–780 nm 구간은 0으로 본다`);
+    if (hi < 400 || lo > 760) return { err: "가시광(380–780 nm)과 겹치는 구간이 없다" };
+    const f = (nm) => {
+      if (nm < lo || nm > hi) return 0;
+      let i = 0, j = pts.length - 1;
+      while (j - i > 1) { const k = (i + j) >> 1; if (pts[k][0] <= nm) i = k; else j = k; }
+      const [x0, y0] = pts[i], [x1, y1] = pts[j];
+      return y0 + ((y1 - y0) * (nm - x0)) / (x1 - x0);
+    };
+    return { f, n: pts.length, lo, hi, max: Math.max(...pts.map((p) => p[1])), warn };
+  }
+  /** 임의 원색 RGB→XYZ, CAT 포함 RGB→RGB 행렬 */
+  function rgb2rgbMatrix(src, dst, method) {
+    const Ms = CB.rgb2xyzMatrix(src), Md = CB.rgb2xyzMatrix(dst);
+    const A = CB.adaptMatrix(CB.xy2XYZ(src.w), CB.xy2XYZ(dst.w), method);
+    return CB.mat.mul(CB.mat.inv(Md), CB.mat.mul(A, Ms));
+  }
+
+
+  /* ---------- 색도도 배경 캐시 (테마·크기·범위가 바뀔 때만 다시 채색) ---------- */
+  const DCACHE = {};
+  function diagram(ctx, w, h, key, opts) {
+    const dpr = (ctx.getTransform && ctx.getTransform().a) || 1;
+    const k = [w, h, dpr, CB.isDark(), JSON.stringify(opts)].join("|");
+    let c = DCACHE[key];
+    if (!c || c.k !== k) {
+      const rg = opts.range || (opts.uv ? { x: [0, 0.65], y: [0, 0.62] } : { x: [0, 0.8], y: [0, 0.9] });
+      const rx = rg.x[1] - rg.x[0], ry = rg.y[1] - rg.y[0];
+      const s = Math.min((w - 62) / rx, (h - 58) / ry);
+      const box = { x: 46 + Math.max(0, (w - 62 - s * rx) / 2), y: 30, w: s * rx, h: s * ry };
+      const off = document.createElement("canvas");
+      off.width = Math.round(w * dpr); off.height = Math.round(h * dpr);
+      const o = off.getContext("2d");
+      o.setTransform(dpr, 0, 0, dpr, 0, 0);
+      o.fillStyle = CB.color("canvas-bg"); o.fillRect(0, 0, w, h);
+      const D = CB.chromaticity(o, box, Object.assign({ range: rg }, opts));
+      c = DCACHE[key] = { k, off, D };
+    }
+    ctx.drawImage(c.off, 0, 0, w, h);
+    return c.D;
+  }
+  const dot = (ctx, p, r, fill, stroke, lw = 1.5) => { ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } };
+  const clipBox = (ctx, b) => { ctx.beginPath(); ctx.rect(b.x, b.y, b.w, b.h); ctx.clip(); };
+
+  /* ======================================================================
+     TOOL 1 — 스펙트럼 → 모든 좌표
+     ====================================================================== */
+  const EMIT = [["D65", "D65 (CIE 주광 6504 K)"], ["D50", "D50"], ["A", "A (백열 2856 K)"], ["E", "E (등에너지)"], ["FL2", "FL2 냉백색 형광"], ["FL7", "FL7 광대역 형광"], ["FL11", "FL11 3파장 형광"], ["LED-B3", "LED-B3 청색+형광체"], ["LED-RGB1", "LED-RGB1 RGB 혼합"], ["LED-V1", "LED-V1 보라+형광체"], ["HP1", "HP1 고압 나트륨"]];
+  const MUN = ["7.5R 6/4", "5Y 6/4", "5GY 6/8", "2.5G 6/6", "10BG 6/4", "5PB 6/8", "2.5P 6/8", "10P 6/8", "4.5R 4/13 (빨강)", "5Y 8/10 (노랑)", "4.5G 5/8 (녹색)", "3PB 3/11 (파랑)", "5YR 8/4 (피부)", "5GY 4/4 (잎)"];
+  const REFL = MUN.map((m, i) => [String(i + 1), `TCS${String(i + 1).padStart(2, "0")} ${m}`]).concat([["white", "완전 확산면 R = 1"], ["gray18", "18 % 회색 R = 0.18"]]);
+  const ILL = ["D65", "D50", "A", "E", "FL2", "FL7", "FL11", "LED-B3", "LED-RGB1", "LED-V1", "HP1"];
+  const illumFn = (k) => (k === "E" ? () => 1 : CB.illum(k));
+
+  const s1 = (() => {
+    let last = null;
+    const sel = $("s1-preset"), ill = $("s1-illum"), wsel = $("s1-white"), ta = $("s1-paste");
+    ill.innerHTML = ILL.map((k) => `<option value="${k}">${k === "E" ? "E (등에너지)" : k}</option>`).join("");
+    const mode = CB.seg("s1-mode", () => { fillPresets(); update(); });
+    const src = CB.seg("s1-src", () => { showSrc(); update(); });
+    const obs = CB.seg("s1-obs", () => update());
+    const bbk = CB.seg("s1-bbk", () => update());
+    const zoom = CB.seg("s1-zoom", () => cvX.redraw());
+    const T = CB.range("s1-T", (v) => v.toLocaleString("en-US") + " K", () => update());
+    const G = [1, 2, 3].map((i) => ({
+      c: CB.range(`s1-g${i}c`, (v) => v.toFixed(1) + " nm", () => update()),
+      w: CB.range(`s1-g${i}w`, (v) => v + " nm", () => update()),
+      a: CB.range(`s1-g${i}a`, (v) => v.toFixed(3), () => update()),
+    }));
+    function fillPresets(keep) {
+      const list = mode() === "emit" ? EMIT : REFL;
+      const prev = keep || sel.value;
+      sel.innerHTML = list.map(([k, n]) => `<option value="${k}">${n}</option>`).join("");
+      sel.value = list.some(([k]) => k === prev) ? prev : list[0][0];
+    }
+    function showSrc() { document.querySelectorAll("#sim-spec [data-src]").forEach((el) => { el.hidden = el.dataset.src !== src(); }); }
+    function exampleText() {
+      const L = ["# CIE LED-B3 (청색 칩 + 형광체), 10 nm 간격 샘플", "nm,relative"];
+      for (let l = 380; l <= 780; l += 10) L.push(`${l},${CB.illum("LED-B3")(l).toFixed(2)}`);
+      return L.join("\n");
+    }
+    ta.value = exampleText();
+
+    function spectrum() {
+      const m = mode(), s = src();
+      if (s === "preset") {
+        const k = sel.value;
+        if (m === "emit") return { f: illumFn(k), name: k };
+        if (k === "white") return { f: () => 1, name: "R = 1" };
+        if (k === "gray18") return { f: () => 0.18, name: "R = 0.18" };
+        return { f: CB.tcs(+k), name: "TCS" + k.padStart(2, "0") };
+      }
+      if (s === "bb") {
+        if (m === "refl") return { err: "흑체·CIE 주광은 광원 분포다. 반사체 모드에서는 프리셋·가우시안·붙여넣기로 반사율을 입력하라." };
+        const t = T();
+        if (bbk() === "day") {
+          if (t < 4000 || t > 25000) return { err: `CIE 주광은 4,000–25,000 K에서만 정의된다 (현재 ${t.toLocaleString("en-US")} K).` };
+          return { f: CB.daylight(t), name: `주광 ${t} K` };
+        }
+        return { f: (nm) => CB.blackbody(nm, t), name: `흑체 ${t} K` };
+      }
+      if (s === "gauss") {
+        const g = G.map((q) => [q.c(), q.w(), q.a()]).filter((q) => q[2] > 0);
+        if (!g.length) return { err: "가우시안 가중치가 모두 0이다. 적어도 하나는 0보다 커야 한다." };
+        const sum = (nm) => g.reduce((acc, [c, w, a]) => acc + a * CB.gauss(nm, c, w), 0);
+        return m === "emit" ? { f: sum, name: "가우시안 합성" } : { f: (nm) => Math.min(1, sum(nm)), name: "가우시안 반사율", warn: ["반사율 모드: 합이 1을 넘는 구간은 1로 자른다."] };
+      }
+      const r = parseSpectrum(ta.value);
+      if (r.err) return { err: "붙여넣기 오류 — " + r.err };
+      const warn = r.warn.slice();
+      warn.unshift(`${r.n}점 읽음 (${r.lo}–${r.hi} nm), 선형 보간.`);
+      if (m === "refl" && r.max > 1.5) { warn.push("최대값이 1.5를 넘어 % 단위로 보고 100으로 나눴다."); return { f: (nm) => r.f(nm) / 100, name: "붙여넣은 반사율", warn }; }
+      return { f: r.f, name: "붙여넣은 데이터", warn };
+    }
+
+    function update() {
+      const m = mode();
+      $("s1-illum-wrap").hidden = m !== "refl";
+      $("s1-cap").textContent = m === "emit" ? "분광 분포 (최대 = 1)" : "반사율 R(λ) · 조명(점선, 정규화)";
+      const sp = spectrum();
+      const fail = (msg) => {
+        last = null; setMsg("s1-msg", msg, true);
+        ["o1-xy", "o1-cct", "o1-duv", "o1-dom", "o1-hex"].forEach((id) => CB.stat(id, "—"));
+        $("s1-res").innerHTML = ""; $("s1-chip").style.background = "transparent"; $("s1-chip-note").textContent = "—";
+        cvS.redraw(); cvX.redraw();
+      };
+      if (sp.err) return fail(sp.err);
+      const ob = obs(), illum = m === "refl" ? illumFn(ill.value) : null;
+      const opt = illum ? { illum, observer: ob } : { observer: ob, Y: 100 };
+      const XYZ = CB.spd2XYZ(sp.f, opt);
+      if (!(XYZ[0] + XYZ[1] + XYZ[2] > 1e-9) || !(XYZ[1] > 0)) return fail("380–780 nm에서 자극이 0이다(또는 Y = 0). 스펙트럼이 가시광과 겹치는지 확인하라.");
+      const XYZ2 = ob === "1964" ? CB.spd2XYZ(sp.f, Object.assign({}, opt, { observer: "1931" })) : XYZ;
+      const wk = wsel.value;
+      const wS = wk === "auto" ? illum || CB.D65 : illumFn(wk);
+      const W = CB.spd2XYZ(wS, { observer: ob, Y: 100 }), W2 = CB.spd2XYZ(wS, { Y: 1 }), wxy2 = CB.XYZ2xy(W2);
+      const xy = CB.XYZ2xy(XYZ), xy2 = CB.XYZ2xy(XYZ2), uvp = CB.XYZ2uv(XYZ), uv = uv60(xy);
+      const cd = cctDuv(xy2), mc = CB.cct(xy2), dom = dominant(xy2, wxy2);
+      const lab = CB.XYZ2Lab(XYZ, W), lch = CB.Lab2LCh(lab);
+      const rD = CB.mat.vec(CB.adaptMatrix(W2, W_D65, "bradford"), XYZ2.map((v) => v / 100));
+      const lin = { s: CB.XYZ2linRGB(rD), p: CB.mat.vec(M_P3_INV, rD), r: CB.mat.vec(M_2020_INV, rD) };
+      const flag = (v) => (v.some((x) => x < -1e-4) ? '<span class="c-bad">가멋 밖 (음수 성분)</span>' : v.some((x) => x > 1 + 1e-4) ? '<span class="c-warn">1 초과 (백색보다 밝음)</span>' : '<span class="c-ok">가멋 안</span>');
+      const c01 = (v) => CB.clamp(v, 0, 1);
+      const encS = lin.s.map((v) => CB.srgbEncode(c01(v))), encP = lin.p.map((v) => CB.srgbEncode(c01(v))), encR = lin.r.map((v) => bt2020oetf(c01(v)));
+      const rgb8 = CB.XYZ2rgb8(rD), hex = CB.rgb2hex(rgb8);
+      let ler = NaN;
+      if (m === "emit") { let P = 0, L = 0; for (let l = 380; l <= 780; l += 5) { const e = sp.f(l); P += e; L += e * CB.V(l); } ler = P > 0 ? (683 * L) / P : NaN; }
+      last = { f: sp.f, illum, m, xy2, wxy2, cd, dom, chip: m === "emit" ? CB.xy2display(CB.XYZ2xy(rD)) : rgb8, name: sp.name };
+
+      const obsTxt = ob === "1964" ? "10° (CIE 1964)" : "2° (CIE 1931)";
+      const wTxt = wk === "auto" ? (m === "emit" ? "D65" : `조명 ${ill.value}의 완전 확산면`) : wk;
+      const domTxt = !dom ? "—" : `${fx(dom.wl, 1)}${dom.comp ? "c" : ""} nm · ${fx(dom.purity * 100, 1)} %`;
+      const rows = [
+        row("XYZ", fv(XYZ, 4), `${obsTxt}, ${m === "emit" ? "Y = 100 정규화(상대)" : "완전 확산면 Y = 100"}`),
+        row("xyY", `${fx(xy[0], 5)}, ${fx(xy[1], 5)}, ${fx(XYZ[1], 3)}`, obsTxt),
+        row("u′v′ (CIE 1976)", fv(uvp, 5), obsTxt),
+        row("uv (CIE 1960)", fv(uv, 5), "CCT 계산 평면"),
+        row("CCT (정밀)", cd.valid ? `${fx(cd.T, 1)} K` : `<span class="c-bad">정의 안 됨</span> (${fx(cd.T, 0)} K)`, `2°, 1960 uv 흑체 궤적 최근접${cd.valid ? "" : " — |Duv| > 0.05 또는 범위 밖"}`),
+        row("CCT (McCamy 근사)", `${fx(mc, 0)} K`, `정밀값과 차 ${fx(mc - cd.T, 0)} K`),
+        row("Duv", sgn(cd.duv, 5), cd.duv >= 0 ? "궤적 위쪽 (녹색 쪽)" : "궤적 아래쪽 (마젠타 쪽)"),
+        row("주파장 · 자극 순도", dom ? domTxt : "— (기준 백색과 같은 색도)", `2°, 기준 백색 xy (${fv(wxy2, 4)})${dom && dom.comp ? " · c = 여색 파장" : ""}`),
+        row("기준 백색 XYZ", fv(W, 3), `${wTxt}, ${obsTxt}`),
+        row("CIELAB", fv(lab, 2), m === "emit" ? "발광체: 휘도가 백색과 같다고 가정 → L* = 100" : `백색 = ${wTxt}`),
+        row("LCh(ab)", `${fx(lch[0], 2)}, ${fx(lch[1], 2)}, ${fx(lch[2], 1)}°`, ""),
+        row("선형 sRGB", fv(lin.s, 4), flag(lin.s) + (Math.abs(wxy2[0] - 0.3127) + Math.abs(wxy2[1] - 0.329) > 2e-4 ? " · 백색→D65 Bradford 적응" : "")),
+        row("sRGB 인코딩 (0–1)", fv(encS, 4), "IEC 61966-2-1, [0,1] 클리핑 후"),
+        row("sRGB 8비트 · hex", `${rgb8.join(", ")} · ${hex}`, rgb8.clipped ? '<span class="c-warn">클리핑됨</span>' : ""),
+        row("선형 Display P3", fv(lin.p, 4), flag(lin.p)),
+        row("Display P3 인코딩", fv(encP, 4), "sRGB 곡선"),
+        row("선형 Rec.2020", fv(lin.r, 4), flag(lin.r)),
+        row("Rec.2020 신호", fv(encR, 4), "BT.2020 OETF"),
+      ];
+      if (m === "emit") rows.push(row("LER", `${fx(ler, 1)} lm/W`, "683·ΣSȳ / ΣS, 380–780 nm만 적분"));
+      $("s1-res").innerHTML = rows.join("");
+      CB.stat("o1-xy", `${fx(xy[0], 4)}, ${fx(xy[1], 4)}`);
+      CB.stat("o1-cct", cd.valid ? `${Math.round(cd.T).toLocaleString("en-US")}<small>K</small>` : "정의 안 됨");
+      CB.stat("o1-duv", sgn(cd.duv, 4));
+      CB.stat("o1-dom", dom ? `${fx(dom.wl, 1)}${dom.comp ? "c" : ""}<small>nm</small> ${fx(dom.purity * 100, 0)}<small>%</small>` : "—");
+      CB.stat("o1-hex", hex);
+      $("s1-chip").style.background = CB.rgb8css(last.chip);
+      $("s1-chip-note").innerHTML = m === "emit"
+        ? "발광체 견본: 색도만 표시(최대 채널 = 1로 정규화)" + (lin.s.some((x) => x < -1e-4) ? " · sRGB 가멋 밖이라 <b>화면에서 클리핑됨</b>" : "")
+        : `${sp.name} × ${ill.value}, D65 화면용으로 적응` + (rgb8.clipped ? " · <b>화면에서 클리핑됨</b>" : "");
+      const warn = (sp.warn || []).slice();
+      if (ob === "1964") warn.push("10° 관측자: XYZ·xyY·u′v′·Lab은 10°, CCT·Duv·주파장·RGB는 정의상 2° XYZ로 계산했다.");
+      if (!cd.valid) warn.push("|Duv| > 0.05: CIE 015에 따라 CCT를 보고하지 않는다.");
+      setMsg("s1-msg", warn.join("<br>"), false);
+      cvS.redraw(); cvX.redraw();
+    }
+
+    const cvS = CB.canvas($("cv-s1-spec"), (ctx, w, h) => {
+      const P = CB.palette();
+      if (!last) { ctx.fillStyle = P.dim; ctx.font = "13px " + mono(); ctx.fillText("입력 오류 — 아래 메시지 참고", 24, h / 2); return; }
+      const box = { x: 50, y: 30, w: w - 66, h: h - 30 - 58 };
+      const wl = CB.wls(2), vals = wl.map((l) => last.f(l));
+      const mx = Math.max(...vals) || 1;
+      const refl = last.m === "refl";
+      const data = wl.map((l, i) => [l, refl ? vals[i] : vals[i] / mx]);
+      const series = [{ data, color: P.accent, width: 2, fill: alpha(P.accent, 0.14) }];
+      if (refl) { let im = 0; wl.forEach((l) => { im = Math.max(im, last.illum(l)); }); series.push({ data: wl.map((l) => [l, last.illum(l) / (im || 1)]), color: P.accent2, width: 1.4, dash: [5, 4] }); }
+      else series.push({ data: wl.map((l) => [l, CB.V(l)]), color: P.dim, width: 1.2, dash: [3, 4] });
+      const C = CB.chart(ctx, box, { x: [380, 780], y: [0, refl ? Math.max(1, mx) * 1.05 : 1.08], series, xLabel: "파장 (nm)" });
+      CB.spectrumBar(ctx, { x: box.x, y: box.y + box.h + 22, w: box.w, h: 5 });
+      ctx.font = "11px " + mono(); ctx.textAlign = "right"; ctx.textBaseline = "top";
+      ctx.fillStyle = P.accent; ctx.fillText(refl ? "R(λ)" : last.name, box.x + box.w - 4, box.y + 4);
+      ctx.fillStyle = refl ? P.accent2 : P.dim; ctx.fillText(refl ? "조명 (정규화)" : "V(λ)", box.x + box.w - 4, box.y + 18);
+      return C;
+    }, { aspect: 0.66, minHeight: 260, maxHeight: 400 });
+
+    const cvX = CB.canvas($("cv-s1-xy"), (ctx, w, h) => {
+      const P = CB.palette(), zm = zoom() === "white";
+      const D = diagram(ctx, w, h, "s1-" + (zm ? "z" : "f"), { range: zm ? { x: [0.2, 0.55], y: [0.2, 0.5] } : { x: [0, 0.8], y: [0, 0.9] }, planck: true, gamuts: ["srgb"], labels: !zm, gamutLabels: false });
+      ctx.save(); clipBox(ctx, D.box);
+      ctx.font = "10px " + mono(); ctx.fillStyle = P.text; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      [2000, 2700, 4000, 6500, 10000].forEach((t) => { const p = D.P(CB.planckXY(t)); dot(ctx, p, 2.2, P.text); if (zm || t !== 2700) ctx.fillText(t >= 10000 ? "10k" : String(t), p[0] + 3, p[1] + 3); });
+      if (last) {
+        const S = D.P(last.xy2), Wp = D.P(last.wxy2);
+        if (last.dom) {
+          const e = D.P(last.dom.edge);
+          ctx.setLineDash([4, 4]); ctx.strokeStyle = P.dim; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(Wp[0], Wp[1]); ctx.lineTo(e[0], e[1]); ctx.stroke(); ctx.setLineDash([]);
+          dot(ctx, e, 3, P.dim);
+        }
+        if (last.cd.valid) { const q = D.P(uv60toxy(last.cd.uvp)); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(S[0], S[1]); ctx.stroke(); dot(ctx, q, 3, P.accent); }
+        dot(ctx, Wp, 5, null, P.text, 1.6);
+        dot(ctx, S, 6.5, CB.rgb8css(last.chip), P.text, 2);
+        ctx.fillStyle = P.text; ctx.font = "11px " + mono(); ctx.textBaseline = "bottom";
+        ctx.fillText(`(${fx(last.xy2[0], 4)}, ${fx(last.xy2[1], 4)})`, S[0] + 9, S[1] - 5);
+      }
+      ctx.restore();
+    }, { aspect: 1.02, minHeight: 280, maxHeight: 420 });
+
+    sel.addEventListener("change", update); ill.addEventListener("change", update); wsel.addEventListener("change", update);
+    $("s1-paste-go").addEventListener("click", update);
+    $("s1-paste-ex").addEventListener("click", () => { ta.value = exampleText(); update(); });
+    let tmr = 0; ta.addEventListener("input", () => { clearTimeout(tmr); tmr = setTimeout(update, 450); });
+    fillPresets("D65"); showSrc(); update();
+
+    return {
+      load(o) {
+        if (o.mode && o.mode !== mode()) mode.set(o.mode);
+        if (o.preset) fillPresets(o.preset);
+        if (o.illum) ill.value = o.illum;
+        if (o.white) wsel.value = o.white;
+        if (o.g) o.g.forEach(([c, wd, a], i) => { G[i].c.set(c); G[i].w.set(wd); G[i].a.set(a); });
+        if (o.src && o.src !== src()) src.set(o.src); else { showSrc(); update(); }
+        go("sim-spec");
+      },
+    };
+  })();
+
+  /* ======================================================================
+     TOOL 2 — 색 값 상호 변환
+     ====================================================================== */
+  const c2 = (() => {
+    const F = ["hex", "rgb8", "lin", "xyz", "xyy", "lab", "lch", "oklab"];
+    const inp = {}; F.forEach((k) => { inp[k] = $("c2-" + k); });
+    let cur = CB.rgb82XYZ([255, 0, 0]);
+    const Wl = () => CB.whiteXYZ($("c2-white").value);
+    const cat = () => $("c2-cat").value;
+    const isD65 = () => $("c2-white").value === "D65";
+    const toLab = (X) => { const W = Wl(); return CB.XYZ2Lab(isD65() ? X : CB.adapt(X, W_D65, W, cat()), W); };
+    const fromLab = (lab) => { const W = Wl(), X = CB.Lab2XYZ(lab, W); return isD65() ? X : CB.adapt(X, W, W_D65, cat()); };
+    function parse(k, s) {
+      s = s.trim();
+      if (!s) return { err: "빈 칸이다" };
+      if (k === "hex") {
+        if (!/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) return { err: "hex는 #rrggbb 또는 #rgb 형식이어야 한다 (예: #c2255c)" };
+        return { X: CB.rgb82XYZ(CB.hex2rgb(s)) };
+      }
+      const n = parseNums(s, 3);
+      if (n.err) return n;
+      const v = n.v;
+      switch (k) {
+        case "rgb8":
+          if (v.some((x) => x < 0 || x > 255)) return { err: "8비트 값은 0–255 범위여야 한다" };
+          return { X: CB.rgb82XYZ(v) };
+        case "lin":
+          return { X: CB.linRGB2XYZ(v), warn: v.some((x) => x < 0 || x > 1) ? "선형 값이 0–1 밖이다: sRGB 가멋 밖(또는 백색보다 밝은) 색으로 처리한다." : "" };
+        case "xyz":
+          if (v.some((x) => x < 0)) return { err: "XYZ는 음수일 수 없다 (물리적으로 불가능한 자극)" };
+          return { X: v.map((x) => x / 100) };
+        case "xyy":
+          if (!(v[1] > 0)) return { err: "y는 0보다 커야 한다" };
+          if (v[0] < 0 || v[0] + v[1] > 1) return { err: "x ≥ 0, x + y ≤ 1이어야 한다" };
+          if (v[2] < 0) return { err: "Y는 음수일 수 없다" };
+          return { X: CB.xy2XYZ([v[0], v[1]], v[2] / 100) };
+        case "lab":
+        case "lch": {
+          if (v[0] < 0) return { err: "L*은 0 이상이어야 한다" };
+          if (k === "lch" && v[1] < 0) return { err: "C*는 0 이상이어야 한다" };
+          const lab = k === "lch" ? CB.LCh2Lab(v) : v;
+          return { X: fromLab(lab), warn: v[0] > 100 ? "L* > 100: 기준 백색보다 밝은 색이다." : "" };
+        }
+        case "oklab":
+          if (v[0] < 0) return { err: "OKLab L은 0 이상이어야 한다 (백색 = 1)" };
+          return { X: CB.linRGB2XYZ(CB.oklab2linRGB(v)), warn: v[0] > 1.0001 ? "L > 1: 백색보다 밝은 색이다." : "" };
+      }
+      return { err: "알 수 없는 형식" };
+    }
+    function fmt(k, X) {
+      const lin = CB.XYZ2linRGB(X);
+      switch (k) {
+        case "hex": return CB.rgb2hex(CB.XYZ2rgb8(X));
+        case "rgb8": return CB.XYZ2rgb8(X).join(", ");
+        case "lin": return fv(lin, 6);
+        case "xyz": return fv(X.map((v) => v * 100), 4);
+        case "xyy": { const xy = CB.XYZ2xy(X); return `${fx(xy[0], 5)}, ${fx(xy[1], 5)}, ${fx(X[1] * 100, 4)}`; }
+        case "lab": return fv(toLab(X), 3);
+        case "lch": { const c = CB.Lab2LCh(toLab(X)); return `${fx(c[0], 3)}, ${fx(c[1], 3)}, ${fx(c[2], 2)}`; }
+        case "oklab": return fv(CB.linRGB2oklab(lin), 5);
+      }
+      return "";
+    }
+    function render(except) {
+      F.forEach((k) => { if (k !== except) { inp[k].value = fmt(k, cur); inp[k].classList.remove("err"); } });
+      const lin = CB.XYZ2linRGB(cur), rgb8 = CB.XYZ2rgb8(cur);
+      const inG = (v) => !v.some((x) => x < -1e-4 || x > 1 + 1e-4);
+      $("c2-chip").style.background = CB.rgb8css(rgb8);
+      $("c2-chip-note").innerHTML = inG(lin) ? "sRGB 가멋 안 — 견본은 정확한 sRGB 값" : "<b>sRGB 가멋 밖 — 8비트·hex·견본은 화면에서 클리핑됨</b>";
+      const p3 = CB.mat.vec(M_P3_INV, cur), r20 = CB.mat.vec(M_2020_INV, cur);
+      const tag = (v) => (inG(v) ? '<span class="c-ok">가멋 안</span>' : '<span class="c-bad">가멋 밖</span>');
+      const rows = [
+        row("선형 sRGB 판정", tag(lin), "음수 또는 1 초과 성분이 있으면 가멋 밖"),
+        row("선형 Display P3", fv(p3, 5), tag(p3)),
+        row("선형 Rec.2020", fv(r20, 5), tag(r20)),
+      ];
+      if (!isD65()) {
+        const Xa = CB.adapt(cur, W_D65, Wl(), cat());
+        rows.push(row(`XYZ (${$("c2-white").value} 적응)`, fv(Xa.map((v) => v * 100), 4), `${$("c2-cat").selectedOptions[0].textContent}, Lab 계산에 쓰인 값`));
+      }
+      const uvp = CB.XYZ2uv(cur);
+      rows.push(row("u′v′", fv(uvp, 5), "D65 기준 XYZ에서"));
+      if (inG(lin)) {
+        rows.push(row("WCAG 상대 휘도", fx(CB.relLum(rgb8), 4), "8비트 값에서 계산"));
+        rows.push(row("대비비 (백 / 흑)", `${fx(CB.contrast(rgb8, [255, 255, 255]), 2)} : 1 / ${fx(CB.contrast(rgb8, [0, 0, 0]), 2)} : 1`, "WCAG 2.x, <a href=\"dataviz.html\">18장</a>"));
+      }
+      $("c2-res").innerHTML = rows.join("");
+    }
+    F.forEach((k) => {
+      inp[k].addEventListener("input", () => {
+        const r = parse(k, inp[k].value);
+        if (r.err) { inp[k].classList.add("err"); setMsg("c2-msg", `${k.toUpperCase()} 입력 오류: ${r.err}`, true); return; }
+        inp[k].classList.remove("err"); cur = r.X; render(k); setMsg("c2-msg", r.warn || "", false);
+      });
+      inp[k].addEventListener("blur", () => { if (!inp[k].classList.contains("err")) render(null); });
+    });
+    $("c2-white").addEventListener("change", () => render(null));
+    $("c2-cat").addEventListener("change", () => render(null));
+    render(null);
+    return {
+      load(k, s) { inp[k].value = s; inp[k].dispatchEvent(new Event("input")); render(null); go("sim-conv"); },
+    };
+  })();
+
+  /* ======================================================================
+     TOOL 3 — 색차
+     ====================================================================== */
+  const d3 = (() => {
+    let A = null, B = null;
+    const Wn = () => $("d3-white").value;
+    const fmtSeg = CB.seg("d3-fmt", (nv) => { reformat(nv); update(); });
+    const s94 = CB.seg("d3-94", () => update());
+    function parseColor(s) {
+      const fmt = fmtSeg(), wn = Wn(), W = CB.whiteXYZ(wn);
+      const toD65 = (Xw) => (wn === "D65" ? Xw : CB.adapt(Xw, W, W_D65, "bradford"));
+      s = s.trim();
+      if (!s) return { err: "빈 칸이다" };
+      if (fmt === "hex") {
+        if (!/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) return { err: "hex는 #rrggbb 또는 #rgb 형식이어야 한다" };
+        const X65 = CB.rgb82XYZ(CB.hex2rgb(s)), Xw = wn === "D65" ? X65 : CB.adapt(X65, W_D65, W, "bradford");
+        return { lab: CB.XYZ2Lab(Xw, W), Xw, X65 };
+      }
+      const n = parseNums(s, 3);
+      if (n.err) return n;
+      if (fmt === "lab") {
+        if (n.v[0] < 0 || n.v[0] > 100) return { err: "L*은 0–100 범위여야 한다" };
+        const Xw = CB.Lab2XYZ(n.v, W);
+        return { lab: n.v, Xw, X65: toD65(Xw) };
+      }
+      if (n.v.some((x) => x < 0)) return { err: "XYZ는 음수일 수 없다" };
+      const Xw = n.v.map((x) => x / 100);
+      return { lab: CB.XYZ2Lab(Xw, W), Xw, X65: toD65(Xw) };
+    }
+    function text(c, fmt) {
+      if (fmt === "lab") return fv(c.lab, 2);
+      if (fmt === "hex") return CB.rgb2hex(CB.XYZ2rgb8(c.X65));
+      return fv(c.Xw.map((v) => v * 100), 3);
+    }
+    function reformat(nv) { if (A) $("d3-a").value = text(A, nv); if (B) $("d3-b").value = text(B, nv); }
+    function update() {
+      const a = parseColor($("d3-a").value), b = parseColor($("d3-b").value);
+      const kp = parseNums($("d3-k").value, 3), tol = Number($("d3-tol").value);
+      $("d3-a").classList.toggle("err", !!a.err); $("d3-b").classList.toggle("err", !!b.err);
+      $("d3-k").classList.toggle("err", !!kp.err || (kp.v && kp.v.some((x) => !(x > 0))));
+      const errs = [];
+      if (a.err) errs.push("색 1: " + a.err);
+      if (b.err) errs.push("색 2: " + b.err);
+      if (kp.err) errs.push("kL, kC, kH: " + kp.err); else if (kp.v.some((x) => !(x > 0))) errs.push("kL, kC, kH는 모두 0보다 커야 한다");
+      if (!(tol >= 0)) errs.push("허용차는 0 이상의 숫자여야 한다");
+      if (errs.length) { A = a.err ? null : a; B = b.err ? null : b; setMsg("d3-msg", errs.join("<br>"), true); last = null; ["o3-76", "o3-94", "o3-00", "o3-pass"].forEach((id) => CB.stat(id, "—")); $("d3-res").innerHTML = ""; cvB.redraw(); cvAB.redraw(); return; }
+      A = a; B = b; setMsg("d3-msg", "", false);
+      const l1 = a.lab, l2 = b.lab, [kL, kC, kH] = kp.v;
+      const p = dE00parts(l1, l2, kL, kC, kH);
+      const e76 = CB.dE76(l1, l2);
+      const ga = s94() === "ga", e94 = dE94(l1, l2, ga ? 1 : 2, ga ? 0.045 : 0.048, ga ? 0.015 : 0.014);
+      const C1 = Math.hypot(l1[1], l1[2]), C2 = Math.hypot(l2[1], l2[2]);
+      const dC = C2 - C1, dH2 = Math.max(0, (l2[1] - l1[1]) ** 2 + (l2[2] - l1[2]) ** 2 - dC * dC);
+      const ok1 = CB.linRGB2oklab(CB.XYZ2linRGB(a.X65)), ok2 = CB.linRGB2oklab(CB.XYZ2linRGB(b.X65));
+      const eOK = Math.hypot(ok1[0] - ok2[0], ok1[1] - ok2[1], ok1[2] - ok2[2]);
+      const u1 = CB.XYZ2uv(a.Xw), u2 = CB.XYZ2uv(b.Xw), duv = Math.hypot(u1[0] - u2[0], u1[1] - u2[1]);
+      const pass = p.dE <= tol;
+      last = { l1, l2, p };
+      const lc = (l) => { const c = CB.Lab2LCh(l); return `${fv(l, 2)} &nbsp;|&nbsp; C* ${fx(c[1], 2)}, h ${fx(c[2], 1)}°`; };
+      $("d3-res").innerHTML = [
+        row("색 1 Lab | LCh", lc(l1), `${Wn()} 기준`),
+        row("색 2 Lab | LCh", lc(l2), ""),
+        row("ΔL*, Δa*, Δb*", `${sgn(l2[0] - l1[0], 2)}, ${sgn(l2[1] - l1[1], 2)}, ${sgn(l2[2] - l1[2], 2)}`, "색 2 − 색 1"),
+        row("ΔC*ab, ΔH*ab", `${sgn(dC, 2)}, ${fx(Math.sqrt(dH2), 2)}`, "ΔH = √(Δa²+Δb²−ΔC²)"),
+        row("ΔE76", fx(e76, 3), "Lab 유클리드 거리"),
+        row(`ΔE94 (${ga ? "그래픽 아트" : "섬유"})`, fx(e94.dE, 3), `항: ΔL/kL ${fx(e94.tL, 3)}, ΔC/SC ${fx(e94.tC, 3)}, ΔH/SH ${fx(e94.tH, 3)} · SC ${fx(e94.SC, 3)}, SH ${fx(e94.SH, 3)}`),
+        row("ΔE2000", fx(p.dE, 4), `kL, kC, kH = ${kp.v.join(", ")}`),
+        row("　ΔL′/(kL·SL)", fx(p.tL, 4), `ΔL′ ${fx(p.dLp, 3)}, SL ${fx(p.SL, 4)}`),
+        row("　ΔC′/(kC·SC)", fx(p.tC, 4), `ΔC′ ${fx(p.dCp, 3)}, SC ${fx(p.SC, 4)}, G ${fx(p.G, 4)}`),
+        row("　ΔH′/(kH·SH)", fx(p.tH, 4), `ΔH′ ${fx(p.dHp, 3)}, SH ${fx(p.SH, 4)}, h̄′ ${fx(p.hbp, 1)}°`),
+        row("　RT·(ΔC′/SC)(ΔH′/SH)", fx(p.tR, 4), `RT ${fx(p.RT, 4)} (청색 h̄′≈275°에서 큼)`),
+        row("ΔE_OK (OKLab)", `${fx(eOK, 5)} (×100 = ${fx(eOK * 100, 2)})`, "선형 sRGB(D65) 경유"),
+        row("Δu′v′", fx(duv, 5), `${Wn()} 기준 XYZ에서`),
+      ].join("");
+      CB.stat("o3-76", fx(e76, 2)); CB.stat("o3-94", fx(e94.dE, 2)); CB.stat("o3-00", fx(p.dE, 2));
+      CB.stat("o3-pass", `<span class="${pass ? "c-ok" : "c-bad"}">${pass ? "합격" : "불합격"}</span><small>여유 ${sgn(tol - p.dE, 2)}</small>`);
+      const c1 = CB.XYZ2rgb8(a.X65), c2c = CB.XYZ2rgb8(b.X65);
+      $("d3-chip-a").style.background = CB.rgb8css(c1); $("d3-chip-b").style.background = CB.rgb8css(c2c);
+      $("d3-chip-note").innerHTML = "왼쪽 색 1, 오른쪽 색 2 (sRGB 화면 표시)" + (c1.clipped || c2c.clipped ? " · <b>가멋 밖 → 화면에서 클리핑됨</b>" : "");
+      cvB.redraw(); cvAB.redraw();
+    }
+    let last = null;
+    const cvB = CB.canvas($("cv-d3"), (ctx, w, h) => {
+      const P = CB.palette();
+      if (!last) return;
+      const p = last.p, items = [["ΔL′ 항²", p.tL * p.tL, P.accent], ["ΔC′ 항²", p.tC * p.tC, P.accent2], ["ΔH′ 항²", p.tH * p.tH, P.warn], ["RT 교차항", p.tR, P.bad], ["ΔE00²", p.dE * p.dE, P.text]];
+      const mx = Math.max(1e-6, ...items.map((i) => Math.abs(i[1])));
+      const mn = Math.min(0, ...items.map((i) => i[1]));
+      const x0 = 96, x1 = w - 60, bh = Math.min(26, (h - 50) / items.length - 8);
+      const X = (v) => x0 + ((v - mn) / (mx - mn)) * (x1 - x0);
+      ctx.font = "12px " + mono(); ctx.textBaseline = "middle";
+      items.forEach(([k, v, c], i) => {
+        const y = 34 + i * (bh + 10);
+        ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.fillText(k, x0 - 8, y + bh / 2);
+        ctx.fillStyle = c; const a = X(Math.min(0, v)), b = X(Math.max(0, v)); ctx.fillRect(a, y, Math.max(1, b - a), bh);
+        ctx.fillStyle = P.text; ctx.textAlign = "left"; ctx.fillText(fx(v, 3), b + 6, y + bh / 2);
+      });
+      ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(X(0), 28); ctx.lineTo(X(0), h - 10); ctx.stroke();
+    }, { aspect: 0.6, minHeight: 210, maxHeight: 260 });
+    const cvAB = CB.canvas($("cv-d3ab"), (ctx, w, h) => {
+      const P = CB.palette();
+      if (!last) return;
+      const { l1, l2 } = last;
+      const ext = Math.max(10, Math.abs(l1[1]), Math.abs(l1[2]), Math.abs(l2[1]), Math.abs(l2[2])) * 1.15;
+      const cx = w / 2, cy = (h + 20) / 2, s = Math.min(w - 40, h - 50) / 2 / ext;
+      const Pt = (l) => [cx + l[1] * s, cy - l[2] * s];
+      ctx.strokeStyle = P.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx - ext * s, cy); ctx.lineTo(cx + ext * s, cy); ctx.moveTo(cx, cy - ext * s); ctx.lineTo(cx, cy + ext * s); ctx.stroke();
+      ctx.font = "11px " + mono(); ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "top"; ctx.fillText("+a*", cx + ext * s, cy + 4); ctx.textAlign = "left"; ctx.fillText("+b*", cx + 4, cy - ext * s);
+      const r1 = Math.hypot(l1[1], l1[2]) * s;
+      ctx.setLineDash([3, 4]); ctx.strokeStyle = P.faint; ctx.beginPath(); ctx.arc(cx, cy, r1, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(...Pt(l1)); ctx.stroke(); ctx.setLineDash([]);
+      const p1 = Pt(l1), p2 = Pt(l2);
+      ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+      dot(ctx, p1, 6, CB.rgb8css(CB.XYZ2rgb8(A.X65)), P.text, 1.6); dot(ctx, p2, 6, CB.rgb8css(CB.XYZ2rgb8(B.X65)), P.accent, 2);
+      ctx.fillStyle = P.text; ctx.textBaseline = "bottom"; ctx.fillText("1", p1[0] + 8, p1[1] - 4); ctx.fillText("2", p2[0] + 8, p2[1] - 4);
+      ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(`축 범위 ±${fx(ext, 0)}`, 12, h - 18);
+    }, { aspect: 0.6, minHeight: 210, maxHeight: 260 });
+    ["d3-a", "d3-b", "d3-k", "d3-tol"].forEach((id) => $(id).addEventListener("input", update));
+    $("d3-white").addEventListener("change", update);
+    update();
+    return {
+      load(a, b, white) {
+        if (white) $("d3-white").value = white;
+        if (fmtSeg() !== "lab") fmtSeg.set("lab", false);
+        $("d3-a").value = a; $("d3-b").value = b; $("d3-k").value = "1, 1, 1"; $("d3-tol").value = "2.0";
+        update(); go("sim-de");
+      },
+    };
+  })();
+
+  /* ======================================================================
+     TOOL 4 — RGB 변환 행렬
+     ====================================================================== */
+  const MKEYS = ["srgb", "p3", "adobe", "rec2020", "ntsc", "dci", "ap1", "custom"];
+  const spaceName = (k) => (k === "custom" ? "사용자 정의" : SPACE(k).name);
+  function parsePrim(s, withWhite) {
+    const n = parseNums(s, withWhite ? 8 : 6);
+    if (n.err) return n;
+    const v = n.v, pts = [[v[0], v[1]], [v[2], v[3]], [v[4], v[5]]];
+    if (withWhite) pts.push([v[6], v[7]]);
+    for (const [x, y] of pts) if (!(y > 0) || x + y > 1 + 1e-9 || x < -0.1) return { err: `좌표 (${x}, ${y})가 유효하지 않다: y > 0, x + y ≤ 1이어야 한다` };
+    if (polyArea(pts.slice(0, 3)) < 1e-5) return { err: "세 원색이 한 직선 위에 있다 (삼각형 면적 0) — 행렬이 특이하다" };
+    return { sp: { name: "사용자 정의", r: pts[0], g: pts[1], b: pts[2], w: withWhite ? pts[3] : CB.WHITE.D65 } };
+  }
+  const insideTri = (p, t) => { const s = (a, b) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]); const d1 = s(t[0], t[1]), d2 = s(t[1], t[2]), d3_ = s(t[2], t[0]); return (d1 >= 0 && d2 >= 0 && d3_ >= 0) || (d1 <= 0 && d2 <= 0 && d3_ <= 0); };
+
+  const m4 = (() => {
+    const sS = $("m4-src"), sD = $("m4-dst");
+    const opts = MKEYS.map((k) => `<option value="${k}">${spaceName(k)}</option>`).join("");
+    sS.innerHTML = opts; sD.innerHTML = opts; sS.value = "srgb"; sD.value = "p3";
+    const fmtSeg = CB.seg("m4-fmt", () => update());
+    let cur = null;
+    const n6 = (v) => { const s = fx(v, 6); return (s[0] === "-" ? "" : " ") + s; };
+    const mtxt = (M) => (fmtSeg() === "array" ? "[[" + M.map((r) => r.map((v) => fx(v, 6)).join(", ")).join("],\n [") + "]]" : M.map((r) => r.map(n6).join("  ")).join("\n"));
+    function get(which) {
+      const k = (which === "src" ? sS : sD).value;
+      $(`m4-${which}-c-wrap`).hidden = k !== "custom";
+      if (k !== "custom") return { sp: SPACE(k) };
+      const r = parsePrim($(`m4-${which}-c`).value, true);
+      $(`m4-${which}-c`).classList.toggle("err", !!r.err);
+      return r;
+    }
+    function update() {
+      const a = get("src"), b = get("dst");
+      const errs = [];
+      if (a.err) errs.push("원본: " + a.err);
+      if (b.err) errs.push("목적: " + b.err);
+      if (errs.length) { cur = null; setMsg("m4-msg", errs.join("<br>"), true); ["m4-out", "m4-inv", "m4-npm-s", "m4-npm-d"].forEach((id) => { $(id).textContent = "—"; }); $("m4-ver").innerHTML = ""; cv.redraw(); return; }
+      const src = a.sp, dst = b.sp, cat = $("m4-cat").value;
+      const warn = [];
+      [[src, "원본"], [dst, "목적"]].forEach(([s, n]) => { if (!insideTri(s.w, [s.r, s.g, s.b])) warn.push(`${n} 백색점이 원색 삼각형 밖에 있다: 백색을 만들려면 음수 원색이 필요하다.`); });
+      const Ms = CB.rgb2xyzMatrix(src), Md = CB.rgb2xyzMatrix(dst);
+      const M = rgb2rgbMatrix(src, dst, cat), Mi = CB.mat.inv(M);
+      if (![M, Mi].every((X) => X.every((r) => r.every(isFinite)))) { setMsg("m4-msg", "행렬이 특이하다(역행렬 없음). 원색·백색 값을 확인하라.", true); return; }
+      const sameW = Math.hypot(src.w[0] - dst.w[0], src.w[1] - dst.w[1]) < 1e-6;
+      if (!sameW) warn.push(`백색점이 다르다 (${fv(src.w, 4)} → ${fv(dst.w, 4)}): ${$("m4-cat").selectedOptions[0].textContent} 색순응을 행렬에 포함했다.`);
+      setMsg("m4-msg", warn.join("<br>"), false);
+      cur = { src, dst, M, Mi };
+      $("m4-out").textContent = mtxt(M); $("m4-inv").textContent = mtxt(Mi);
+      $("m4-npm-s").textContent = mtxt(Ms); $("m4-npm-d").textContent = mtxt(Md);
+      const tests = [["R (1, 0, 0)", [1, 0, 0]], ["G (0, 1, 0)", [0, 1, 0]], ["B (0, 0, 1)", [0, 0, 1]], ["백색 (1, 1, 1)", [1, 1, 1]], ["회색 (0.18 ×3)", [0.18, 0.18, 0.18]]];
+      const rows = tests.map(([n, v]) => {
+        const o = CB.mat.vec(M, v);
+        const j = o.some((x) => x < -1e-6) ? '<span class="c-bad">목적 가멋 밖 (음수)</span>' : o.some((x) => x > 1 + 1e-6) ? '<span class="c-warn">1 초과</span>' : '<span class="c-ok">가멋 안</span>';
+        return `<tr><td class="lbl">${n}</td><td>${fv(o, 6)}</td><td class="nt">${j}</td></tr>`;
+      });
+      const I = CB.mat.mul(M, Mi); let err = 0; I.forEach((r, i) => r.forEach((v, j) => { err = Math.max(err, Math.abs(v - (i === j ? 1 : 0))); }));
+      rows.push(`<tr><td class="lbl">행 합</td><td>${fv(M.map((r) => r[0] + r[1] + r[2]), 6)}</td><td class="nt">${M.every((r) => Math.abs(r[0] + r[1] + r[2] - 1) < 1e-6) ? '<span class="c-ok">백색 보존</span>' : '<span class="c-warn">1 아님 — CAT 없음(XYZ 스케일링 제외)?</span>'}</td></tr>`);
+      rows.push(`<tr><td class="lbl">왕복 오차</td><td>${err.toExponential(1)}</td><td class="nt">max |M·M⁻¹ − I|</td></tr>`);
+      $("m4-ver").innerHTML = rows.join("");
+      cv.redraw();
+    }
+    const cv = CB.canvas($("cv-m4"), (ctx, w, h) => {
+      const P = CB.palette();
+      const D = diagram(ctx, w, h, "m4", { planck: false, labels: true });
+      if (!cur) return;
+      [[cur.src, P.accent, []], [cur.dst, P.accent2, [6, 4]]].forEach(([s, c, dash]) => {
+        const pts = [s.r, s.g, s.b].map(D.P);
+        ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+        dot(ctx, D.P(s.w), 4, null, c, 2);
+      });
+    }, { aspect: 1, minHeight: 260, maxHeight: 380 });
+    [sS, sD, $("m4-cat")].forEach((el) => el.addEventListener("change", update));
+    ["m4-src-c", "m4-dst-c"].forEach((id) => $(id).addEventListener("input", update));
+    const copy = (btn, pre) => {
+      const t = $(pre).textContent, b = $(btn), old = b.textContent;
+      const done = (ok) => { b.textContent = ok ? "복사됨" : "복사 실패"; setTimeout(() => { b.textContent = old; }, 1200); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(() => done(true), () => done(false)); else done(false);
+    };
+    $("m4-copy").addEventListener("click", () => copy("m4-copy", "m4-out"));
+    $("m4-copy-inv").addEventListener("click", () => copy("m4-copy-inv", "m4-inv"));
+    update();
+    return { load(a, b, cat) { sS.value = a; sD.value = b; $("m4-cat").value = cat || "bradford"; update(); go("sim-mat"); } };
+  })();
+
+  /* ======================================================================
+     TOOL 5 — 가멋 비교
+     ====================================================================== */
+  (() => {
+    const box = $("g5-checks");
+    box.innerHTML = MKEYS.map((k) => `<label class="check"><input type="checkbox" data-k="${k}"${["srgb", "p3", "rec2020"].includes(k) ? " checked" : ""}> ${k === "custom" ? "사용자 정의" : SPACE(k).name}</label>`).join("");
+    const plane = CB.seg("g5-plane", () => update());
+    let cur = [];
+    function update() {
+      const uvm = plane() === "uv", conv = (p) => (uvm ? CB.xy2uv(p) : p);
+      $("g5-cap").textContent = uvm ? "CIE 1976 u′v′" : "CIE 1931 xy";
+      const keys = [...box.querySelectorAll("input:checked")].map((i) => i.dataset.k);
+      const list = [], errs = [];
+      keys.forEach((k) => {
+        if (k !== "custom") { list.push({ k, name: SPACE(k).name, sp: SPACE(k) }); return; }
+        const r = parsePrim($("g5-custom").value, false);
+        $("g5-custom").classList.toggle("err", !!r.err);
+        if (r.err) errs.push("사용자 정의: " + r.err); else list.push({ k, name: "사용자 정의", sp: r.sp });
+      });
+      if (!keys.includes("custom")) $("g5-custom").classList.remove("err");
+      if (!list.length) errs.push("비교할 공간을 하나 이상 선택하라.");
+      setMsg("g5-msg", errs.join("<br>"), errs.length > 0);
+      const tri = (sp) => [sp.r, sp.g, sp.b].map(conv);
+      const locA = polyArea(locus().map((p) => conv(p[1])));
+      const ref = { srgb: tri(CB.SPACES.srgb), r20: tri(CB.SPACES.rec2020) };
+      const aS = polyArea(ref.srgb), a20 = polyArea(ref.r20);
+      list.forEach((o) => { o.t = tri(o.sp); o.a = polyArea(o.t); });
+      const pct = (v) => fx(v * 100, 1) + " %";
+      $("g5-tab").innerHTML = list.map((o) => `<tr><td class="lbl">${o.name}</td><td class="num">${fx(o.a, 5)}</td><td class="num">${pct(o.a / locA)}</td><td class="num">${pct(o.a / aS)}</td><td class="num">${pct(polyArea(clipPoly(o.t, ref.srgb)) / aS)}</td><td class="num">${pct(polyArea(clipPoly(o.t, ref.r20)) / a20)}</td></tr>`).join("");
+      $("g5-cov-h").innerHTML = list.length ? `<tr><th>행이 열을 덮는 비율</th>${list.map((o) => `<th class="num">${o.name}</th>`).join("")}</tr>` : "";
+      $("g5-cov").innerHTML = list.map((r) => `<tr><td class="lbl">${r.name}</td>${list.map((c) => `<td class="num">${r === c ? "—" : pct(polyArea(clipPoly(r.t, c.t)) / c.a)}</td>`).join("")}</tr>`).join("");
+      cur = list;
+      cv.redraw();
+    }
+    const cv = CB.canvas($("cv-g5"), (ctx, w, h) => {
+      const P = CB.palette(), uvm = plane() === "uv";
+      const D = diagram(ctx, w, h, "g5-" + (uvm ? "uv" : "xy"), { uv: uvm, planck: false, labels: true });
+      const cols = P.series;
+      ctx.font = "11px " + mono();
+      cur.forEach((o, i) => {
+        const pts = [o.sp.r, o.sp.g, o.sp.b].map(D.P), c = cols[i % cols.length];
+        ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.setLineDash(i >= cols.length ? [6, 4] : i % 2 ? [7, 3] : []);
+        ctx.beginPath(); pts.forEach((p, j) => (j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = c; ctx.textAlign = "right"; ctx.textBaseline = "top";
+        ctx.fillText(o.name, D.box.x + D.box.w - 4, D.box.y + 4 + i * 14);
+      });
+    }, { aspect: 1, minHeight: 280, maxHeight: 440 });
+    box.addEventListener("change", update);
+    $("g5-custom").addEventListener("input", update);
+    update();
+  })();
+
+  /* ---------- 예제 버튼 ---------- */
+  $("ex1-a").addEventListener("click", () => s1.load({ mode: "emit", src: "gauss", g: [[450, 20, 2.01], [561.1, 120, 1], [630, 25, 0]] }));
+  $("ex1-b").addEventListener("click", () => s1.load({ mode: "emit", src: "gauss", g: [[450, 20, 2.195], [561.1, 120, 1], [630, 25, 0.175]] }));
+  $("ex1-c").addEventListener("click", () => s1.load({ mode: "emit", src: "gauss", g: [[450, 20, 2.192], [564.2, 120, 1], [630, 25, 0]] }));
+  $("ex2-a").addEventListener("click", () => m4.load("srgb", "p3", "bradford"));
+  $("ex2-b").addEventListener("click", () => c2.load("rgb8", "200, 120, 60"));
+  $("ex3-1").addEventListener("click", () => d3.load("70, -40, 55", "71, -43, 57.5", "D50"));
+  $("ex3-2").addEventListener("click", () => d3.load("35, 10, -55", "35.6, 13.2, -53.5", "D50"));
+  $("ex3-3").addEventListener("click", () => d3.load("50, 0, 0", "50.4, 1.1, -1.0", "D50"));
+  $("ex4-a").addEventListener("click", () => s1.load({ mode: "refl", src: "preset", preset: "1", illum: "A", white: "auto" }));
+  $("ex4-b").addEventListener("click", () => s1.load({ mode: "refl", src: "preset", preset: "1", illum: "D65", white: "auto" }));
+})();
+</script>
+</body>
+</html>

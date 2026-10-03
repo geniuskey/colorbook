@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>조명과 연색성 · ColorBook</title>
+<meta name="description" content="CIE 13.3 연색 평가수 Ra·R9를 CCT·Duv 계산부터 W*U*V* 색차까지 직접 구현하고, TM-30 Rf·Rg의 원리, 백색 LED 스펙트럼 설계와 LER 트레이드오프를 계산으로 다룬다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/lighting.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="조명과 연색성 · ColorBook">
+<meta property="og:description" content="CIE 13.3 연색 평가수 Ra·R9를 CCT·Duv 계산부터 W*U*V* 색차까지 직접 구현하고, TM-30 Rf·Rg의 원리, 백색 LED 스펙트럼 설계와 LER 트레이드오프를 계산으로 다룬다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/lighting.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"조명과 연색성","name":"조명과 연색성 · ColorBook","url":"https://colorbook.euiyun.com/chapters/lighting.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/lighting.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":10,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"CIE 13.3 연색 평가수 Ra·R9를 CCT·Duv 계산부터 W*U*V* 색차까지 직접 구현하고, TM-30 Rf·Rg의 원리, 백색 LED 스펙트럼 설계와 LER 트레이드오프를 계산으로 다룬다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"10 조명과 연색성","item":"https://colorbook.euiyun.com/chapters/lighting.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .obj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; padding: 12px 18px 4px; }
+  .obj-tile { display: block; padding: 0; font: inherit; text-align: left; cursor: pointer; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg-elev); color: var(--text); }
+  .obj-tile.on { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .obj-sw { display: flex; height: 44px; }
+  .obj-sw i { flex: 1; }
+  .obj-cap { display: block; padding: 4px 6px; font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); line-height: 1.35; }
+  .bad-txt { color: var(--bad); font-weight: 700; }
+  .sim-view canvas { touch-action: pan-y; }
+  .sim-view + .sim-view { border-top: 1px solid var(--border); }
+  .sim-controls input[disabled] { opacity: .4; }
+</style>
+</head>
+<body data-chapter="lighting">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 10</div>
+    <h1>조명과 연색성</h1>
+    <p class="lead">두 조명이 똑같은 흰색으로 보여도 그 아래 놓인 사과, 피부, 직물의 색은 다르게 보일 수 있다. 백색점은 광원 스펙트럼의 3개 적분값일 뿐이고, 물체색은 광원 스펙트럼과 반사율의 <em>곱</em>을 다시 적분한 값이기 때문이다. 이 장에서는 그 차이를 하나의 숫자로 요약하는 연색 평가수 <span class="term">CRI(Ra)</span>를 CIE 13.3 절차대로 직접 계산하고, 그 한계를 보완한 TM-30, 그리고 백색 LED 스펙트럼을 설계할 때 연색성과 발광 효율이 어떻게 맞서는지 수치로 따진다.</p>
+    <ul class="objectives">
+      <li>광원 메타머리즘이 생기는 이유를 스펙트럼 적분으로 설명한다.</li>
+      <li>CIE 1960 UCS에서 CCT와 Duv를 구하고, CRI 기준 광원을 선택하는 규칙을 적용한다.</li>
+      <li>CIE 13.3의 von Kries형 순응 보정, CIE 1964 W*U*V* 색차, \(R_i = 100-4.6\Delta E_i\)를 단계별로 계산한다.</li>
+      <li>CRI의 구조적 한계(저채도 8색, 구식 색공간, R9)와 TM-30 Rf·Rg·색 벡터 그래픽의 해석법을 이해한다.</li>
+      <li>청색 LED + 인광체 구조에서 스토크스 손실, LER, Ra, R9, CCT 사이의 트레이드오프를 정량화한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="intro">
+    <h2>연색성: 같은 흰색, 다른 물체색</h2>
+    <p><span class="term">연색성</span><span class="en">(Colour Rendering)</span>은 어떤 광원 아래에서 본 물체색이, 같은 색온도의 <em>기준 광원</em> 아래에서 본 물체색과 얼마나 비슷한지를 나타내는 성질이다. 기준이 "태양광"이나 "완벽한 백색광"이 아니라 <em>같은 CCT의 기준 광원</em>이라는 점이 중요하다. 2700 K 할로겐램프는 흑체 2700 K와 거의 같은 스펙트럼이므로 연색 평가수 100을 받는다. 물체가 주광에서와 다르게(더 노랗게) 보여도, 그것은 색온도의 차이이지 연색성의 결함이 아니라고 보는 것이다.</p>
+    <p>광원 \(S(\lambda)\) 아래 반사율 \(\rho(\lambda)\)인 물체의 3자극치는</p>
+    <div class="formula">$$X = k\int S(\lambda)\,\rho(\lambda)\,\bar x(\lambda)\,d\lambda,\quad Y = k\int S\rho\,\bar y\,d\lambda,\quad Z = k\int S\rho\,\bar z\,d\lambda,\qquad k = \frac{100}{\int S\,\bar y\,d\lambda}$$<div class="where">여기서 \(\bar x,\bar y,\bar z\)는 CIE 1931 2° 등색 함수, \(k\)는 완전 확산 백색(\(\rho=1\))의 \(Y\)를 100으로 맞추는 정규화 상수다(<a href="colorimetry.html">3장</a>).</div></div>
+    <p>두 광원 \(S_1, S_2\)의 백색점 \((X,Y,Z)\)가 같아도, 즉 \(\int S_1\bar x = \int S_2 \bar x\) 등이 성립해도 \(\int S_1\rho\bar x = \int S_2\rho\bar x\)는 일반적으로 성립하지 않는다. 반사율 \(\rho\)가 스펙트럼에 가중치를 다시 걸기 때문이다. 이것이 <span class="term">광원 메타머리즘</span><span class="en">(Illuminant Metamerism)</span>이다. 반대로 두 물체가 한 광원에서는 같은 색이고 다른 광원에서는 달라지는 현상은 관측 조건 메타머리즘의 한 종류로, <a href="vision.html">2장</a>에서 다뤘다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="연속 스펙트럼 광원과 선 스펙트럼 광원이 같은 백색이지만 빨간 물체의 반사광은 다르다">
+        <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <text x="20" y="24" class="t">광원 S(λ)</text>
+        <rect x="20" y="36" width="200" height="90" rx="6" class="f-surface"/>
+        <path d="M30 116 C70 70 120 56 210 50" fill="none" stroke="var(--accent-2)" stroke-width="2.5"/>
+        <text x="30" y="144" class="t-dim">① 흑체형 연속 스펙트럼</text>
+        <rect x="20" y="160" width="200" height="90" rx="6" class="f-surface"/>
+        <path d="M30 240 L60 240 L64 200 L68 240 L110 240 L115 168 L120 240 L150 240 L156 176 L162 240 L210 240" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <text x="30" y="268" class="t-dim">② 3파장 형광등형 선 스펙트럼</text>
+        <text x="262" y="24" class="t">× 반사율 ρ(λ)</text>
+        <rect x="262" y="90" width="150" height="90" rx="6" class="f-surface"/>
+        <path d="M272 170 L330 168 L360 120 L400 104" fill="none" stroke="#b71e34" stroke-width="3"/>
+        <text x="272" y="200" class="t-dim">TCS09 (진한 빨강)</text>
+        <line x1="224" y1="82" x2="258" y2="120" class="s-line" marker-end="url(#ar1)"/>
+        <line x1="224" y1="206" x2="258" y2="160" class="s-line" marker-end="url(#ar1)"/>
+        <line x1="416" y1="120" x2="470" y2="82" class="s-line" marker-end="url(#ar1)"/>
+        <line x1="416" y1="160" x2="470" y2="206" class="s-line" marker-end="url(#ar1)"/>
+        <text x="474" y="24" class="t">= 반사광 → ∫·x̄ȳz̄</text>
+        <rect x="474" y="36" width="170" height="90" rx="6" class="f-surface"/>
+        <path d="M484 118 L540 116 L580 82 L634 60" fill="none" stroke="var(--accent-2)" stroke-width="2.5"/>
+        <rect x="474" y="160" width="170" height="90" rx="6" class="f-surface"/>
+        <path d="M484 240 L520 240 L524 236 L528 240 L566 240 L571 214 L576 240 L600 240 L606 186 L612 240 L634 240" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <rect x="668" y="56" width="56" height="50" rx="6" fill="#b71e34"/>
+        <rect x="668" y="180" width="56" height="50" rx="6" fill="#8e3a45"/>
+        <text x="734" y="86" class="t-mono">채도 높음</text>
+        <text x="734" y="210" class="t-mono">탁해짐</text>
+        <text x="474" y="284" class="t-dim">두 광원의 백색점은 같아도 물체색은 다르다</text>
+      </svg>
+      <figcaption><b>그림 10-1.</b> 광원 메타머리즘. 백색점이 같은 두 광원이라도, 반사율이 가파르게 변하는 영역(빨강의 600–650 nm)에 광원 에너지가 얼마나 있느냐에 따라 물체색이 달라진다. 오른쪽 견본은 개념도이며, 실제 값은 아래 시뮬레이터에서 계산한다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-obj">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>같은 물체, 아홉 개의 광원</h3></div>
+      <div class="sim-body">
+        <div class="sim-view"><canvas id="cv-obj"></canvas></div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>시험 광원 SPD</span><span><i style="background:var(--text-dim)"></i>같은 CCT 기준 광원 (점선)</span><span><i style="background:var(--text)"></i>TCS 반사율 (견본색)</span><span><i style="background:var(--warn)"></i>반사광 S·ρ (점선)</span></div>
+        <div class="obj-grid" id="obj-grid"></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>시험색 TCS</span><div class="seg" id="obj-tcs"><button data-value="1">1</button><button data-value="2">2</button><button data-value="3">3</button><button data-value="4">4</button><button data-value="5">5</button><button data-value="6">6</button><button data-value="7">7</button><button data-value="8">8</button><button data-value="9" class="on">9</button><button data-value="10">10</button><button data-value="11">11</button><button data-value="12">12</button><button data-value="13">13</button><button data-value="14">14</button></div></div>
+          <div class="ctrl"><span>스펙트럼을 볼 광원</span><div class="seg" id="obj-src"><button data-value="A">A</button><button data-value="D65">D65</button><button data-value="FL2" class="on">FL2</button><button data-value="FL7">FL7</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button><button data-value="LED-RGB1">LED-RGB1</button><button data-value="LED-V1">LED-V1</button><button data-value="HP1">HP1</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">기준 광원 아래 Lab*</span><span class="v" id="obj-ref">—</span></div>
+        <div class="stat"><span class="k">시험 광원 아래 Lab*</span><span class="v" id="obj-test">—</span></div>
+        <div class="stat"><span class="k">ΔE00</span><span class="v" id="obj-de">—</span></div>
+        <div class="stat"><span class="k">CIE 13.3 특수 평가수</span><span class="v" id="obj-ri">—</span></div>
+      </div>
+      <div class="sim-note">타일 왼쪽 반은 같은 CCT 기준 광원, 오른쪽 반은 시험 광원 아래 물체색이다. 둘 다 Bradford 변환으로 D65에 순응시켜 sRGB로 표시했다(* Lab도 이 순응 후 D65 백색 기준 값이며, 표시용 근사다). 해볼 것: TCS9(진한 빨강)에서 FL2와 HP1(고압 나트륨)의 오른쪽 반이 얼마나 탁해지는지 보라. TCS12(진한 파랑)는 sRGB 밖이라 화면에서 클리핑된다.</div>
+    </div>
+
+    <div class="callout">기준 광원 대비 <em>충실도</em>(fidelity)만 묻는다는 점이 CRI의 정의다. "더 보기 좋은" 조명, 즉 채도를 약간 높여 주는 조명은 충실도 지표에서는 오히려 감점된다. 이 구분은 <a href="#tm30">TM-30의 Rg</a>에서 다시 등장한다.</div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="cct">
+    <h2>CCT와 Duv: 기준 광원을 고르는 좌표계</h2>
+    <p>CRI 계산의 첫 단계는 시험 광원의 <span class="term">상관 색온도</span><span class="en">(CCT, Correlated Colour Temperature)</span>를 구해 기준 광원을 정하는 것이다. CCT는 시험 광원의 색도와 <em>가장 가까운</em> 흑체의 온도이며, 거리는 xy가 아니라 <span class="term">CIE 1960 UCS</span> \((u,v)\)에서 잰다. 1960 UCS는 1976 \(u'v'\)와 \(u\)는 같고 \(v = \tfrac{2}{3}v'\)인 좌표계다. CCT의 일반 이론과 색순응은 <a href="adaptation.html">8장</a>에서 다뤘으므로 여기서는 CRI에 필요한 부분만 정리한다.</p>
+    <div class="formula">$$u = \frac{4X}{X+15Y+3Z},\qquad v = \frac{6Y}{X+15Y+3Z}$$
+    $$T_c = \arg\min_T \big\| (u,v) - (u_P(T), v_P(T)) \big\|,\qquad D_{uv} = \pm\min_T \big\|\cdot\big\|$$<div class="where">\((u_P, v_P)\)는 플랑크 궤적. \(D_{uv}\)는 궤적 위쪽(녹색 쪽)이 +, 아래쪽(마젠타 쪽)이 −. 흑체 궤적에 수직인 직선이 <span class="term">등온선</span><span class="en">(isotemperature line)</span>이다.</div></div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 280" role="img" aria-label="1960 uv 좌표에서 플랑크 궤적, 등온선, Duv 정의">
+        <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <line x1="60" y1="250" x2="560" y2="250" class="s-axis" marker-end="url(#ar2)"/>
+        <line x1="60" y1="250" x2="60" y2="20" class="s-axis" marker-end="url(#ar2)"/>
+        <text x="548" y="270" class="t-dim">u</text><text x="40" y="32" class="t-dim">v</text>
+        <path d="M100 210 C200 120 330 90 520 80" fill="none" stroke="var(--text)" stroke-width="2.5"/>
+        <path d="M100 190 C200 100 330 70 520 60" fill="none" class="s-line" stroke-dasharray="4 4"/>
+        <path d="M100 230 C200 140 330 110 520 100" fill="none" class="s-line" stroke-dasharray="4 4"/>
+        <line x1="190" y1="102" x2="236" y2="186" class="s-line"/>
+        <line x1="318" y1="64" x2="340" y2="152" class="s-line"/>
+        <line x1="452" y1="56" x2="458" y2="140" class="s-line"/>
+        <text x="236" y="204" class="t-mono">6500 K</text><text x="330" y="170" class="t-mono">4000 K</text><text x="440" y="158" class="t-mono">2700 K</text>
+        <circle cx="322" cy="80" r="6" class="f-acc"/>
+        <circle cx="329" cy="108" r="3.5" fill="var(--text)"/>
+        <line x1="322" y1="80" x2="329" y2="106" stroke="var(--warn)" stroke-width="2.5"/>
+        <text x="270" y="58" class="t-acc">시험 광원 (u,v)</text>
+        <text x="340" y="96" class="t" style="fill:var(--warn)">Duv &gt; 0</text>
+        <text x="350" y="124" class="t-dim">최근접점 → CCT</text>
+        <text x="526" y="58" class="t-dim">+0.0054</text><text x="526" y="104" class="t-dim">−0.0054</text>
+        <text x="526" y="84" class="t">플랑크 궤적</text>
+        <rect x="590" y="40" width="190" height="180" rx="10" class="f-elev"/>
+        <text x="604" y="68" class="t">기준 광원 선택</text>
+        <text x="604" y="98" class="t-dim">T &lt; 5000 K</text><text x="604" y="118" class="t-mono">→ 흑체(플랑크)</text>
+        <text x="604" y="148" class="t-dim">T ≥ 5000 K</text><text x="604" y="168" class="t-mono">→ CIE 주광 D(T)</text>
+        <text x="604" y="200" class="t-dim">|Duv| ≤ 5.4×10⁻³</text>
+      </svg>
+      <figcaption><b>그림 10-2.</b> CIE 1960 UCS에서의 CCT와 Duv(개념도, 축척 과장). 시험 광원 점에서 플랑크 궤적에 내린 수선의 발이 CCT를 정하고, 수선의 길이가 |Duv|다. CIE 13.3은 \(\Delta C = 5.4\times10^{-3}\)보다 멀리 떨어진 광원에 대해서는 CRI가 의미 있게 정의되지 않는다고 본다.</figcaption>
+    </figure>
+
+    <p>이 장의 스크립트는 CCT를 근사식(McCamy)이 아니라 정의대로 계산한다. 플랑크 함수 \(\texttt{CB.planck}\)를 2° 등색 함수로 적분해 역온도(mired, \(10^6/T\)) 0.5 간격으로 궤적 표를 만들고, 시험점과 가장 가까운 표 점을 찾은 뒤 이웃 세 점의 거리에 포물선을 맞춰 최소점을 보간한다(Ohno의 포물선 보간과 같은 발상). 그 결과 표준 광원 A는 2856 K, D65는 6504 K, \(D_{uv}=+0.0032\)로 계산된다. D65가 흑체 궤적보다 위(녹색 쪽)에 있다는 사실은 주광 궤적이 흑체 궤적과 다른 곡선이라는 뜻이다.</p>
+
+    <div class="sim" id="sim-uv">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>1960 UCS에서 CCT·Duv 읽기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-uv"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>CCT <output id="uv-T-out"></output></span><input type="range" id="uv-T" min="1800" max="10000" step="50" value="4000"></label>
+          <label class="ctrl"><span>Duv <output id="uv-duv-out"></output></span><input type="range" id="uv-duv" min="-0.02" max="0.02" step="0.0005" value="0.003"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">xy</span><span class="v" id="uv-xy">—</span></div>
+        <div class="stat"><span class="k">uv (1960)</span><span class="v" id="uv-uv">—</span></div>
+        <div class="stat"><span class="k">역계산 CCT / Duv</span><span class="v" id="uv-cct">—</span></div>
+        <div class="stat"><span class="k">기준 광원</span><span class="v" id="uv-ref">—</span></div>
+        <div class="stat"><span class="k">판정</span><span class="v" id="uv-warn">—</span></div>
+      </div>
+      <div class="sim-note">실선은 플랑크 궤적, 청록 점선은 CIE 주광 궤적, 회색 점선은 Duv = ±0.0054 경계다. 점들은 내장 표준 광원의 실제 색도다. 해볼 것: Duv를 +0.01로 올리면 같은 CCT라도 눈에 띄게 연두빛이 돈다. "역계산" 값이 슬라이더 값과 일치하는지 확인하라(구현 검증). LED-RGB1은 Duv ≈ +0.004로 흑체에서 꽤 떨어져 있다.</div>
+    </div>
+
+    <div class="callout tip"><b>공학자 관점.</b> 같은 3000 K 표기라도 Duv가 +0.006인 LED와 −0.006인 LED는 나란히 놓으면 바로 구분된다. 최근 연구들은 실내 조명에서 Duv가 약간 음(궤적 아래)일 때 선호되는 경향을 보고한다. 그래서 LED 사양서에는 CCT와 함께 Duv 또는 색도 허용 영역(ANSI C78.377의 사각형, 맥아담 타원 단계)을 반드시 함께 적는다.</div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="cri">
+    <h2>CIE 13.3 연색 평가수 계산 절차</h2>
+    <p>CIE 13.3(1995)이 규정한 <span class="term">일반 연색 평가수</span><span class="en">(General Colour Rendering Index)</span> \(R_a\)는 14개의 <span class="term">시험색</span><span class="en">(TCS, Test Colour Samples)</span> 반사율로 계산한다. 앞 8개(TCS01–08)는 먼셀 명도 6 근처의 중간 채도 색으로 색상환을 고르게 덮고, 그 평균이 \(R_a\)다. 9–14번은 채도 높은 빨강·노랑·초록·파랑, 피부색, 잎색이며 <em>특수 평가수</em> \(R_9\)–\(R_{14}\)로 따로 보고한다.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 210" role="img" aria-label="CRI 계산 절차 흐름">
+        <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="10" y="20" width="140" height="72" rx="8" class="f-elev"/><text x="80" y="46" text-anchor="middle" class="t">① 시험 광원 S</text><text x="80" y="70" text-anchor="middle" class="t-dim">XYZ → uv, CCT</text>
+        <rect x="10" y="118" width="140" height="72" rx="8" class="f-elev"/><text x="80" y="144" text-anchor="middle" class="t">② 기준 광원</text><text x="80" y="168" text-anchor="middle" class="t-dim">흑체 / 주광 D</text>
+        <rect x="200" y="20" width="160" height="170" rx="8" class="f-surface"/><text x="280" y="50" text-anchor="middle" class="t">③ TCS 1–14</text><text x="280" y="76" text-anchor="middle" class="t-dim">두 광원 각각</text><text x="280" y="100" text-anchor="middle" class="t-mono">XYZ (Y_w=100)</text><text x="280" y="124" text-anchor="middle" class="t-mono">→ (u, v)</text><text x="280" y="150" text-anchor="middle" class="t-mono">→ (c, d)</text>
+        <rect x="410" y="20" width="160" height="170" rx="8" class="f-acc-soft"/><text x="490" y="50" text-anchor="middle" class="t">④ 순응 보정</text><text x="490" y="76" text-anchor="middle" class="t-dim">von Kries형</text><text x="490" y="100" text-anchor="middle" class="t-mono">시험 → 기준 백색</text><text x="490" y="124" text-anchor="middle" class="t-mono">(u′ₖᵢ, v′ₖᵢ)</text>
+        <rect x="620" y="20" width="170" height="170" rx="8" class="f-elev"/><text x="705" y="50" text-anchor="middle" class="t">⑤ W*U*V* 색차</text><text x="705" y="76" text-anchor="middle" class="t-mono">ΔEᵢ</text><text x="705" y="104" text-anchor="middle" class="t-mono">Rᵢ = 100 − 4.6ΔEᵢ</text><text x="705" y="134" text-anchor="middle" class="t-acc">Ra = mean(R1..R8)</text><text x="705" y="160" text-anchor="middle" class="t-dim">R9 따로 보고</text>
+        <line x1="150" y1="56" x2="196" y2="80" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="80" y1="92" x2="80" y2="114" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="150" y1="154" x2="196" y2="130" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="360" y1="105" x2="406" y2="105" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="570" y1="105" x2="616" y2="105" class="s-line" marker-end="url(#ar3)"/>
+      </svg>
+      <figcaption><b>그림 10-3.</b> CIE 13.3 CRI 계산 흐름. 모든 3자극치는 CIE 1931 2° 관측자로 구한다.</figcaption>
+    </figure>
+
+    <p><b>순응 보정.</b> 시험 광원과 기준 광원의 색도가 조금 다르므로, 시험 광원 아래의 색을 "기준 광원에 순응한 눈"이 보는 색으로 옮긴 뒤 비교한다. CIE 13.3은 1960 uv에서 정의된 보조 좌표 \(c, d\)를 쓰는 von Kries형 변환을 규정한다.</p>
+    <div class="formula">$$c = \frac{4 - u - 10v}{v},\qquad d = \frac{1.708\,v + 0.404 - 1.481\,u}{v}$$
+    $$u'_{k,i} = \frac{10.872 + 0.404\,\frac{c_r}{c_k}c_{k,i} - 4\,\frac{d_r}{d_k}d_{k,i}}{16.518 + 1.481\,\frac{c_r}{c_k}c_{k,i} - \frac{d_r}{d_k}d_{k,i}},\qquad v'_{k,i} = \frac{5.520}{16.518 + 1.481\,\frac{c_r}{c_k}c_{k,i} - \frac{d_r}{d_k}d_{k,i}}$$<div class="where">아래첨자 \(k\)는 시험 광원, \(r\)은 기준 광원, \(i\)는 시험색. \(c_k, d_k\)는 시험 광원 백색, \(c_{k,i}, d_{k,i}\)는 시험 광원 아래 시험색 \(i\)의 값이다. 이 변환은 시험 광원 백색을 정확히 기준 광원 백색 \((u_r, v_r)\)으로 옮긴다.</div></div>
+    <p><b>색차.</b> 그 다음 두 색을 CIE 1964 \(W^*U^*V^*\) 공간에 놓는다. 백색점은 기준 광원 \((u_r, v_r)\)이다.</p>
+    <div class="formula">$$W^* = 25\,Y^{1/3} - 17,\quad U^* = 13\,W^*(u - u_r),\quad V^* = 13\,W^*(v - v_r)$$
+    $$\Delta E_i = \sqrt{(\Delta U^*)^2 + (\Delta V^*)^2 + (\Delta W^*)^2},\qquad R_i = 100 - 4.6\,\Delta E_i,\qquad R_a = \frac18\sum_{i=1}^{8} R_i$$<div class="where">\(Y\)는 광원 백색을 100으로 둔 시험색의 휘도율. 계수 4.6은 당시의 표준 온백색 형광등이 \(R_a \approx 50\)이 되도록 정한 척도 계수다. 따라서 \(R_i\)는 음수가 될 수 있다.</div></div>
+
+    <div class="sim" id="sim-cri">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>CIE 13.3 CRI 계산기</h3></div>
+      <div class="sim-body">
+        <div class="sim-view"><canvas id="cv-cri-spd"></canvas></div>
+        <div class="sim-view"><canvas id="cv-cri-bar"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>시험 광원</span><div class="seg" id="cri-src"><button data-value="A">A</button><button data-value="D65">D65</button><button data-value="FL2" class="on">FL2</button><button data-value="FL7">FL7</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button><button data-value="LED-RGB1">LED-RGB1</button><button data-value="LED-V1">LED-V1</button><button data-value="HP1">HP1</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">CCT</span><span class="v" id="cri-cct">—</span></div>
+        <div class="stat"><span class="k">Duv</span><span class="v" id="cri-duv">—</span></div>
+        <div class="stat"><span class="k">기준 광원</span><span class="v" id="cri-ref">—</span></div>
+        <div class="stat"><span class="k">Ra</span><span class="v" id="cri-ra">—</span></div>
+        <div class="stat"><span class="k">R9</span><span class="v" id="cri-r9">—</span></div>
+        <div class="stat"><span class="k">LER</span><span class="v" id="cri-ler">—</span></div>
+      </div>
+      <div class="sim-note">위: 같은 휘도로 맞춘 시험 광원(채움)과 기준 광원(점선). 아래: R1–R14 막대(막대 색 = D65 아래 시험색, 굵은 테두리 = Ra에 들어가는 1–8번), 막대 밑 견본은 기준(왼쪽)/시험(오른쪽) 광원 아래 색을 D65로 순응시켜 표시한 것이다. 해볼 것: FL2(냉백색 형광등)의 R9가 −84까지 내려가는 것을 보라. LED-V1(보라 펌프)은 Ra 95, R9 98로 거의 할로겐 수준이지만 LER은 FL2보다 30% 낮다.</div>
+    </div>
+
+    <div class="callout warn"><b>흔한 실수.</b> ① CCT를 McCamy 근사식으로 구해 기준 광원을 고르면 수 K–수십 K 차이가 생기지만 Ra에는 거의 영향이 없다. 진짜 문제는 ② 순응 보정을 빼먹거나 Bradford 같은 다른 CAT로 바꾸는 것, ③ 1976 \(u'v'\)를 1960 \(uv\) 자리에 쓰는 것(\(v\)가 1.5배 커진다), ④ 기준 광원의 \(Y\)를 100으로 정규화하지 않는 것이다. 이 중 하나만 틀려도 FL2의 Ra가 64에서 10 이상 벗어난다. CRI는 "CIE 13.3 그대로"가 아니면 비교할 수 없는 숫자다.</div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="example">
+    <h2>수치 예: FL2 냉백색 형광등의 Ra</h2>
+    <p>CIE 표준 형광 광원 FL2(냉백색 할로인산염)를 끝까지 계산해 보자. 시험 광원 백색은 \((u_k, v_k) = (0.22025, 0.33308)\)이고, 흑체 궤적 최근접점에서 \(T_c = 4225\) K, \(D_{uv} = +0.0018\)을 얻는다. 5000 K 미만이므로 기준 광원은 4225 K 흑체이고 \((u_r, v_r) = (0.22132, 0.33166)\)이다. 보조 좌표는 \(c_k = 1.3479,\ d_k = 1.9416,\ c_r = 1.3933,\ d_r = 1.9378\)이다. 이 값으로 14개 시험색을 계산한 결과가 아래 표다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>TCS</th><th>먼셀 표기</th><th>기준 \(Y\)</th><th>기준 \((W^*, U^*, V^*)\)</th><th>시험·순응 후 \((W^*, U^*, V^*)\)</th><th>\(R_i\)</th></tr></thead>
+      <tbody>
+        <tr><td>01</td><td>7.5 R 6/4</td><td>31.07</td><td>61.59, 36.34, 5.96</td><td>61.69, 26.79, 6.74</td><td>55.9</td></tr>
+        <tr><td>02</td><td>5 Y 6/4</td><td>29.67</td><td>60.40, 17.00, 16.48</td><td>60.93, 12.20, 18.05</td><td>76.7</td></tr>
+        <tr><td>03</td><td>5 GY 6/8</td><td>30.57</td><td>61.17, −10.13, 25.31</td><td>62.30, −10.28, 27.09</td><td>90.3</td></tr>
+        <tr><td>04</td><td>2.5 G 6/6</td><td>28.43</td><td>59.30, −36.93, 12.91</td><td>59.02, −27.64, 13.90</td><td>57.0</td></tr>
+        <tr><td>05</td><td>10 BG 6/4</td><td>29.64</td><td>60.37, −31.49, −5.18</td><td>59.92, −22.59, −5.63</td><td>59.0</td></tr>
+        <tr><td>06</td><td>5 PB 6/8</td><td>28.54</td><td>59.40, −22.22, −22.35</td><td>58.04, −15.81, −25.19</td><td>67.2</td></tr>
+        <tr><td>07</td><td>2.5 P 6/8</td><td>29.43</td><td>60.19, 12.08, −19.82</td><td>59.12, 7.39, −22.74</td><td>74.1</td></tr>
+        <tr><td>08</td><td>10 P 6/8</td><td>32.28</td><td>62.60, 35.93, −11.95</td><td>60.97, 21.72, −14.51</td><td>33.2</td></tr>
+        <tr><td>09</td><td>4.5 R 4/13</td><td>13.38</td><td>42.35, 118.63, 5.83</td><td>37.44, 78.97, 5.25</td><td>−83.9</td></tr>
+        <tr><td>10</td><td>5 Y 8/10</td><td>61.26</td><td>81.55, 30.00, 35.77</td><td>82.84, 18.60, 38.92</td><td>45.3</td></tr>
+        <tr><td>11</td><td>4.5 G 5/8</td><td>19.16</td><td>49.90, −47.00, 10.76</td><td>48.51, −35.34, 10.13</td><td>45.9</td></tr>
+        <tr><td>12</td><td>3 PB 3/11</td><td>5.46</td><td>27.02, −30.02, −33.78</td><td>23.79, −20.49, −34.15</td><td>53.7</td></tr>
+        <tr><td>13</td><td>5 YR 8/4 (피부)</td><td>59.01</td><td>80.33, 33.43, 12.60</td><td>80.80, 24.97, 14.25</td><td>60.3</td></tr>
+        <tr><td>14</td><td>5 GY 4/4 (잎)</td><td>11.71</td><td>39.78, −7.85, 13.56</td><td>40.54, −7.81, 14.60</td><td>94.1</td></tr>
+      </tbody>
+    </table></div>
+    <p>R1–R8의 평균은 \(R_a = 64.2\)로, CIE가 발표한 FL2의 값 64와 일치한다. 표를 읽으면 오류의 정체가 보인다. 거의 모든 시험색에서 \(|U^*|\)가 줄어든다. 즉 FL2는 <em>색을 탁하게</em> 만든다(특히 TCS09: \(U^*\) 118.6 → 79.0). 할로인산염 형광체 스펙트럼에 600 nm 이후의 빨강 에너지가 부족하기 때문이다.</p>
+    <p>같은 코드로 내장 표준 광원 전체를 계산한 결과를 정리한다(5 nm 간격, 380–780 nm). FL2·FL7·FL11의 Ra는 CIE 발표값(64, 90, 83)과 0.3 이내로 일치한다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>광원</th><th>종류</th><th>CCT (K)</th><th>Duv</th><th>Ra</th><th>R9</th><th>Ga (교육용)</th><th>LER (lm/W)</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>백열등(흑체 2856 K)</td><td>2856</td><td>0.0000</td><td>100.0</td><td>100</td><td>100.0</td><td>154</td></tr>
+        <tr><td>D65</td><td>주광</td><td>6504</td><td>+0.0032</td><td>100.0</td><td>100</td><td>100.0</td><td>204</td></tr>
+        <tr><td>FL2</td><td>냉백색 형광등</td><td>4225</td><td>+0.0018</td><td>64.2</td><td>−84</td><td>78.6</td><td>336</td></tr>
+        <tr><td>FL7</td><td>광대역 주광 형광등</td><td>6496</td><td>+0.0032</td><td>90.2</td><td>61</td><td>96.6</td><td>254</td></tr>
+        <tr><td>FL11</td><td>3파장 형광등</td><td>3999</td><td>0.0000</td><td>82.8</td><td>25</td><td>104.3</td><td>337</td></tr>
+        <tr><td>LED-B3</td><td>청색 펌프 인광체 LED</td><td>4103</td><td>−0.0007</td><td>84.8</td><td>24</td><td>94.7</td><td>317</td></tr>
+        <tr><td>LED-RGB1</td><td>RGB 혼색 LED</td><td>2840</td><td>+0.0043</td><td>57.1</td><td>−34</td><td>115.6</td><td>291</td></tr>
+        <tr><td>LED-V1</td><td>보라 펌프 LED</td><td>2724</td><td>−0.0019</td><td>95.3</td><td>98</td><td>101.8</td><td>235</td></tr>
+        <tr><td>HP1</td><td>고압 나트륨</td><td>1959</td><td>+0.0008</td><td>8.1</td><td>−261</td><td>44.7</td><td>395</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout deep"><b>심화: 380–780 nm 절단.</b> CIE 13.3 원문은 360–830 nm 데이터를 허용하지만 이 장의 데이터는 380–780 nm, 5 nm다. 백색광의 380 nm 미만·780 nm 초과 성분은 \(\bar y\) 가중이 매우 작아 Ra에 영향이 0.1 수준이다. 다만 LER은 분모가 "380–780 nm의 광출력"이므로, 근적외 꼬리가 긴 백열등(A)의 실제 LER(전 파장 기준)은 표의 154 lm/W보다 훨씬 낮다.</div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="limits">
+    <h2>CRI의 한계</h2>
+    <p>CRI는 1960년대 형광등을 평가하려고 만든 지표다. 협대역 LED 시대에는 다음 문제가 두드러진다.</p>
+    <ol>
+      <li><b>8개의 저채도 시험색.</b> Ra에 들어가는 TCS01–08은 D65 아래 CIELAB 채도 \(C^*_{ab}\)가 19.5–49.2(평균 30.9)인 파스텔 색이다. 반사율 곡선이 완만해서 스펙트럼의 좁은 틈(spike와 gap)을 잘 감지하지 못한다.</li>
+      <li><b>R9 문제.</b> 채도 높은 빨강 TCS09(\(C^*_{ab}\) = 65.4)는 Ra에 포함되지 않는다. 그래서 Ra 80인 LED의 R9가 0 근처이거나 음수인 경우가 흔하다. 피부, 고기, 과일, 목재의 붉은 기가 죽는 현상이 바로 이것이라, 실무 사양에는 "Ra ≥ 80, R9 > 0" 또는 "Ra ≥ 90, R9 ≥ 50"처럼 R9를 따로 적는다.</li>
+      <li><b>구식 색공간과 순응 모델.</b> W*U*V*는 지각적으로 균일하지 않으며(<a href="uniform.html">7장</a>의 CIELAB·CAM02-UCS보다 훨씬 덜 균일), von Kries형 \(c,d\) 변환도 현대 CAT에 비해 부정확하다. CIE 자신도 1995년 기술 보고서 개정 이후 CRI가 현대 색채학과 맞지 않는다고 인정했다.</li>
+      <li><b>평균의 함정과 채도 방향 무시.</b> \(\Delta E\)는 방향을 버린다. 채도를 높이는 광원과 낮추는 광원이 같은 감점을 받는다. 그리고 8개 평균이므로 한 색상 영역의 큰 오차가 다른 색의 작은 오차에 묻힌다.</li>
+      <li><b>게이밍.</b> 시험색이 8개로 공개돼 있으므로, 그 8개 반사율에서만 기준 광원과 비슷하게 맞추도록 스펙트럼을 최적화하면 실제 물체 전반의 충실도와 무관하게 Ra를 끌어올릴 수 있다. 시험 집합이 작을수록 이런 과적합이 쉬워진다.</li>
+    </ol>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 340" role="img" aria-label="D65 아래 TCS 1-14의 CIELAB a*b* 위치">
+        <line x1="60" y1="188" x2="400" y2="188" class="s-axis"/><line x1="216" y1="12" x2="216" y2="324" class="s-axis"/>
+        <text x="404" y="192" class="t-dim">a*</text><text x="222" y="24" class="t-dim">b*</text>
+        <circle cx="216" cy="188" r="80" fill="none" class="s-line" stroke-dasharray="4 4"/>
+        <text x="282" y="262" class="t-dim">C* = 31</text>
+        <polygon points="261.5,161.8 216.3,124 162.2,89.9 129.4,150.4 170.5,206.7 215,250.5 268.5,241.9 287.5,217.7" fill="none" stroke="var(--text-dim)" stroke-width="1.2"/>
+        <g stroke="var(--text)" stroke-width="1">
+          <circle cx="261.5" cy="161.8" r="8" fill="#ba8980"/><circle cx="216.3" cy="124" r="8" fill="#a4915f"/><circle cx="162.2" cy="89.9" r="8" fill="#8b9e43"/><circle cx="129.4" cy="150.4" r="8" fill="#5aa374"/>
+          <circle cx="170.5" cy="206.7" r="8" fill="#67a0a5"/><circle cx="215" cy="250.5" r="8" fill="#7297c6"/><circle cx="268.5" cy="241.9" r="8" fill="#a289bf"/><circle cx="287.5" cy="217.7" r="8" fill="#bd87b0"/>
+          <rect x="361.4" y="118" width="16" height="16" fill="#b71e34"/><rect x="200.2" y="21.8" width="16" height="16" fill="#e9c836"/><rect x="97.8" y="149.9" width="16" height="16" fill="#0c8e64"/><rect x="211.4" y="282.1" width="16" height="16" fill="#004c91"/>
+        </g>
+        <text x="272" y="158" class="t-mono">1</text><text x="226" y="116" class="t-mono">2</text><text x="172" y="82" class="t-mono">3</text><text x="112" y="140" class="t-mono">4</text><text x="150" y="222" class="t-mono">5</text><text x="226" y="262" class="t-mono">6</text><text x="278" y="250" class="t-mono">7</text><text x="296" y="210" class="t-mono">8</text>
+        <text x="382" y="114" class="t-mono">9</text><text x="222" y="34" class="t-mono">10</text><text x="80" y="164" class="t-mono">11</text><text x="232" y="296" class="t-mono">12</text>
+        <rect x="440" y="30" width="340" height="270" rx="10" class="f-elev"/>
+        <text x="458" y="60" class="t">D65 아래 CIELAB 채도 C*ab</text>
+        <text x="458" y="92" class="t-dim">● TCS01–08 (Ra):</text><text x="600" y="92" class="t-mono">19.5 – 49.2</text>
+        <text x="458" y="116" class="t-dim">■ TCS09 빨강:</text><text x="600" y="116" class="t-mono">65.4</text>
+        <text x="458" y="140" class="t-dim">■ TCS10 노랑:</text><text x="600" y="140" class="t-mono">72.0</text>
+        <text x="458" y="164" class="t-dim">■ TCS11 초록:</text><text x="600" y="164" class="t-mono">44.6</text>
+        <text x="458" y="188" class="t-dim">■ TCS12 파랑:</text><text x="600" y="188" class="t-mono">46.4 (sRGB 밖)</text>
+        <text x="458" y="226" class="t">TCS01 = (61.5, 17.5, 11.9)</text>
+        <text x="458" y="252" class="t">TCS09 = (40.0, 59.0, 28.2)</text>
+        <text x="458" y="282" class="t-dim">Ra는 점선 원 근처만 본다</text>
+      </svg>
+      <figcaption><b>그림 10-4.</b> D65·2° 관측자에서 계산한 14개 시험색의 CIELAB a*b* 위치(CB.tcs 데이터로 계산, 견본은 sRGB 근사). Ra를 구성하는 8색(원)은 원점 근처 띠에 몰려 있고, 고채도 9–12번(사각형)은 바깥에 있다.</figcaption>
+    </figure>
+    <div class="callout"><b>공학자 관점.</b> 사무실 조명 표준 EN 12464-1은 일반 작업 공간에 Ra ≥ 80을 요구한다. 그러나 이 숫자만 맞춘 청색 펌프 + YAG 단일 인광체 LED는 R9가 음수인 경우가 많다. 조달 사양에 R9를 함께 넣지 않으면 "Ra 80이지만 사람 얼굴이 창백한" 조명이 납품된다.</div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="tm30">
+    <h2>TM-30과 CIE 224: 충실도와 색역을 분리하기</h2>
+    <p>ANSI/IES <span class="term">TM-30</span>(2015년 TM-30-15로 처음 발표, 이후 -18, -20으로 개정)과 <span class="term">CIE 224:2017</span>은 CRI의 문제를 정면으로 고쳤다. 핵심 변경은 네 가지다.</p>
+    <ul>
+      <li><b>시험색 99개(CES, Colour Evaluation Samples).</b> 실제 물체(자연물, 피부, 섬유, 페인트, 인쇄물 등)의 반사율 데이터베이스에서 뽑아 색 공간과 파장 공간을 고르게 덮도록 고른 집합이다. 수가 많고 다양해 게이밍이 어렵다.</li>
+      <li><b>CAM02-UCS 색공간과 CIE 1964 10° 관측자.</b> CIECAM02 기반의 균등 색공간(<a href="appearance.html">9장</a>)에서 색차를 재고, 순응도 그 모델 안에서 처리한다.</li>
+      <li><b>기준 광원의 연속 전환.</b> 4000 K 이하는 흑체, 5000 K 이상은 CIE 주광, 그 사이는 두 스펙트럼을 비례 혼합한다. CRI처럼 5000 K에서 기준이 불연속으로 바뀌지 않는다.</li>
+      <li><b>충실도 \(R_f\)와 색역 \(R_g\)의 분리.</b> 하나의 숫자 대신 두 숫자와 그림(색 벡터 그래픽)으로 보고한다.</li>
+    </ul>
+    <div class="formula">$$R_f = 10\,\ln\!\Big(e^{(100 - c_f\,\overline{\Delta E'})/10} + 1\Big),\qquad c_f = 6.73$$
+    $$R_g = 100\cdot\frac{A_{\text{test}}}{A_{\text{ref}}}$$<div class="where">\(\overline{\Delta E'}\)는 99개 CES의 CAM02-UCS 평균 색차. 로그-지수 형태는 \(R_f\)를 0–100 범위로 부드럽게 눌러 음수가 나오지 않게 한다(CIE 224와 TM-30-18 이후 같은 식). \(A\)는 색상각을 16개 구간(bin)으로 나눠 구간별 평균 \(a', b'\)을 이은 다각형의 넓이다.</div></div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 800 320" role="img" aria-label="TM-30 색 벡터 그래픽 개념도와 Rf Rg 평면">
+        <circle cx="170" cy="160" r="110" fill="none" stroke="var(--text-dim)" stroke-width="1.5"/>
+        <g class="s-line" stroke-dasharray="2 4"><line x1="170" y1="40" x2="170" y2="280"/><line x1="50" y1="160" x2="290" y2="160"/></g>
+        <polygon points="300,160 272,98 220,55 168,62 108,70 66,118 52,160 72,214 110,258 170,280 232,266 262,226" class="f-acc-soft" stroke="var(--accent)" stroke-width="2"/>
+        <g stroke="var(--text)" stroke-width="1.5">
+          <line x1="280" y1="160" x2="300" y2="160"/><line x1="265" y1="105" x2="272" y2="98"/><line x1="225" y1="65" x2="220" y2="55"/><line x1="170" y1="50" x2="168" y2="62"/>
+          <line x1="115" y1="65" x2="108" y2="70"/><line x1="75" y1="105" x2="66" y2="118"/><line x1="60" y1="160" x2="52" y2="160"/><line x1="75" y1="215" x2="72" y2="214"/>
+        </g>
+        <text x="296" y="148" class="t-mono">빨강</text><text x="150" y="34" class="t-mono">노랑</text><text x="14" y="164" class="t-mono">초록</text><text x="150" y="300" class="t-mono">파랑</text>
+        <text x="60" y="314" class="t-dim">원 = 기준 광원(정규화), 다각형 = 시험 광원</text>
+        <line x1="420" y1="280" x2="770" y2="280" class="s-axis"/><line x1="440" y1="290" x2="440" y2="30" class="s-axis"/>
+        <text x="740" y="302" class="t-dim">Rf</text><text x="448" y="40" class="t-dim">Rg</text>
+        <line x1="440" y1="155" x2="770" y2="155" class="s-line" stroke-dasharray="4 4"/><text x="700" y="148" class="t-mono">Rg=100</text>
+        <path d="M480 40 Q 700 155 760 155 Q 700 155 480 270 Z" class="f-acc2-soft"/>
+        <text x="560" y="160" class="t-dim">가능한 영역</text>
+        <circle cx="620" cy="120" r="5" class="f-acc"/><text x="604" y="110" class="t-acc">채도 강조형</text>
+        <circle cx="620" cy="198" r="5" fill="var(--text)"/><text x="604" y="222" class="t">탁하게 하는 형</text>
+        <circle cx="755" cy="155" r="5" fill="var(--text)"/><text x="696" y="176" class="t-dim">Rf=100</text>
+      </svg>
+      <figcaption><b>그림 10-5.</b> 왼쪽: 색 벡터 그래픽(CVG) 개념. 각 색상 구간에서 기준 광원 색을 단위 원 위에 놓고, 시험 광원 아래 색의 이동을 화살표로 그린다. 빨강 쪽으로 다각형이 원 밖으로 나오면 빨강의 채도가 증가한다. 오른쪽: Rf–Rg 평면. Rf가 100에 가까울수록 Rg는 100 근처로 묶이고, Rf가 낮아질수록 채도 강조(Rg&gt;100)와 탁함(Rg&lt;100) 양쪽으로 갈 수 있다(개념도).</figcaption>
+    </figure>
+
+    <p>99개 CES 데이터와 CAM02-UCS 전체를 이 장에 싣지는 않았으므로, 아래 시뮬레이터는 TM-30 자체가 아니다. 대신 CIE 13.3 계산에서 이미 얻은 TCS01–08의 \(W^*U^*V^*\) 좌표로 같은 원리의 그림을 그린다. 기준 광원 아래 각 시험색 벡터 \((U^*_r, V^*_r)\)를 단위 원 위에 놓고, 시험 광원 아래 순응 후 벡터와의 차이를 기준 채도로 나눠 더한다. 그리고 8각형 넓이 비율 \(G_a = 100\,A_{\text{test}}/A_{\text{ref}}\)를 "교육용 색역 지수"로 정의한다. 이 값은 공식 \(R_g\)도 Rea의 GAI도 아니며, 경향을 보기 위한 교육용 근사다.</p>
+
+    <div class="sim" id="sim-cvg">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>교육용 색 벡터 그래픽 (TCS01–08, W*U*V*)</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-cvg"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>시험 광원</span><div class="seg" id="cvg-src"><button data-value="A">A</button><button data-value="D65">D65</button><button data-value="FL2" class="on">FL2</button><button data-value="FL7">FL7</button><button data-value="FL11">FL11</button><button data-value="LED-B3">LED-B3</button><button data-value="LED-RGB1">LED-RGB1</button><button data-value="LED-V1">LED-V1</button><button data-value="HP1">HP1</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">Ga (교육용 근사)</span><span class="v" id="cvg-ga">—</span></div>
+        <div class="stat"><span class="k">평균 채도 변화</span><span class="v" id="cvg-mean">—</span></div>
+        <div class="stat"><span class="k">최대 채도 변화</span><span class="v" id="cvg-max">—</span></div>
+        <div class="stat"><span class="k">Ra (참고)</span><span class="v" id="cvg-ra">—</span></div>
+      </div>
+      <div class="sim-note">점선 원은 채도 ±20 %. 해볼 것: FL11(3파장 형광등)과 LED-RGB1은 Ra가 각각 83, 57로 낮지만 Ga가 100을 넘는다. 즉 색을 탁하게 하는 것이 아니라 일부 색상에서 <em>과장</em>한다. FL2와 HP1은 다각형이 원 안으로 쪼그라든다. Ra 하나로는 이 두 종류의 "나쁨"이 구분되지 않는다.</div>
+    </div>
+
+    <div class="callout tip"><b>해석 요령.</b> TM-30-18 부록 E는 용도별 권장 범위를 제시한다. 예를 들어 선호(Preference) 우선 등급 P1은 \(R_f \ge 78\), \(R_g \ge 95\), 빨강 구간의 국소 채도 변화 \(R_{cs,h1}\)이 −1 %–+15 %다. 즉 사람들은 정확한 색보다 <em>빨강을 약간 더 선명하게</em> 보여 주는 조명을 선호하는 경향이 있다. 반대로 색 검사(인쇄 교정, 직물 검사)에서는 Rf를 최대화하고 Rg ≈ 100을 요구해야 한다.</div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="led">
+    <h2>백색 LED의 구조와 스펙트럼</h2>
+    <p>오늘날 일반 조명용 백색 LED의 대부분은 <span class="term">인광체 변환</span><span class="en">(pc-LED, phosphor-converted LED)</span> 방식이다. 약 450 nm에서 발광하는 InGaN 청색 칩 위에 인광체를 바른다. 청색 광자 일부는 그대로 빠져나오고, 나머지는 인광체에 흡수되어 더 긴 파장으로 재방출된다. 대표 인광체 YAG:Ce(Y₃Al₅O₁₂:Ce³⁺)는 반치폭 100 nm 이상의 넓은 황록–황색 대역을 낸다. 청색과 황색이 보색 관계라 둘의 혼합이 흰색이 된다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 300" role="img" aria-label="청색 칩과 인광체 층으로 이루어진 백색 LED와 스토크스 손실">
+        <defs><marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="40" y="220" width="260" height="30" rx="4" class="f-surface"/><text x="170" y="240" text-anchor="middle" class="t-dim">기판 / 반사컵</text>
+        <rect x="120" y="190" width="100" height="30" rx="3" fill="#3d63e0"/><text x="170" y="210" text-anchor="middle" class="t" style="fill:#fff">InGaN 칩</text>
+        <path d="M60 220 L60 120 Q170 80 280 120 L280 220 Z" fill="#d4a20c" opacity="0.28"/>
+        <g fill="#d4a20c"><circle cx="100" cy="150" r="4"/><circle cx="140" cy="130" r="4"/><circle cx="200" cy="140" r="4"/><circle cx="240" cy="160" r="4"/><circle cx="160" cy="170" r="4"/><circle cx="220" cy="115" r="4"/><circle cx="90" cy="190" r="4"/><circle cx="255" cy="195" r="4"/></g>
+        <text x="170" y="74" text-anchor="middle" class="t">인광체 층 (YAG:Ce ± 적색 질화물)</text>
+        <line x1="150" y1="188" x2="120" y2="30" stroke="#3d63e0" stroke-width="2.5" marker-end="url(#ar4)"/>
+        <line x1="200" y1="140" x2="230" y2="30" stroke="#d4a20c" stroke-width="2.5" marker-end="url(#ar4)"/>
+        <text x="62" y="30" class="t-mono">450 nm</text><text x="238" y="30" class="t-mono">~560 nm</text>
+        <rect x="350" y="40" width="420" height="220" rx="10" class="f-elev"/>
+        <line x1="380" y1="230" x2="750" y2="230" class="s-axis"/><text x="730" y="250" class="t-dim">λ</text>
+        <path d="M400 229 Q430 229 440 120 Q450 229 470 229" fill="none" stroke="#3d63e0" stroke-width="2.5"/>
+        <path d="M450 229 C 520 229 540 110 580 110 C 640 110 680 220 740 228" fill="none" stroke="#d4a20c" stroke-width="2.5"/>
+        <line x1="440" y1="100" x2="580" y2="100" class="s-line" marker-end="url(#ar4)"/>
+        <text x="460" y="90" class="t">스토크스 이동</text>
+        <text x="370" y="66" class="t-mono">η_S = λ_pump / λ_emit ≈ 450/560 = 0.80</text>
+        <text x="600" y="150" class="t-dim">광자 하나당</text><text x="600" y="170" class="t-dim">약 20 % 에너지가</text><text x="600" y="190" class="t-dim">열로 손실</text>
+      </svg>
+      <figcaption><b>그림 10-6.</b> 인광체 변환 백색 LED. 청색 광자 하나가 인광체에서 황색 광자 하나로 바뀌면(양자 효율 1이라 해도) 광자 에너지 비율 \(\lambda_p/\lambda_e\)만큼만 남는다. 이것이 스토크스 손실이며, 방출 파장이 길수록(깊은 빨강) 커진다.</figcaption>
+    </figure>
+    <div class="formula">$$\eta_S = \frac{\int S_{\text{out}}\,d\lambda}{\int S_B\,d\lambda + \int S_{\text{ph}}(\lambda)\,\dfrac{\lambda}{\lambda_p}\,d\lambda},\qquad K = 683\,\frac{\int S\,V(\lambda)\,d\lambda}{\int S\,d\lambda}\ \ [\text{lm/W}_{\text{opt}}]$$<div class="where">\(S_B\)는 그대로 빠져나온 청색 성분, \(S_{\text{ph}}\)는 인광체 방출, \(\lambda_p\)는 청색 피크. 인광체 양자 효율을 1로 둔 이상적 변환 효율이다. \(K\)는 <span class="term">LER</span><span class="en">(Luminous Efficacy of Radiation)</span>로, 광출력 1 W당 광속이다(<a href="light.html">1장</a>).</div></div>
+    <p>구조 변형은 세 가지가 대표적이다. ① <b>이색형</b>: 청색 + YAG. 효율이 높지만 빨강이 부족해 Ra 70–80, R9 음수가 흔하다. ② <b>삼색형</b>: 청색 + 녹황색 인광체 + 적색 인광체(질화물 계열 CaAlSiN₃:Eu 등 넓은 대역, 또는 K₂SiF₆:Mn⁴⁺(KSF) 같은 협대역 약 631 nm). Ra 90 이상을 얻는 표준 방식이다. ③ <b>보라 펌프</b>: 400–420 nm 근처의 보라 칩으로 청·녹·적 인광체를 모두 여기한다(내장 광원 LED-V1). 청색 스파이크가 없어 연속 스펙트럼에 가깝고 Ra 95, R9 98을 얻지만, 스토크스 손실이 더 크다.</p>
+
+    <div class="sim" id="sim-led">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>백색 LED 스펙트럼 설계기</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-led"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>프리셋</span><div class="seg" id="led-pre"><button data-value="yag">청색+YAG</button><button data-value="warm" class="on">+적색 630</button><button data-value="deep">+적색 650</button></div></div>
+          <label class="ctrl"><span>청색 피크 <output id="led-bp-out"></output></span><input type="range" id="led-bp" min="430" max="470" value="450"></label>
+          <label class="ctrl"><span>청색 반치폭 <output id="led-bw-out"></output></span><input type="range" id="led-bw" min="12" max="40" value="20"></label>
+          <label class="ctrl"><span>황록 인광체 피크 <output id="led-yp-out"></output></span><input type="range" id="led-yp" min="520" max="580" value="540"></label>
+          <label class="ctrl"><span>황록 인광체 반치폭 <output id="led-yw-out"></output></span><input type="range" id="led-yw" min="40" max="140" value="100"></label>
+          <label class="check"><input type="checkbox" id="led-red" checked> 적색 인광체 추가</label>
+          <label class="ctrl"><span>적색 피크 <output id="led-rp-out"></output></span><input type="range" id="led-rp" min="600" max="670" value="630"></label>
+          <label class="ctrl"><span>적색 반치폭 <output id="led-rw-out"></output></span><input type="range" id="led-rw" min="8" max="110" value="80"></label>
+          <label class="ctrl"><span>목표 CCT (적색 사용 시) <output id="led-T-out"></output></span><input type="range" id="led-T" min="2200" max="6500" step="100" value="3000"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">CCT</span><span class="v" id="led-cct">—</span></div>
+        <div class="stat"><span class="k">Duv</span><span class="v" id="led-duv">—</span></div>
+        <div class="stat"><span class="k">Ra</span><span class="v" id="led-ra">—</span></div>
+        <div class="stat"><span class="k">R9</span><span class="v" id="led-r9">—</span></div>
+        <div class="stat"><span class="k">LER</span><span class="v" id="led-ler">—</span></div>
+        <div class="stat"><span class="k">스토크스 효율 η_S</span><span class="v" id="led-eta">—</span></div>
+        <div class="stat"><span class="k">LER × η_S</span><span class="v" id="led-eff">—</span></div>
+      </div>
+      <div class="sim-note">각 성분은 가우시안 근사다(실제 인광체 대역은 장파장 쪽 꼬리가 길다). 적색이 꺼져 있으면 청/황 비율을 Duv = 0이 되도록 자동으로 찾고, CCT는 결과로 정해진다. 적색이 켜져 있으면 두 인광체 비율을 풀어 목표 CCT의 흑체 색도에 정확히 맞춘다. 해볼 것: ① 청색+YAG 프리셋은 약 8000 K, Ra 72, R9 −39. ② 적색 630 nm를 더하면 3000 K에서 Ra 96, R9 75. ③ 적색을 650 nm로 옮기면 Ra는 90으로, LER은 313 → 251 lm/W로 떨어진다. ④ 적색 반치폭을 8 nm(KSF형)로 줄여 보라. 협대역 적색만으로는 Ra가 오히려 무너진다.</div>
+    </div>
+
+    <div class="callout"><b>수치로 본 비용.</b> 같은 3000 K, 같은 청색 칩(450 nm)에서 적색 인광체 피크를 610 → 630 → 650 nm로 옮기면 계산 결과는 Ra 80.5 → 96.3 → 90.0, R9 −26 → 75 → 62, LER 374 → 313 → 251 lm/W, 스토크스 효율 79.4 → 77.2 → 74.7 %다. LER × η_S로 보면 297 → 241 → 188 lm/W로, 깊은 빨강은 연색성 이득보다 효율 손실이 크다. 실제 제품의 적색 인광체가 620–640 nm 부근에 몰려 있는 이유다.</div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="tradeoff">
+    <h2>스펙트럼 설계 트레이드오프: LER vs Ra</h2>
+    <p>LER은 \(V(\lambda)\)의 무게중심(555 nm) 근처에 에너지를 모을수록 커진다. 단색 555 nm가 상한 683 lm/W지만 그건 흰색이 아니다. 흰색을 만들려면 \(V\)가 작은 청색과 적색을 반드시 섞어야 하고, 연색성을 높이려면 그 성분을 넓게 펼쳐야 한다. 결국 <em>효율은 에너지를 좁게 모으기를, 연색성은 넓게 펼치기를</em> 원한다. 백색광으로서 Ra를 거의 포기하면 LER은 400 lm/W 안팎까지 갈 수 있지만, Ra 90 이상에서는 그보다 상당히 낮아진다.</p>
+    <p>가장 극단적인 예가 <span class="term">RGB 3피크 혼색</span>이다. 세 피크 파장 \(\lambda_B, \lambda_G, \lambda_R\)이 정해지면, 목표 백색(흑체 색도)을 만드는 가중치 \(w\)는 3×3 선형 방정식 하나로 정해진다.</p>
+    <div class="formula">$$\begin{bmatrix} X_B & X_G & X_R \\ Y_B & Y_G & Y_R \\ Z_B & Z_G & Z_R \end{bmatrix}\begin{bmatrix} w_B \\ w_G \\ w_R \end{bmatrix} = \begin{bmatrix} x_P/y_P \\ 1 \\ (1-x_P-y_P)/y_P \end{bmatrix}$$<div class="where">\((x_P, y_P)\)는 목표 CCT의 흑체 색도. 해 중 하나라도 음수면 그 세 피크로는 목표 백색을 만들 수 없다(목표점이 세 원색 삼각형 밖).</div></div>
+    <p>4000 K에서 피크 (455, 545, 615) nm, 반치폭 20 nm면 Ra 75.5, R9 83, LER 385 lm/W다. 피크를 (460, 530, 620) nm로 바꾸면 Ra는 40으로 떨어진다. 3피크 설계는 피크 위치에 극도로 민감하며, 이 민감도가 아래 지도에 그대로 보인다. 1990년대 3파장 형광등과 디스플레이 백라이트의 피크 위치가 450/540/610 nm 근처로 수렴한 것도 같은 최적화 결과다.</p>
+
+    <div class="sim" id="sim-rgb">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>RGB 3피크 조합: Ra·LER 지도</h3></div>
+      <div class="sim-body side">
+        <div>
+          <div class="sim-view"><canvas id="cv-rgb-spd"></canvas></div>
+          <div class="sim-view"><canvas id="cv-rgb-map"></canvas></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>청색 피크 <output id="rgb-b-out"></output></span><input type="range" id="rgb-b" min="440" max="475" value="455"></label>
+          <label class="ctrl"><span>녹색 피크 <output id="rgb-g-out"></output></span><input type="range" id="rgb-g" min="500" max="575" step="5" value="545"></label>
+          <label class="ctrl"><span>적색 피크 <output id="rgb-r-out"></output></span><input type="range" id="rgb-r" min="590" max="665" step="5" value="615"></label>
+          <label class="ctrl"><span>반치폭 (공통) <output id="rgb-w-out"></output></span><input type="range" id="rgb-w" min="10" max="50" value="20"></label>
+          <label class="ctrl"><span>목표 CCT <output id="rgb-T-out"></output></span><input type="range" id="rgb-T" min="2700" max="6500" step="100" value="4000"></label>
+          <div class="ctrl"><span>지도 색</span><div class="seg" id="rgb-metric"><button data-value="ra" class="on">Ra</button><button data-value="r9">R9</button><button data-value="ler">LER</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">Ra</span><span class="v" id="rgb-ra">—</span></div>
+        <div class="stat"><span class="k">R9</span><span class="v" id="rgb-r9">—</span></div>
+        <div class="stat"><span class="k">LER</span><span class="v" id="rgb-ler">—</span></div>
+        <div class="stat"><span class="k">Ga (교육용)</span><span class="v" id="rgb-ga">—</span></div>
+      </div>
+      <div class="sim-note">아래 지도는 현재 청색 피크·반치폭·CCT에서 녹색(가로)×적색(세로) 피크 조합 256개의 CRI를 전부 계산한 것이다(흰 테두리 = Ra ≥ 80, 회색 = 음의 가중치로 불가능). 원은 현재 선택. 해볼 것: 반치폭을 10 → 40 nm로 넓히면 Ra ≥ 80 영역이 넓어지고 LER은 줄어든다. 지도 색을 LER로 바꾸면 Ra 최적 영역과 LER 최적 영역이 어긋나 있음을 볼 수 있다.</div>
+    </div>
+
+    <p>이제 두 계열(삼색 pc-LED와 RGB 3피크)의 무작위 설계 수백 개를 계산해 Ra–LER 평면에 뿌려 보자. 각 점은 2700–6500 K 사이 임의 CCT의 흑체 색도에 정확히 맞춘 스펙트럼이다. 위쪽 오른쪽 경계(파레토 전선)가 "이 모델 안에서 주어진 LER로 얻을 수 있는 최고의 Ra"다.</p>
+
+    <div class="sim" id="sim-pareto">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>Ra–LER 산점도와 파레토 전선</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-par"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>세로축</span><div class="seg" id="par-y"><button data-value="ra" class="on">Ra</button><button data-value="r9">R9</button></div></div>
+          <button class="btn primary" id="par-more">샘플 300개 더</button>
+        </div>
+      </div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>삼색 pc-LED(가우시안 모델)</span><span><i style="background:var(--accent-2)"></i>RGB 3피크</span><span><i style="background:var(--text)"></i>표준 광원</span><span><i style="background:var(--warn)"></i>파레토 전선</span></div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">샘플 수</span><span class="v" id="par-n">—</span></div>
+        <div class="stat"><span class="k">최대 LER @ Ra≥80</span><span class="v" id="par-80">—</span></div>
+        <div class="stat"><span class="k">최대 LER @ Ra≥90</span><span class="v" id="par-90">—</span></div>
+        <div class="stat"><span class="k">최대 LER @ Ra≥95</span><span class="v" id="par-95">—</span></div>
+      </div>
+      <div class="sim-note">무작위 샘플링이므로 실행마다 값이 조금 다르다. 이 장 작성 시 600개 샘플에서는 Ra ≥ 80일 때 약 400 lm/W, Ra ≥ 90일 때 약 360 lm/W가 최대였다. 해볼 것: 세로축을 R9로 바꾸면 Ra와 달리 R9는 LER과 훨씬 가파르게 맞선다는 것을 볼 수 있다. HP1(고압 나트륨)은 LER이 가장 높지만 Ra는 8이다.</div>
+    </div>
+
+    <div class="callout deep"><b>심화: 왜 Ra 최적화가 쉬운가.</b> Ra는 8개 시험색의 완만한 반사율로 정의되므로, 각 반사율의 "기울기"가 큰 파장(약 450, 540, 610 nm 부근의 경계)에 적당한 에너지만 있으면 된다. 그래서 3개 좁은 피크로도 Ra 80을 넘길 수 있다. 99개 CES를 쓰는 Rf는 반사율이 다양한 실물들을 포함하므로 같은 3피크 광원에 대해 대체로 더 엄격하다. 최적화 목표를 Ra로 둘지 Rf로 둘지에 따라 최적 스펙트럼이 달라진다.</div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="spec">
+    <h2>측정·사양과 비시각 효과</h2>
+    <p>조명 제품의 색 관련 사양은 분광복사계(<a href="measurement.html">11장</a>)로 측정한 SPD 하나에서 모두 계산된다. 이 장에서 구현한 함수가 곧 그 계산이다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>항목</th><th>정의</th><th>계산</th><th>흔한 사양 예</th></tr></thead>
+      <tbody>
+        <tr><td>광효율 (lm/W)</td><td>전기 입력 1 W당 광속</td><td>LER × 전기→광 변환 효율</td><td>제품·등기구 효율로 표시</td></tr>
+        <tr><td>LER (lm/W<sub>opt</sub>)</td><td>광출력 1 W당 광속</td><td>\(683\int SV/\int S\)</td><td>pc-LED 약 280–350</td></tr>
+        <tr><td>CCT</td><td>최근접 흑체 온도</td><td>1960 uv 최근접점</td><td>2700, 3000, 4000, 5000, 6500 K</td></tr>
+        <tr><td>Duv</td><td>흑체 궤적까지 부호 있는 거리</td><td>1960 uv</td><td>|Duv| ≤ 0.006 수준</td></tr>
+        <tr><td>Ra / R9</td><td>CIE 13.3</td><td>이 장의 cri()</td><td>Ra ≥ 80, 고연색 Ra ≥ 90 · R9 ≥ 50</td></tr>
+        <tr><td>Rf / Rg</td><td>ANSI/IES TM-30, CIE 224</td><td>99 CES, CAM02-UCS</td><td>용도별 권장 범위</td></tr>
+        <tr><td>색도 편차 (SDCM)</td><td>맥아담 타원 단계 수</td><td>목표 색도 중심 타원</td><td>3단계 이내(동일 공간 내 균일)</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>전기 효율의 분해.</b> 전기 1 W당 광속은 \(\eta_v = K\cdot\eta_{e}\)로 쓸 수 있다. \(\eta_e\)는 전기 → 광출력 변환 효율(칩의 WPE, 인광체 양자 효율, 스토크스 손실, 패키지 추출 효율의 곱)이다. 예를 들어 LER 320 lm/W인 스펙트럼을 \(\eta_e = 0.5\)로 만들면 160 lm/W다. 스펙트럼을 Ra 96으로 바꿔 LER이 313으로 줄고 스토크스 손실까지 늘면 같은 칩에서 효율이 여러 % 떨어진다. 연색성은 공짜가 아니다.</p>
+    <p><b>SDCM과 맥아담 타원.</b> 맥아담 타원(<a href="chromaticity.html">4장</a>)은 색도 판별 표준편차를 나타낸다. 1단계 타원 안의 색은 사실상 구분되지 않고, 산업에서는 "n-step MacAdam ellipse" 또는 SDCM(Standard Deviation of Colour Matching) n단계로 같은 공간에 설치된 램프 간 색 일관성을 규정한다. ANSI C78.377은 공칭 CCT별 색도 허용 사각형을 정의한다. 실무에서 LED 빈(bin) 선별과 Duv·SDCM 사양이 이 그림 위에서 결정된다.</p>
+    <p><b>비시각(생체) 효과.</b> 망막의 내인성 광감수성 신경절 세포(ipRGC)의 멜라놉신은 약 490 nm 근처(각막 기준)에 감도 최대를 갖고 일주기 리듬, 각성에 관여한다. <span class="term">CIE S 026:2018</span>은 다섯 광수용체(S, M, L 원추, 막대, 멜라놉신)의 α-opic 유효 조도를 정의하고, 그중 <span class="term">멜라놉식 EDI</span><span class="en">(melanopic Equivalent Daylight Illuminance)</span>는 "같은 멜라놉신 자극을 주는 D65의 조도(lx)"다. 같은 조도라도 고 CCT, 청록 성분이 많은 스펙트럼일수록 멜라놉식 EDI가 크다. 2022년 국제 전문가 합의 권고는 낮 시간 눈 위치 멜라놉식 EDI 250 lx 이상, 취침 전 10 lx 이하, 수면 중 1 lx 이하를 제시했다. 이 장의 데이터에는 멜라놉신 감도 표가 없으므로 수치 계산은 생략한다.</p>
+    <div class="callout warn"><b>측정의 함정.</b> ① 5 nm 이상 대역폭의 분광복사계로 협대역 KSF(반치폭 수 nm) 피크를 재면 피크가 퍼져 Ra·R9가 실제와 다르게 나온다. ② 온도가 오르면 청색 칩 피크가 이동하고 인광체 효율이 떨어져 CCT·Duv가 변한다. 사양서 값이 25 °C 접합 온도인지 실제 동작 온도인지 확인하라. ③ 각도에 따라 청색/황색 비율이 달라지는 "옐로 링" 때문에 적분구로 측정한 전광속 SPD와 정면 SPD는 다르다.</div>
+  </section>
+
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>연색성은 같은 CCT 기준 광원(5000 K 미만 흑체, 이상 CIE 주광) 대비 물체색 재현 충실도다. 백색점이 같아도 SPD가 다르면 물체색이 달라진다(광원 메타머리즘).</li>
+      <li>CCT·Duv는 CIE 1960 UCS에서 플랑크 궤적까지의 최근접 거리로 정의한다. \(|D_{uv}| > 0.0054\)이면 CRI는 의미가 없다. D65는 6504 K, Duv +0.0032다.</li>
+      <li>CIE 13.3: TCS 14개 → 1960 uv → \(c,d\) von Kries형 순응 → W*U*V* → \(R_i = 100-4.6\Delta E_i\), \(R_a\) = R1–R8 평균. 이 장의 구현은 FL2 64.2, FL7 90.2, FL11 82.8로 CIE 발표값과 일치한다.</li>
+      <li>CRI는 저채도 8색, 구식 색공간, 방향 없는 색차 때문에 협대역 광원 평가에 약하다. 진한 빨강 R9를 반드시 따로 보라(FL2의 R9 = −84).</li>
+      <li>TM-30/CIE 224는 99 CES, CAM02-UCS, 연속 기준 광원으로 충실도 Rf와 색역 Rg를 분리하고, 색 벡터 그래픽으로 색상별 채도 이동을 보여 준다.</li>
+      <li>pc-LED는 청색 칩 + 인광체다. 인광체 변환은 \(\lambda_p/\lambda_e\)의 스토크스 손실을 낳고, 적색 인광체를 깊게 할수록 R9는 오르지만 LER과 효율이 떨어진다(630 → 650 nm: LER 313 → 251).</li>
+      <li>LER과 Ra는 맞선다. 좁은 피크는 LER을, 넓은 스펙트럼은 Ra를 높인다. 사양은 lm/W, CCT, Duv(또는 SDCM), Ra, R9를 함께 적는다.</li>
+    </ol>
+  </section>
+
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>Q1. 2700 K 백열 할로겐램프의 Ra가 약 100인 이유는?</p><div class="opts">
+        <button class="opt">주광과 스펙트럼이 같아서</button>
+        <button class="opt" data-correct>같은 CCT의 기준 광원(흑체)과 스펙트럼이 거의 같아서</button>
+        <button class="opt">LER이 낮아서</button>
+        <button class="opt">Duv가 음수라서</button>
+      </div><div class="quiz-exp">CRI는 같은 CCT 기준 광원 대비 충실도다. 5000 K 미만에서 기준은 흑체이고, 백열등은 흑체에 가까운 연속 스펙트럼이므로 100에 가깝다(표준 광원 A의 계산값 100.0).</div></div>
+
+      <div class="quiz-q"><p>Q2. CRI 계산에서 CCT를 구하는 데 쓰는 색도 좌표는?</p><div class="opts">
+        <button class="opt">CIE 1931 xy</button>
+        <button class="opt">CIE 1976 u′v′</button>
+        <button class="opt" data-correct>CIE 1960 uv (v = 2/3·v′)</button>
+        <button class="opt">CIELAB a*b*</button>
+      </div><div class="quiz-exp">CIE 13.3과 CCT 정의는 1960 UCS(u, v)에서의 거리를 쓴다. u′v′를 쓰면 v 방향 거리가 1.5배가 되어 Duv와 CCT가 틀어진다.</div></div>
+
+      <div class="quiz-q"><p>Q3. 시험 광원 CCT가 6000 K일 때 CIE 13.3의 기준 광원은?</p><div class="opts">
+        <button class="opt">6000 K 흑체</button>
+        <button class="opt" data-correct>CCT 6000 K의 CIE 주광 분포</button>
+        <button class="opt">D65</button>
+        <button class="opt">흑체와 주광의 50:50 혼합</button>
+      </div><div class="quiz-exp">5000 K 이상은 같은 CCT의 CIE 주광, 미만은 흑체다. 4000–5000 K에서 혼합하는 것은 TM-30/CIE 224의 규칙이다.</div></div>
+
+      <div class="quiz-q"><p>Q4. \(R_i = 100 - 4.6\,\Delta E_i\)에서 \(\Delta E_i\)를 계산하는 색공간은?</p><div class="opts">
+        <button class="opt">CIELAB</button>
+        <button class="opt">CAM02-UCS</button>
+        <button class="opt" data-correct>CIE 1964 W*U*V*</button>
+        <button class="opt">OKLab</button>
+      </div><div class="quiz-exp">CRI는 1964 W*U*V*를 쓴다(\(W^* = 25Y^{1/3}-17\), \(U^*, V^* = 13W^*\Delta u, \Delta v\)). CAM02-UCS는 TM-30/CIE 224의 색공간이다.</div></div>
+
+      <div class="quiz-q"><p>Q5. Ra가 82인 LED의 R9가 −10일 수 있는 이유로 가장 적절한 것은?</p><div class="opts">
+        <button class="opt">R9는 Ra 계산에 가중치 2배로 들어가기 때문</button>
+        <button class="opt" data-correct>Ra는 저채도 TCS01–08만 평균하고, 고채도 빨강 TCS09는 포함하지 않기 때문</button>
+        <button class="opt">R9는 10° 관측자로 계산하기 때문</button>
+        <button class="opt">Duv가 0.0054를 넘었기 때문</button>
+      </div><div class="quiz-exp">R9는 특수 평가수로 Ra 평균에 들어가지 않는다. 빨강 600–650 nm 에너지가 부족한 이색 LED는 Ra 80을 넘기면서 R9가 음수일 수 있다.</div></div>
+
+      <div class="quiz-q"><p>Q6. 이 장 표에서 FL11(3파장 형광등)은 Ra 83인데 교육용 Ga가 104다. 이 조합이 뜻하는 것은?</p><div class="opts">
+        <button class="opt">색을 전체적으로 탁하게 만든다</button>
+        <button class="opt" data-correct>충실도는 떨어지지만 일부 색의 채도를 과장한다</button>
+        <button class="opt">기준 광원과 완전히 같다</button>
+        <button class="opt">Duv가 크다</button>
+      </div><div class="quiz-exp">색역(넓이) 지수가 100보다 크면 평균적으로 채도가 높아진다. 충실도 감점(Ra 83)은 방향을 무시하므로, 이 구분은 Rg나 색 벡터 그래픽이 있어야 보인다.</div></div>
+
+      <div class="quiz-q"><p>Q7. 450 nm 청색 광자가 인광체에서 600 nm 광자로 변환될 때(양자 효율 1) 남는 에너지 비율은?</p><div class="opts">
+        <button class="opt">100 %</button>
+        <button class="opt">133 %</button>
+        <button class="opt" data-correct>75 %</button>
+        <button class="opt">50 %</button>
+      </div><div class="quiz-exp">광자 에너지는 \(hc/\lambda\)이므로 비율은 \(\lambda_p/\lambda_e = 450/600 = 0.75\). 나머지 25 %는 스토크스 손실로 인광체에서 열이 된다.</div></div>
+
+      <div class="quiz-q"><p>Q8. 3000 K 삼색 pc-LED에서 적색 인광체 피크를 630 nm에서 650 nm로 옮겼다. 이 장 모델의 결과 경향은?</p><div class="opts">
+        <button class="opt">Ra와 LER 모두 증가</button>
+        <button class="opt">Ra 증가, LER 불변</button>
+        <button class="opt" data-correct>LER이 크게 감소(313 → 251 lm/W)하고 스토크스 효율도 감소</button>
+        <button class="opt">CCT가 2700 K로 바뀜</button>
+      </div><div class="quiz-exp">650 nm는 \(V(\lambda)\)가 작아 같은 광출력에서 광속이 적고, 파장이 길어 스토크스 손실도 크다. 목표 CCT는 비율을 다시 풀어 유지된다.</div></div>
+
+      <div class="quiz-q"><p>Q9. TM-30의 Rf가 CRI Ra보다 게이밍(지표 맞춤 최적화)에 강한 주된 이유는?</p><div class="opts">
+        <button class="opt">시험색이 8개로 더 적어서</button>
+        <button class="opt" data-correct>실물 반사율에서 뽑은 99개 CES가 색·파장 공간을 고르게 덮어서</button>
+        <button class="opt">계수 4.6을 더 큰 값으로 바꿔서</button>
+        <button class="opt">기준 광원을 항상 D65로 써서</button>
+      </div><div class="quiz-exp">시험 집합이 크고 다양할수록 특정 반사율에만 맞춘 스펙트럼 최적화가 어렵다. 색공간도 CAM02-UCS로 더 균일하다.</div></div>
+
+      <div class="quiz-q"><p>Q10. 멜라놉식 EDI에 대한 설명으로 옳은 것은?</p><div class="opts">
+        <button class="opt">광원의 CCT를 다르게 표기한 값이다</button>
+        <button class="opt">명소시 조도와 항상 같다</button>
+        <button class="opt" data-correct>같은 멜라놉신 자극을 주는 D65 조도로 환산한 값이며 CIE S 026에 정의된다</button>
+        <button class="opt">Ra가 높을수록 반드시 커진다</button>
+      </div><div class="quiz-exp">CIE S 026:2018은 α-opic 양을 정의하며, 멜라놉식 EDI는 D65 기준 등가 조도다. 같은 lx라도 청록 성분이 많은 스펙트럼에서 크다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  /* ------------------------------------------------------------ CIE 13.3 CRI 엔진 (2°, 380–780 nm, 5 nm) */
+  const WL = CB.wls(5);
+  const CMF = WL.map((l) => CB.cmf(l));
+  const VL = CMF.map((c) => c[1]);
+  const TCS = [];
+  for (let i = 1; i <= 14; i++) { const f = CB.tcs(i); TCS.push(WL.map(f)); }
+  const sample = (f) => WL.map((l) => Math.max(0, f(l)));
+  function xyz(S, R) {
+    let X = 0, Y = 0, Z = 0;
+    for (let i = 0; i < WL.length; i++) { const e = S[i] * (R ? R[i] : 1); X += e * CMF[i][0]; Y += e * CMF[i][1]; Z += e * CMF[i][2]; }
+    return [X, Y, Z];
+  }
+  const uv60 = ([X, Y, Z]) => { const d = X + 15 * Y + 3 * Z; return [4 * X / d, 6 * Y / d]; };
+  const plUV = (T) => uv60(xyz(WL.map((l) => CB.planck(l, T))));
+  const PL = [];
+  for (let m = 0.5; m <= 1000; m += 0.5) PL.push({ m, uv: plUV(1e6 / m) });
+  function cctDuv(uv) {
+    const D = (p) => Math.hypot(uv[0] - p.uv[0], uv[1] - p.uv[1]);
+    let i = 0, bd = Infinity;
+    PL.forEach((p, k) => { const d = D(p); if (d < bd) { bd = d; i = k; } });
+    i = Math.min(PL.length - 2, Math.max(1, i));
+    const d0 = D(PL[i - 1]), d1 = D(PL[i]), d2 = D(PL[i + 1]), h = 0.5;
+    const den = d0 - 2 * d1 + d2, off = den > 0 ? CB.clamp((h * (d0 - d2)) / (2 * den), -h, h) : 0;
+    const m = PL[i].m + off, T = 1e6 / m, p = plUV(T), p2 = plUV(1e6 / (m + 0.01));
+    const tx = p2[0] - p[0], ty = p2[1] - p[1], dx = uv[0] - p[0], dy = uv[1] - p[1];
+    return { T, duv: Math.hypot(dx, dy) * (tx * dy - ty * dx < 0 ? -1 : 1) };
+  }
+  function refSPD(T) {
+    if (T < 5000) return WL.map((l) => CB.planck(l, T));
+    const f = CB.daylight(Math.min(25000, T));
+    return WL.map(f);
+  }
+  const cdc = ([u, v]) => [(4 - u - 10 * v) / v, (1.708 * v + 0.404 - 1.481 * u) / v];
+  function cri(S) {
+    const W = xyz(S), uvk = uv60(W);
+    const { T, duv } = cctDuv(uvk);
+    const Rf = refSPD(T), Wr = xyz(Rf), uvr = uv60(Wr);
+    const nk = 100 / W[1], nr = 100 / Wr[1];
+    const [ck, dk] = cdc(uvk), [cr, dr] = cdc(uvr);
+    const wuv = (Y, u, v) => { const Wst = 25 * Math.cbrt(Y) - 17; return [Wst, 13 * Wst * (u - uvr[0]), 13 * Wst * (v - uvr[1])]; };
+    const R = [], ref = [], test = [], refXYZ = [], testXYZ = [];
+    TCS.forEach((rho) => {
+      const Xr = xyz(Rf, rho).map((v) => v * nr), Xk = xyz(S, rho).map((v) => v * nk);
+      const [ur, vr] = uv60(Xr);
+      const [c, d] = cdc(uv60(Xk));
+      const cc = (cr / ck) * c, dd = (dr / dk) * d, den = 16.518 + 1.481 * cc - dd;
+      const ua = (10.872 + 0.404 * cc - 4 * dd) / den, va = 5.52 / den;
+      const a = wuv(Xr[1], ur, vr), b = wuv(Xk[1], ua, va);
+      const dE = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+      R.push(100 - 4.6 * dE); ref.push(a); test.push(b); refXYZ.push(Xr); testXYZ.push(Xk);
+    });
+    const Ra = R.slice(0, 8).reduce((s, v) => s + v, 0) / 8;
+    const area = (P) => { let s = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; s += p[1] * q[2] - q[1] * p[2]; } return Math.abs(s) / 2; };
+    const Ga = 100 * area(test.slice(0, 8)) / area(ref.slice(0, 8));
+    let sv = 0, s = 0; S.forEach((v, i) => { sv += v * VL[i]; s += v; });
+    return { T, duv, Ra, R, Ga, LER: 683 * sv / s, ref, test, refXYZ, testXYZ, refSPD: Rf, uv: uvk, Wk: W.map((v) => v * nk), Wr: Wr.map((v) => v * nr) };
+  }
+
+  function ledSPD(o) {
+    const B = WL.map((l) => CB.gauss(l, o.bp, o.bw)), Yp = WL.map((l) => CB.gauss(l, o.yp, o.yw));
+    const Rp = o.red ? WL.map((l) => CB.gauss(l, o.rp, o.rw)) : null;
+    const mix = (y, r) => WL.map((_, i) => B[i] + y * Yp[i] + (Rp ? r * Rp[i] : 0));
+    if (Rp) {
+      const tx = CB.XYZ2xy(xyz(WL.map((l) => CB.planck(l, o.T))));
+      const b = xyz(B), y = xyz(Yp), r = xyz(Rp);
+      const f = (v) => [v[0] - tx[0] / tx[1] * v[1], v[2] - (1 - tx[0] - tx[1]) / tx[1] * v[1]];
+      const fb = f(b), fy = f(y), fr = f(r), det = fy[0] * fr[1] - fr[0] * fy[1];
+      const ky = (-fb[0] * fr[1] + fr[0] * fb[1]) / det, kr = (-fy[0] * fb[1] + fb[0] * fy[1]) / det;
+      if (!(ky > 0 && kr > 0)) return null;
+      return { S: mix(ky, kr), ky, kr };
+    }
+    let a = Math.log(0.05), c = Math.log(20);
+    const d = (t) => Math.abs(cctDuv(uv60(xyz(mix(Math.exp(t), 0)))).duv);
+    for (let k = 0; k < 30; k++) { const m1 = a + (c - a) * 0.382, m2 = a + (c - a) * 0.618; if (d(m1) < d(m2)) c = m2; else a = m1; }
+    const ky = Math.exp((a + c) / 2);
+    return { S: mix(ky, 0), ky, kr: 0 };
+  }
+  function rgbSPD(peaks, fwhm, T) {
+    const basis = peaks.map((p) => WL.map((l) => CB.gauss(l, p, fwhm)));
+    const M = basis.map((b) => xyz(b));
+    const tgt = CB.xy2XYZ(CB.XYZ2xy(xyz(WL.map((l) => CB.planck(l, T)))), 1);
+    const Mt = [0, 1, 2].map((r) => [0, 1, 2].map((c) => M[c][r]));
+    const w = CB.mat.vec(CB.mat.inv(Mt), tgt);
+    if (w.some((v) => v < 0)) return null;
+    return { S: WL.map((_, i) => w[0] * basis[0][i] + w[1] * basis[1][i] + w[2] * basis[2][i]), w };
+  }
+
+  /* ------------------------------------------------------------ 공통 */
+  const NAMES = ["A", "D65", "FL2", "FL7", "FL11", "LED-B3", "LED-RGB1", "LED-V1", "HP1"];
+  const SRC = {}, RES = {};
+  const spdOf = (n) => SRC[n] || (SRC[n] = sample(CB.illum(n)));
+  const getRes = (n) => RES[n] || (RES[n] = cri(spdOf(n)));
+  const D65W = CB.whiteXYZ("D65", 1);
+  const toD65 = (X, W) => CB.adapt(X.map((v) => v / 100), W.map((v) => v / 100), D65W);
+  const TCSCSS = TCS.map((_, i) => CB.XYZ2css(CB.spd2XYZ(CB.tcs(i + 1), { illum: CB.D65 }).map((v) => v / 100)));
+  const norm = (a) => { const m = Math.max(...a) || 1; return a.map((v) => v / m); };
+  const line = (a) => WL.map((l, i) => [l, a[i]]);
+  const lumNorm = (a) => { let s = 0; a.forEach((v, i) => (s += v * VL[i])); return a.map((v) => v / s); };
+  const sgn = (v, d = 4) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(d);
+  const rcol = (v, P) => (v >= 90 ? P.ok : v >= 80 ? P.accent : v >= 50 ? P.warn : P.bad);
+  const xy2uv60 = ([x, y]) => { const d = -2 * x + 12 * y + 3; return [(4 * x) / d, (6 * y) / d]; };
+  const set = (id, h) => CB.stat(id, h);
+  const alpha = (c, a) => (/^#[0-9a-f]{6}$/i.test(c) ? CB.rgb8css(CB.hex2rgb(c), a) : c);
+
+  /* ------------------------------------------------------------ 1. 같은 물체, 다른 광원 */
+  (function () {
+    let tcs = 9, src = "FL2";
+    const segSrc = CB.seg("obj-src", (v) => { src = v; upd(); });
+    CB.seg("obj-tcs", (v) => { tcs = +v; upd(); });
+    const cv = CB.canvas("#cv-obj", (ctx) => {
+      const P = CB.palette(), r = getRes(src), S = spdOf(src), rho = TCS[tcs - 1];
+      CB.chart(ctx, null, {
+        x: [380, 780], y: [0, 1.05], xLabel: "파장 (nm)", yLabel: "상대값",
+        series: [
+          { data: line(norm(r.refSPD)), color: P.dim, width: 1.5, dash: [5, 4] },
+          { data: line(norm(S)), color: P.accent, width: 2 },
+          { data: line(rho), color: TCSCSS[tcs - 1], width: 3 },
+          { data: line(norm(S.map((v, i) => v * rho[i]))), color: P.warn, width: 1.6, dash: [2, 3] },
+        ],
+      });
+    }, { aspect: 0.42, minHeight: 220, maxHeight: 320 });
+    const grid = document.getElementById("obj-grid");
+    grid.addEventListener("click", (e) => { const t = e.target.closest("[data-src]"); if (t) segSrc.set(t.dataset.src); });
+    function upd() {
+      cv.redraw();
+      const i = tcs - 1;
+      grid.innerHTML = NAMES.map((n) => {
+        const r = getRes(n);
+        const a = CB.XYZ2css(toD65(r.refXYZ[i], r.Wr)), b = CB.XYZ2css(toD65(r.testXYZ[i], r.Wk));
+        return `<button class="obj-tile${n === src ? " on" : ""}" data-src="${n}"><span class="obj-sw"><i style="background:${a}"></i><i style="background:${b}"></i></span><span class="obj-cap">${n}<br>R${tcs} = ${r.R[i].toFixed(0)}</span></button>`;
+      }).join("");
+      const r = getRes(src);
+      const lt = CB.XYZ2Lab(toD65(r.testXYZ[i], r.Wk), D65W), lr = CB.XYZ2Lab(toD65(r.refXYZ[i], r.Wr), D65W);
+      const f = (L) => L.map((v) => v.toFixed(1)).join(", ");
+      set("obj-ref", f(lr)); set("obj-test", f(lt));
+      set("obj-de", CB.dE2000(lr, lt).toFixed(1));
+      set("obj-ri", `R${tcs} = ${r.R[i].toFixed(1)}`);
+    }
+    upd();
+  })();
+
+  /* ------------------------------------------------------------ 2. 1960 uv, CCT, Duv */
+  function pointAt(T, duv) {
+    const p = plUV(T), q = plUV(T * 1.001);
+    const tx = q[0] - p[0], ty = q[1] - p[1], L = Math.hypot(tx, ty);
+    let n = [-ty / L, tx / L]; if (n[1] < 0) n = [-n[0], -n[1]];
+    return [p[0] + duv * n[0], p[1] + duv * n[1]];
+  }
+  (function () {
+    const gT = CB.range("uv-T", (v) => v + " K", () => cv.redraw());
+    const gD = CB.range("uv-duv", (v) => sgn(v), () => cv.redraw());
+    const locus = PL.filter((p) => p.m >= 50 && p.m <= 1e6 / 1500).map((p) => p.uv);
+    const TS = []; for (let m = 50; m <= 1e6 / 1500; m += 5) TS.push(1e6 / m);
+    const bandU = TS.map((T) => pointAt(T, 0.0054)), bandL = TS.map((T) => pointAt(T, -0.0054));
+    const day = []; for (let T = 4000; T <= 25000; T += 250) day.push(xy2uv60(CB.daylightXY(T)));
+    const cv = CB.canvas("#cv-uv", (ctx, w, h) => {
+      const P = CB.palette(), ux = [0.17, 0.32], vy = [0.27, 0.37];
+      const s = Math.min((w - 72) / (ux[1] - ux[0]), (h - 58) / (vy[1] - vy[0]));
+      const box = { x: 58, y: 12, w: s * (ux[1] - ux[0]), h: s * (vy[1] - vy[0]) };
+      const c = CB.chart(ctx, box, {
+        x: ux, y: vy, xLabel: "u (CIE 1960 UCS)", yLabel: "v",
+        series: [
+          { data: bandU, color: P.faint, width: 1, dash: [3, 3] },
+          { data: bandL, color: P.faint, width: 1, dash: [3, 3] },
+          { data: day, color: P.accent2, width: 1.5, dash: [6, 4] },
+          { data: locus, color: P.text, width: 2 },
+        ],
+      });
+      ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+      ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+      [1800, 2200, 2700, 3500, 4500, 6500, 10000].forEach((T) => {
+        const a = pointAt(T, -0.02), b = pointAt(T, 0.02);
+        ctx.strokeStyle = P.dim; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(c.X(a[0]), c.Y(a[1])); ctx.lineTo(c.X(b[0]), c.Y(b[1])); ctx.stroke();
+        ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.fillText(T + " K", c.X(b[0]), c.Y(b[1]) - 6);
+      });
+      NAMES.forEach((n) => {
+        const u = getRes(n).uv;
+        ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(c.X(u[0]), c.Y(u[1]), 3.5, 0, 7); ctx.fill();
+        ctx.fillStyle = P.text; ctx.textAlign = "left"; ctx.fillText(n, c.X(u[0]) + 5, c.Y(u[1]) + 12);
+      });
+      const T = gT(), d = gD(), q = pointAt(T, d), p0 = plUV(T);
+      ctx.strokeStyle = P.warn; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(c.X(p0[0]), c.Y(p0[1])); ctx.lineTo(c.X(q[0]), c.Y(q[1])); ctx.stroke();
+      const xy = CB.uv2xy([q[0], q[1] * 1.5]);
+      ctx.fillStyle = CB.rgb8css(CB.xy2display(xy)); ctx.strokeStyle = P.text; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(c.X(q[0]), c.Y(q[1]), 7, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      const back = cctDuv(q), ok = Math.abs(back.duv) <= 0.0054;
+      set("uv-xy", xy.map((v) => v.toFixed(4)).join(", "));
+      set("uv-uv", q.map((v) => v.toFixed(4)).join(", "));
+      set("uv-cct", `${back.T.toFixed(0)} K / ${sgn(back.duv)}`);
+      set("uv-ref", back.T < 5000 ? "흑체 (플랑크)" : "CIE 주광 D");
+      set("uv-warn", ok ? "유효 (|Duv| ≤ 0.0054)" : `<span class="bad-txt">CRI 정의 범위 밖</span>`);
+    }, { aspect: 0.66, minHeight: 280, maxHeight: 520 });
+  })();
+
+  /* ------------------------------------------------------------ 3. CRI 계산기 */
+  (function () {
+    let src = "FL2";
+    CB.seg("cri-src", (v) => { src = v; upd(); });
+    const cvS = CB.canvas("#cv-cri-spd", (ctx) => {
+      const P = CB.palette(), r = getRes(src);
+      const a = lumNorm(spdOf(src)), b = lumNorm(r.refSPD), m = Math.max(...a, ...b);
+      CB.chart(ctx, null, {
+        x: [380, 780], y: [0, 1.05], xLabel: "파장 (nm)", yLabel: "상대 SPD (같은 Y)",
+        series: [
+          { data: line(b.map((v) => v / m)), color: P.dim, width: 1.6, dash: [5, 4] },
+          { data: line(a.map((v) => v / m)), color: P.accent, width: 2, fill: alpha(P.accent, 0.14) },
+        ],
+      });
+    }, { aspect: 0.36, minHeight: 190, maxHeight: 280 });
+    const cvB = CB.canvas("#cv-cri-bar", (ctx, w, h) => {
+      const P = CB.palette(), r = getRes(src);
+      const y0 = Math.min(0, Math.floor(Math.min(...r.R) / 20) * 20);
+      const box = { x: 52, y: 14, w: w - 66, h: h - 14 - 64 };
+      const c = CB.chart(ctx, box, { x: [0.5, 14.5], y: [y0, 100], xTicks: [], yLabel: "Ri", hlines: [{ y: r.Ra, color: P.accent, dash: [6, 4] }] });
+      const bw = (box.w / 14) * 0.62;
+      r.R.forEach((v, i) => {
+        const x = c.X(i + 1);
+        ctx.fillStyle = TCSCSS[i]; ctx.fillRect(x - bw / 2, Math.min(c.Y(v), c.Y(0)), bw, Math.abs(c.Y(v) - c.Y(0)));
+        ctx.strokeStyle = i < 8 ? P.text : P.faint; ctx.lineWidth = 1; ctx.strokeRect(x - bw / 2, Math.min(c.Y(v), c.Y(0)), bw, Math.abs(c.Y(v) - c.Y(0)));
+        const sy = box.y + box.h + 8, sz = Math.min(12, bw / 2);
+        ctx.fillStyle = CB.XYZ2css(toD65(r.refXYZ[i], r.Wr)); ctx.fillRect(x - sz, sy, sz, sz * 1.6);
+        ctx.fillStyle = CB.XYZ2css(toD65(r.testXYZ[i], r.Wk)); ctx.fillRect(x, sy, sz, sz * 1.6);
+        ctx.fillStyle = P.dim; ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono"); ctx.textAlign = "center"; ctx.textBaseline = "top";
+        ctx.fillText(String(i + 1), x, sy + sz * 1.6 + 4);
+        ctx.fillStyle = P.text; ctx.textBaseline = "bottom";
+        if (w > 480) ctx.fillText(v.toFixed(0), x, Math.min(c.Y(v), c.Y(0)) - 2);
+      });
+      ctx.fillStyle = P.accent; ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillText("Ra " + r.Ra.toFixed(1), box.x + box.w, c.Y(r.Ra) - 3);
+    }, { aspect: 0.42, minHeight: 250, maxHeight: 340 });
+    function upd() {
+      cvS.redraw(); cvB.redraw();
+      const r = getRes(src), P = CB.palette();
+      set("cri-cct", r.T.toFixed(0) + " K");
+      set("cri-duv", Math.abs(r.duv) > 0.0054 ? `<span class="bad-txt">${sgn(r.duv)} ⚠</span>` : sgn(r.duv));
+      set("cri-ra", `<span style="color:${rcol(r.Ra, P)}">${r.Ra.toFixed(1)}</span>`);
+      set("cri-r9", r.R[8].toFixed(0));
+      set("cri-ref", r.T < 5000 ? "흑체 " + r.T.toFixed(0) + " K" : "주광 D " + r.T.toFixed(0) + " K");
+      set("cri-ler", r.LER.toFixed(0) + " lm/W");
+    }
+    upd();
+  })();
+
+  /* ------------------------------------------------------------ 4. 교육용 색 벡터 그래픽 */
+  (function () {
+    let src = "FL2";
+    CB.seg("cvg-src", (v) => { src = v; cv.redraw(); });
+    const cv = CB.canvas("#cv-cvg", (ctx, w, h) => {
+      const P = CB.palette(), r = getRes(src);
+      const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.34;
+      ctx.strokeStyle = P.grid; ctx.lineWidth = 1;
+      [0.8, 1.2].forEach((k) => { ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.arc(cx, cy, R * k, 0, 7); ctx.stroke(); });
+      ctx.setLineDash([]); ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - R * 1.35, cy); ctx.lineTo(cx + R * 1.35, cy); ctx.moveTo(cx, cy - R * 1.35); ctx.lineTo(cx, cy + R * 1.35); ctx.strokeStyle = P.grid; ctx.stroke();
+      const pts = [];
+      let sh = 0, shMax = 0, shI = 0;
+      for (let i = 0; i < 8; i++) {
+        const a = r.ref[i], b = r.test[i], L = Math.hypot(a[1], a[2]), th = Math.atan2(a[2], a[1]);
+        const p0 = [Math.cos(th), Math.sin(th)], p1 = [p0[0] + (b[1] - a[1]) / L, p0[1] + (b[2] - a[2]) / L];
+        pts.push({ i, th, p0, p1 });
+        const d = Math.hypot(b[1], b[2]) / L - 1; sh += d; if (Math.abs(d) > Math.abs(shMax)) { shMax = d; shI = i; }
+      }
+      pts.sort((u, v) => u.th - v.th);
+      const X = (p) => cx + p[0] * R, Y = (p) => cy - p[1] * R;
+      ctx.beginPath(); pts.forEach((p, k) => (k ? ctx.lineTo(X(p.p1), Y(p.p1)) : ctx.moveTo(X(p.p1), Y(p.p1)))); ctx.closePath();
+      ctx.fillStyle = alpha(P.accent, 0.16); ctx.fill(); ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.stroke();
+      ctx.font = "12px " + getComputedStyle(document.body).getPropertyValue("--mono");
+      pts.forEach((p) => {
+        ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(p.p0), Y(p.p0)); ctx.lineTo(X(p.p1), Y(p.p1)); ctx.stroke();
+        ctx.fillStyle = TCSCSS[p.i]; ctx.strokeStyle = P.text; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(X(p.p0), Y(p.p0), 6, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = P.text; ctx.beginPath(); ctx.arc(X(p.p1), Y(p.p1), 3, 0, 7); ctx.fill();
+        const lp = [Math.cos(p.th) * 1.32, Math.sin(p.th) * 1.32];
+        ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("TCS" + (p.i + 1), X(lp), Y(lp));
+      });
+      ctx.fillStyle = P.faint; ctx.textAlign = "left"; ctx.fillText("+U*", cx + R * 1.36 - 30, cy - 10); ctx.fillText("+V*", cx + 6, cy - R * 1.3);
+      set("cvg-ga", r.Ga.toFixed(1));
+      set("cvg-mean", (100 * sh / 8 >= 0 ? "+" : "") + (100 * sh / 8).toFixed(1) + " %");
+      set("cvg-max", `TCS${shI + 1} ${(shMax >= 0 ? "+" : "") + (100 * shMax).toFixed(1)} %`);
+      set("cvg-ra", r.Ra.toFixed(1));
+    }, { aspect: 0.82, minHeight: 300, maxHeight: 480 });
+  })();
+
+  /* ------------------------------------------------------------ 5. 백색 LED 스펙트럼 설계기 */
+  (function () {
+    const ids = ["led-bp", "led-bw", "led-yp", "led-yw", "led-rp", "led-rw", "led-T"];
+    const fm = { "led-T": (v) => v + " K" };
+    const g = {};
+    ids.forEach((id) => (g[id] = CB.range(id, fm[id] || ((v) => v + " nm"), () => upd())));
+    const red = document.getElementById("led-red");
+    red.addEventListener("change", () => upd());
+    const PRE = {
+      yag: { "led-bp": 450, "led-bw": 20, "led-yp": 560, "led-yw": 120, red: false },
+      warm: { "led-bp": 450, "led-bw": 20, "led-yp": 540, "led-yw": 100, "led-rp": 630, "led-rw": 80, "led-T": 3000, red: true },
+      deep: { "led-bp": 450, "led-bw": 20, "led-yp": 540, "led-yw": 100, "led-rp": 650, "led-rw": 90, "led-T": 3000, red: true },
+    };
+    let busy = false;
+    CB.seg("led-pre", (v) => {
+      busy = true; const p = PRE[v];
+      ids.forEach((id) => { if (p[id] != null) g[id].set(p[id]); });
+      red.checked = p.red; busy = false; upd();
+    });
+    let cur = null;
+    const cv = CB.canvas("#cv-led", (ctx) => {
+      const P = CB.palette();
+      if (!cur) { ctx.fillStyle = P.bad; ctx.font = "14px sans-serif"; ctx.fillText("이 조합으로는 목표 CCT를 만들 수 없다(음의 비율).", 20, 40); return; }
+      const m = Math.max(...cur.S);
+      CB.chart(ctx, null, {
+        x: [380, 780], y: [0, 1.05], xLabel: "파장 (nm)", yLabel: "상대 SPD",
+        series: [
+          { data: WL.map((l) => [l, CB.V(l)]), color: P.faint, width: 1, dash: [2, 3] },
+          { data: line(cur.B.map((v) => v / m)), color: "#3d63e0", width: 1.5, dash: [5, 3] },
+          { data: line(cur.Yc.map((v) => v / m)), color: "#d4a20c", width: 1.5, dash: [5, 3] },
+          { data: line(cur.Rc.map((v) => v / m)), color: "#d23b2f", width: 1.5, dash: [5, 3] },
+          { data: line(cur.S.map((v) => v / m)), color: P.text, width: 2.2, fill: alpha(P.text, 0.08) },
+        ],
+      });
+    }, { aspect: 0.45, minHeight: 230, maxHeight: 340 });
+    function upd() {
+      if (busy) return;
+      const o = { bp: g["led-bp"](), bw: g["led-bw"](), yp: g["led-yp"](), yw: g["led-yw"](), red: red.checked, rp: g["led-rp"](), rw: g["led-rw"](), T: g["led-T"]() };
+      g["led-T"].el.disabled = !o.red; g["led-rp"].el.disabled = !o.red; g["led-rw"].el.disabled = !o.red;
+      const z = ledSPD(o);
+      if (!z) { cur = null; cv.redraw(); ["led-cct", "led-duv", "led-ra", "led-r9", "led-ler", "led-eta", "led-eff"].forEach((id) => set(id, "—")); return; }
+      const B = WL.map((l) => CB.gauss(l, o.bp, o.bw)), Yc = WL.map((l) => z.ky * CB.gauss(l, o.yp, o.yw)), Rc = WL.map((l) => (o.red ? z.kr * CB.gauss(l, o.rp, o.rw) : 0));
+      cur = { S: z.S, B, Yc, Rc };
+      const r = cri(z.S), P = CB.palette();
+      let pOut = 0, pIn = 0;
+      WL.forEach((l, i) => { const ph = Yc[i] + Rc[i]; pOut += B[i] + ph; pIn += B[i] + ph * (l / o.bp); });
+      const eta = pOut / pIn;
+      cv.redraw();
+      set("led-cct", r.T.toFixed(0) + " K");
+      set("led-duv", sgn(r.duv));
+      set("led-ra", `<span style="color:${rcol(r.Ra, P)}">${r.Ra.toFixed(1)}</span>`);
+      set("led-r9", r.R[8].toFixed(0));
+      set("led-ler", r.LER.toFixed(0) + " lm/W");
+      set("led-eta", (100 * eta).toFixed(1) + " %");
+      set("led-eff", (r.LER * eta).toFixed(0) + " lm/W");
+    }
+    upd();
+  })();
+
+  /* ------------------------------------------------------------ 6. RGB 3피크 */
+  const RAMP = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  const ramp = (t) => { t = CB.clamp(t, 0, 1) * 4; const i = Math.min(3, Math.floor(t)), f = t - i; return RAMP[i].map((v, k) => Math.round(v + (RAMP[i + 1][k] - v) * f)); };
+  (function () {
+    const fmN = (v) => v + " nm";
+    const gB = CB.range("rgb-b", fmN, () => { sched(); upd(); });
+    const gG = CB.range("rgb-g", fmN, () => upd());
+    const gR = CB.range("rgb-r", fmN, () => upd());
+    const gW = CB.range("rgb-w", fmN, () => { sched(); upd(); });
+    const gT = CB.range("rgb-T", (v) => v + " K", () => { sched(); upd(); });
+    const metric = CB.seg("rgb-metric", () => cvM.redraw());
+    const GS = [], RS = [];
+    for (let l = 500; l <= 575; l += 5) GS.push(l);
+    for (let l = 590; l <= 665; l += 5) RS.push(l);
+    let map = null, timer = 0, cur = null;
+    function compute() {
+      const b = gB(), w = gW(), T = gT();
+      map = GS.map((gl) => RS.map((rl) => { const z = rgbSPD([b, gl, rl], w, T); if (!z) return null; const r = cri(z.S); return { ra: r.Ra, r9: r.R[8], ler: r.LER }; }));
+      cvM.redraw();
+    }
+    function sched() { clearTimeout(timer); timer = setTimeout(compute, 120); }
+    const cvS = CB.canvas("#cv-rgb-spd", (ctx) => {
+      const P = CB.palette();
+      if (!cur) { ctx.fillStyle = P.bad; ctx.font = "14px sans-serif"; ctx.fillText("세 피크로 목표 백색을 만들 수 없다(음의 가중치).", 20, 40); return; }
+      const m = Math.max(...cur.S);
+      CB.chart(ctx, null, {
+        x: [380, 780], y: [0, 1.05], xLabel: "파장 (nm)", yLabel: "상대 SPD",
+        series: [{ data: WL.map((l) => [l, CB.V(l)]), color: P.faint, width: 1, dash: [2, 3] }]
+          .concat(cur.parts.map((p) => ({ data: line(p.a.map((v) => v / m)), color: CB.wl2rgb(p.l), width: 1.5, fill: CB.wl2rgb(p.l, 0.25) })))
+          .concat([{ data: line(cur.S.map((v) => v / m)), color: P.text, width: 2 }]),
+      });
+    }, { aspect: 0.5, minHeight: 210, maxHeight: 300 });
+    const cvM = CB.canvas("#cv-rgb-map", (ctx, w, h) => {
+      const P = CB.palette(), k = metric();
+      const box = { x: 52, y: 12, w: w - 52 - 48, h: h - 12 - 46 };
+      const c = CB.chart(ctx, box, { x: [497.5, 577.5], y: [587.5, 667.5], xLabel: "녹색 피크 (nm)", yLabel: "적색 피크 (nm)" });
+      if (!map) return;
+      const rng = { ra: [0, 100], r9: [-100, 100], ler: [250, 420] }[k];
+      GS.forEach((gl, i) => RS.forEach((rl, j) => {
+        const v = map[i][j], x0 = c.X(gl - 2.5), x1 = c.X(gl + 2.5), y0 = c.Y(rl + 2.5), y1 = c.Y(rl - 2.5);
+        ctx.fillStyle = v ? CB.rgb8css(ramp((v[k] - rng[0]) / (rng[1] - rng[0]))) : P.grid;
+        ctx.fillRect(x0, y0, x1 - x0 + 0.5, y1 - y0 + 0.5);
+        if (v && v.ra >= 80) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.strokeRect(x0 + 1.5, y0 + 1.5, x1 - x0 - 3, y1 - y0 - 3); }
+      }));
+      const g = gG(), r = gR();
+      ctx.strokeStyle = P.text; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(c.X(g), c.Y(r), 7, 0, 7); ctx.stroke();
+      const lx = box.x + box.w + 14, lh = box.h;
+      for (let i = 0; i < lh; i++) { ctx.fillStyle = CB.rgb8css(ramp(1 - i / lh)); ctx.fillRect(lx, box.y + i, 12, 1.5); }
+      ctx.fillStyle = P.dim; ctx.font = "10px " + getComputedStyle(document.body).getPropertyValue("--mono"); ctx.textAlign = "left";
+      ctx.textBaseline = "bottom"; ctx.fillText(String(rng[1]), lx - 2, box.y - 1); ctx.textBaseline = "top"; ctx.fillText(String(rng[0]), lx - 2, box.y + lh + 2);
+    }, { aspect: 0.72, minHeight: 260, maxHeight: 420 });
+    function upd() {
+      const pk = [gB(), gG(), gR()], w = gW(), T = gT(), z = rgbSPD(pk, w, T);
+      if (!z) { cur = null; cvS.redraw(); cvM.redraw(); ["rgb-ra", "rgb-r9", "rgb-ler", "rgb-ga"].forEach((id) => set(id, "—")); return; }
+      cur = { S: z.S, parts: pk.map((l, i) => ({ l, a: WL.map((x) => z.w[i] * CB.gauss(x, l, w)) })) };
+      const r = cri(z.S), P = CB.palette();
+      cvS.redraw(); cvM.redraw();
+      set("rgb-ra", `<span style="color:${rcol(r.Ra, P)}">${r.Ra.toFixed(1)}</span>`);
+      set("rgb-r9", r.R[8].toFixed(0));
+      set("rgb-ler", r.LER.toFixed(0) + " lm/W");
+      set("rgb-ga", r.Ga.toFixed(1));
+    }
+    upd(); compute();
+  })();
+
+  /* ------------------------------------------------------------ 7. Ra–LER 산점도 */
+  (function () {
+    const pts = [], rnd = Math.random;
+    const yk = CB.seg("par-y", () => cv.redraw());
+    function gen(n) {
+      let left = n;
+      (function chunk() {
+        for (let k = 0; k < 25 && left > 0; k++, left--) {
+          const T = 2700 + 3800 * rnd();
+          if (left % 2) {
+            const z = ledSPD({ bp: 440 + 20 * rnd(), bw: 16 + 12 * rnd(), yp: 525 + 50 * rnd(), yw: 70 + 60 * rnd(), red: true, rp: 600 + 60 * rnd(), rw: 15 + 85 * rnd(), T });
+            if (z) { const r = cri(z.S); pts.push({ t: 0, ra: r.Ra, r9: r.R[8], ler: r.LER }); }
+          } else {
+            const z = rgbSPD([440 + 35 * rnd(), 500 + 70 * rnd(), 590 + 65 * rnd()], 12 + 30 * rnd(), T);
+            if (z) { const r = cri(z.S); pts.push({ t: 1, ra: r.Ra, r9: r.R[8], ler: r.LER }); }
+          }
+        }
+        cv.redraw();
+        if (left > 0) setTimeout(chunk, 0);
+      })();
+    }
+    document.getElementById("par-more").addEventListener("click", () => gen(300));
+    const cv = CB.canvas("#cv-par", (ctx) => {
+      const P = CB.palette(), k = yk();
+      const yr = k === "ra" ? [-40, 100] : [-150, 100];
+      const c = CB.chart(ctx, null, { x: [150, 430], y: yr, xLabel: "LER (lm/W)", yLabel: k === "ra" ? "Ra" : "R9", hlines: k === "ra" ? [{ y: 80 }, { y: 90 }] : [{ y: 0 }, { y: 50 }] });
+      ctx.save(); ctx.beginPath(); ctx.rect(c.box.x, c.box.y, c.box.w, c.box.h); ctx.clip();
+      pts.forEach((p) => { ctx.fillStyle = p.t ? alpha(P.accent2, 0.6) : alpha(P.accent, 0.6); ctx.beginPath(); ctx.arc(c.X(p.ler), c.Y(p[k]), 2.6, 0, 7); ctx.fill(); });
+      const srt = pts.slice().sort((a, b) => b.ler - a.ler); let best = -1e9; const front = [];
+      srt.forEach((p) => { if (p[k] > best) { best = p[k]; front.push([p.ler, p[k]]); } });
+      ctx.strokeStyle = P.warn; ctx.lineWidth = 2; ctx.beginPath(); front.forEach((q, i) => (i ? ctx.lineTo(c.X(q[0]), c.Y(q[1])) : ctx.moveTo(c.X(q[0]), c.Y(q[1])))); ctx.stroke();
+      ctx.font = "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+      NAMES.forEach((n) => { const r = getRes(n), v = k === "ra" ? r.Ra : r.R[8]; ctx.fillStyle = P.text; ctx.beginPath(); ctx.rect(c.X(r.LER) - 3.5, c.Y(v) - 3.5, 7, 7); ctx.fill(); ctx.textAlign = "left"; ctx.fillText(n, c.X(r.LER) + 6, c.Y(v) - 6); });
+      ctx.restore();
+      const top = (th) => { const q = pts.filter((p) => p.ra >= th); return q.length ? Math.max(...q.map((p) => p.ler)).toFixed(0) + " lm/W" : "—"; };
+      set("par-n", String(pts.length)); set("par-80", top(80)); set("par-90", top(90)); set("par-95", top(95));
+    }, { aspect: 0.6, minHeight: 280, maxHeight: 460 });
+    gen(400);
+  })();
+})();
+</script>
+</body>
+</html>

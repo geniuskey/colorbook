@@ -1,0 +1,1219 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>균등 색공간과 색차 · ColorBook</title>
+<meta name="description" content="CIELAB·LCh·CIELUV의 정의와 기준 백색, ΔE76·CIE94·CMC·CIEDE2000 색차식의 각 항, 산업 허용 오차, 청색 색상 휨과 OKLab, 그라데이션 보간을 직접 계산하며 익힌다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/uniform.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="균등 색공간과 색차 · ColorBook">
+<meta property="og:description" content="CIELAB·LCh·CIELUV의 정의와 기준 백색, ΔE76·CIE94·CMC·CIEDE2000 색차식의 각 항, 산업 허용 오차, 청색 색상 휨과 OKLab, 그라데이션 보간을 직접 계산하며 익힌다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/uniform.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"균등 색공간과 색차","name":"균등 색공간과 색차 · ColorBook","url":"https://colorbook.euiyun.com/chapters/uniform.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/uniform.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":7,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"CIELAB·LCh·CIELUV의 정의와 기준 백색, ΔE76·CIE94·CMC·CIEDE2000 색차식의 각 항, 산업 허용 오차, 청색 색상 휨과 OKLab, 그라데이션 보간을 직접 계산하며 익힌다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"07 균등 색공간과 색차","item":"https://colorbook.euiyun.com/chapters/uniform.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+.cb-in { font: 13px var(--mono); width: 100%; min-width: 0; box-sizing: border-box; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.in3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.in2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.swatch { height: 64px; border-radius: 10px; border: 1px solid var(--border); display: flex; align-items: flex-end; padding: 6px 8px; font: 12px var(--mono); }
+.chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid var(--border); }
+.sim-view canvas { touch-action: pan-y; }
+</style>
+</head>
+<body data-chapter="uniform">
+<main class="chapter">
+<header class="chapter-hero">
+<div class="eyebrow">Chapter 07</div>
+<h1>균등 색공간과 색차</h1>
+<p class="lead">XYZ는 두 색이 <strong>같은지</strong>는 정확히 말해 주지만, 두 색이 <strong>얼마나 다른지</strong>는 말해 주지 못한다. 인쇄 교정, 디스플레이 캘리브레이션, 도장 패널 매칭, 카메라 색 보정의 목적 함수는 모두 "색 차이를 숫자 하나로" 요구한다. 이 장은 거리가 지각 차이에 비례하도록 XYZ를 비선형으로 펴는 방법(CIELAB, CIELUV, OKLab)과, 그래도 남는 불균등을 가중치로 보정하는 색차식(ΔE76 → CIE94 → CIEDE2000)을 수식과 실제 숫자로 다룬다.</p>
+<ul class="objectives">
+<li>XYZ·xy 공간의 거리가 지각 차이와 맞지 않는다는 것을 계산된 등색차 타원으로 확인한다.</li>
+<li>CIELAB의 정의식(f 함수, ε=216/24389, κ=24389/27)과 기준 백색 의존성, LCh 극좌표, CIELUV와의 차이를 설명한다.</li>
+<li>ΔE*ab, CIE94, CMC l:c, CIEDE2000의 각 항(S<sub>L</sub>, S<sub>C</sub>, S<sub>H</sub>, G, T, R<sub>T</sub>)이 무엇을 보정하는지 수식으로 이해하고 직접 계산한다.</li>
+<li>업계 허용 오차의 대략적 범위와, ΔE 하나로 합격을 판정할 때의 함정을 안다.</li>
+<li>CIELAB의 청색 색상 휨과 OKLab의 동기를 이해하고, 그라데이션 보간 공간을 근거 있게 고른다.</li>
+</ul>
+</header>
+
+<section id="why">
+<h2>목표: 공간의 거리 = 지각 차이</h2>
+<p>3장의 XYZ는 <span class="term">등색</span><span class="en">(color matching)</span>을 위한 좌표다. 두 자극의 XYZ가 같으면 (표준 관측자에게) 같아 보인다는 것만 보장한다. 그러나 XYZ 공간에서 두 점 사이의 유클리드 거리 \( \lVert \Delta XYZ \rVert \)는 지각된 차이와 거의 관계가 없다. 같은 \( \Delta Y = 1 \)이라도 어두운 회색에서는 뚜렷하고 밝은 회색에서는 보이지 않는다(베버–페히너 경향). 색도에서도 마찬가지다. <a href="chromaticity.html">4장</a>의 맥아담 타원<span class="en">(MacAdam ellipses)</span>은 xy 색도도에서 "구별 못 하는 범위"가 녹색 영역에서는 크고 청색·백색 근처에서는 작으며, 모양도 원이 아니라 길쭉한 타원이라는 것을 보여 준다.</p>
+<p>공학적으로 우리가 원하는 것은 변환 \( \Phi:\ XYZ \to \mathbb{R}^3 \)로, 변환된 공간의 거리가 지각 차이에 비례하는 것이다. 작은 차이에 대해 이 요구를 쓰면 다음과 같다.</p>
+<div class="formula">$$ \Delta E^2 \approx d\mathbf{x}^{\mathsf T}\, \mathbf{G}(\mathbf{x})\, d\mathbf{x}, \qquad \text{균등 공간: } \mathbf{G}(\mathbf{x}) \approx \mathbf{I} $$
+<div class="where">여기서 \( d\mathbf{x} \)는 색 좌표의 작은 변화, \( \mathbf{G}(\mathbf{x}) \)는 위치마다 다른 지각 계량 텐서<span class="en">(metric tensor)</span>다. 맥아담 타원은 \( d\mathbf{x}^{\mathsf T}\mathbf{G}\,d\mathbf{x} = \text{const} \)인 등고선이다. 균등 색공간은 \( \mathbf{G} \)가 어디서나 단위 행렬에 가깝도록 좌표를 휘는 시도다.</div>
+</div>
+<figure class="diagram">
+<svg viewBox="0 0 800 400" role="img" aria-label="xy 색도도와 u'v' 색도도에서 계산한 ΔE00=1 등고선 비교">
+<path d="M124 348L124 348L124 348L123 348L123 348L122 347L120 346L117 344L113 339L106 329L93 301L77 242L63 153L65 75L87 44L117 55L144 73L171 96L197 121L223 147L248 172L271 194L290 213L304 228L314 237L320 243L324 247L326 250L328 251L328 252L329 252L329 253L329 253Z" class="s-line" fill="none"/><path d="M295 229L170 130L115 328Z" class="s-axis" fill="none" stroke-dasharray="4 4"/><path d="M123 321L125 318L127 314L123 314L120 316L118 317L117 318L116 319L115 319L114 321L112 323L110 328L115 327L118 326L119 325L120 324L121 323L122 322Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="119" cy="321" r="1.8" class="f-acc"/><path d="M137 277L138 275L140 271L145 256L135 268L132 272L131 273L131 274L130 275L129 277L128 278L126 283L122 297L132 286L134 282L135 280L136 279L137 278Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="133" cy="277" r="1.8" class="f-acc"/><path d="M164 203L164 200L163 197L161 193L157 192L153 192L150 194L148 197L147 200L146 203L146 207L147 210L150 213L153 214L157 214L160 212L162 209L164 206Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="155" cy="203" r="1.8" class="f-acc"/><path d="M154 123L153 118L152 113L149 108L145 100L135 92L127 99L125 110L126 117L127 123L128 127L129 132L132 138L137 146L146 152L154 146L156 135L155 128Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="141" cy="123" r="1.8" class="f-acc"/><path d="M187 123L186 119L185 116L183 113L180 108L174 101L166 102L165 112L166 119L167 123L168 126L169 129L171 133L175 139L181 145L188 142L189 133L188 127Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="177" cy="123" r="1.8" class="f-acc"/><path d="M208 167L208 163L208 160L206 155L202 151L197 153L194 157L192 161L191 164L191 167L191 170L191 174L192 179L197 182L202 180L205 176L206 172L207 170Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="199" cy="167" r="1.8" class="f-acc"/><path d="M178 229L179 228L179 225L177 225L175 226L174 227L173 227L173 228L172 229L172 229L171 231L170 233L172 234L174 233L175 232L176 231L176 231L177 230Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="175" cy="229" r="1.8" class="f-acc"/><path d="M235 196L238 191L234 188L229 188L226 189L224 190L222 191L220 192L218 193L215 196L213 201L216 204L221 203L224 203L226 202L228 201L230 200L232 199Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="225" cy="196" r="1.8" class="f-acc"/><path d="M275 203L270 200L267 199L264 199L263 198L261 198L258 198L255 198L249 199L247 203L253 207L257 208L259 208L261 208L263 209L265 209L268 209L275 208Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="262" cy="203" r="1.8" class="f-acc"/><path d="M301 229L297 227L295 226L293 225L292 225L290 224L288 223L282 222L273 222L280 229L285 231L287 232L289 233L290 233L292 234L294 235L300 237L309 236Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="291" cy="229" r="1.8" class="f-acc"/><path d="M228 251L227 246L222 244L219 243L215 243L213 243L210 244L207 245L203 247L200 251L202 256L206 258L209 259L213 259L215 259L218 259L222 257L226 255Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="214" cy="251" r="1.8" class="f-acc"/><path d="M170 277L171 274L171 270L168 267L164 268L161 270L160 271L158 273L157 275L156 277L154 280L154 284L157 286L161 285L164 284L166 282L167 280L169 279Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="163" cy="277" r="1.8" class="f-acc"/><path d="M126 229L127 225L126 220L121 218L117 218L113 219L110 221L108 223L106 226L104 229L103 234L104 238L108 240L113 240L117 238L119 237L122 235L124 232Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="115" cy="229" r="1.8" class="f-acc"/><path d="M260 233L254 229L250 227L247 227L244 226L242 226L240 226L236 227L230 228L227 233L232 237L237 238L240 239L242 239L244 239L247 239L251 239L257 238Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="243" cy="233" r="1.8" class="f-acc"/><line x1="60" y1="350" x2="353" y2="350" class="s-axis"/><line x1="60" y1="350" x2="60" y2="20" class="s-axis"/>
+<path d="M569 342L568 342L568 343L567 343L566 342L564 340L558 334L550 325L537 310L517 280L488 225L463 160L452 113L452 90L461 81L473 79L487 80L502 81L521 84L543 87L571 91L603 96L636 101L667 106L690 109L707 112L719 113L727 115L732 115L734 116L736 116L737 116L738 116Z" class="s-line" fill="none"/><path d="M658 109L508 90L531 277Z" class="s-axis" fill="none" stroke-dasharray="4 4"/><path d="M538 259L539 256L539 252L539 245L534 240L529 247L527 251L526 254L525 257L524 259L524 261L523 265L523 273L528 277L533 271L536 266L537 263L537 261Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="531" cy="259" r="1.8" class="f-acc"/><path d="M528 184L528 182L528 180L529 175L528 160L522 171L520 178L520 181L520 182L520 184L519 185L519 188L519 192L519 209L526 197L527 190L528 187L528 185Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="524" cy="184" r="1.8" class="f-acc"/><path d="M523 122L522 119L521 118L519 116L517 116L515 115L512 116L510 117L509 119L509 122L509 124L511 126L513 127L515 128L517 128L519 128L522 126L523 124Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="516" cy="122" r="1.8" class="f-acc"/><path d="M499 92L497 90L495 88L494 87L492 86L489 85L486 85L482 85L480 89L482 92L484 95L486 97L487 98L489 99L492 100L495 101L499 100L501 96Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="491" cy="92" r="1.8" class="f-acc"/><path d="M518 87L515 85L513 85L512 84L511 84L510 83L508 83L504 82L500 83L503 87L505 89L507 90L508 91L510 91L511 92L513 92L517 93L520 91Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="510" cy="87" r="1.8" class="f-acc"/><path d="M541 98L540 96L539 95L538 93L536 93L534 92L532 92L529 93L528 95L529 98L530 100L531 101L532 103L534 104L536 104L539 104L541 103L542 100Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="535" cy="98" r="1.8" class="f-acc"/><path d="M544 134L544 133L544 131L543 130L542 130L541 131L540 132L540 132L539 133L539 134L538 135L538 136L539 138L541 138L542 137L543 136L543 135L544 135Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="541" cy="134" r="1.8" class="f-acc"/><path d="M573 106L575 103L573 100L569 100L567 101L566 101L564 102L563 103L561 104L560 106L558 109L560 111L563 111L565 111L567 110L568 109L570 109L571 107Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="566" cy="106" r="1.8" class="f-acc"/><path d="M616 102L610 99L605 99L603 99L602 99L601 99L600 99L598 99L596 100L588 102L592 105L598 105L600 105L601 105L602 105L603 105L605 105L608 104Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="602" cy="102" r="1.8" class="f-acc"/><path d="M682 110L661 107L657 107L656 107L655 107L654 107L652 107L651 107L646 107L626 110L647 112L651 112L652 112L654 112L655 112L656 112L658 112L662 112Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="654" cy="110" r="1.8" class="f-acc"/><path d="M610 142L607 137L602 136L598 135L595 135L592 135L589 135L586 136L581 138L578 142L581 147L585 149L589 150L592 150L595 150L598 150L602 149L607 147Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="594" cy="142" r="1.8" class="f-acc"/><path d="M565 178L565 175L564 172L562 169L559 167L555 167L552 169L550 172L549 176L549 178L549 181L550 184L551 188L555 190L559 190L562 188L564 185L565 181Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="557" cy="178" r="1.8" class="f-acc"/><path d="M500 144L501 141L500 137L497 136L493 136L490 137L488 138L486 140L485 142L483 144L483 147L483 151L486 153L490 153L493 152L495 150L497 149L498 147Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="492" cy="144" r="1.8" class="f-acc"/><path d="M627 122L621 118L614 117L611 117L609 118L607 118L605 118L603 118L599 119L590 122L595 127L602 128L605 128L607 127L609 127L611 127L613 127L618 126Z" class="f-acc-soft s-acc" stroke-width="1.5"/><circle cx="608" cy="122" r="1.8" class="f-acc"/><line x1="450" y1="350" x2="750" y2="350" class="s-axis"/><line x1="450" y1="350" x2="450" y2="64" class="s-axis"/>
+<text x="60" y="372" class="t-mono">0</text><text x="353" y="372" class="t-mono" text-anchor="end">x 0.8</text>
+<text x="52" y="28" class="t-mono" text-anchor="end">y</text>
+<text x="460" y="372" class="t-mono">0</text><text x="760" y="372" class="t-mono" text-anchor="end">u′ 0.65</text>
+<text x="452" y="70" class="t-mono" text-anchor="end">v′</text>
+<text x="215" y="50" class="t">CIE 1931 xy</text>
+<text x="215" y="70" class="t-dim">타원 면적 비 ≈ 30 : 1</text>
+<text x="640" y="110" class="t">CIE 1976 u′v′</text>
+<text x="640" y="130" class="t-dim">타원 면적 비 ≈ 11 : 1</text>
+<text x="400" y="394" class="t-dim" text-anchor="middle">점선: sRGB 삼각형 · 등고선: Y = 20 고정, ΔE00 = 1, 4배 확대</text>
+</svg>
+<figcaption><b>그림 7-1.</b> 휘도 Y=20을 고정하고 색도만 바꿀 때 CIEDE2000 색차가 1이 되는 경계를 xy(왼쪽)와 u′v′(오른쪽)에서 계산해 4배 확대해 그린 것이다(맥아담의 원 측정값이 아니라, 현대 지각 데이터에 맞춘 ΔE00을 지각의 대리 지표로 쓴 것). 균등한 공간이라면 모두 같은 크기의 원이어야 한다. xy에서는 녹색 영역 (0.22, 0.62)의 장반경이 0.0217, 백색점의 단반경이 0.0016으로 열 배 넘게 차이 나고, u′v′는 이를 줄이지만 없애지는 못한다.</figcaption>
+</figure>
+<p>그림 7-1의 숫자를 읽으면 문제의 크기가 보인다. 장반경×단반경으로 본 타원 면적이 xy에서는 최대 약 30배, u′v′에서도 약 11배 차이 난다. 색도 평면만 고친 u′v′(CIE 1976 UCS)로는 부족하고, 명도까지 포함한 3차원 비선형 변환이 필요하다. 1976년 CIE가 함께 권고한 두 공간이 <strong>CIELAB</strong>과 <strong>CIELUV</strong>이고, 그 뒤 40년 동안의 역사는 "CIELAB에 남은 불균등을 색차식의 가중치로 보정"하는 쪽(CIE94, CIEDE2000)과 "더 균등한 새 공간"을 만드는 쪽(CAM16-UCS, OKLab)으로 나뉜다.</p>
+<div class="callout deep"><strong>완벽한 균등 공간은 없다</strong>
+<p>작은 색차를 이어 붙인 경로 길이보다 두 끝점의 큰 색차가 더 작게 느껴지는 현상(diminishing returns)이 있어, 지각 색공간은 어떤 유클리드 공간으로도 정확히 펼 수 없다는 연구 결과가 있다(Bujack 등, 2022). 그래서 실무 색차식은 "작은 색차(대략 ΔE 5 이하)에서 잘 맞도록" 설계된다. 큰 색차를 ΔE로 비교하는 것은 원래 용도 밖이다.</p>
+</div>
+</section>
+
+<section id="cielab">
+<h2>CIELAB(1976): 정의와 기준 백색</h2>
+<p>CIELAB(정식 명칭 CIE 1976 L*a*b*, ISO/CIE 11664-4)은 세 단계로 만든다. ① 시료의 XYZ를 기준 백색 \( (X_n, Y_n, Z_n) \)으로 나눠 상대값으로 만든다. ② 각 비율에 세제곱근에 가까운 압축 함수 \( f \)를 적용한다(명도 지각의 비선형). ③ 압축된 값의 합·차로 명도와 두 반대색 축을 만든다(<a href="vision.html">2장</a>의 반대색 채널).</p>
+<div class="formula">$$ L^* = 116\, f\!\left(\tfrac{Y}{Y_n}\right) - 16,\qquad a^* = 500\left[f\!\left(\tfrac{X}{X_n}\right) - f\!\left(\tfrac{Y}{Y_n}\right)\right],\qquad b^* = 200\left[f\!\left(\tfrac{Y}{Y_n}\right) - f\!\left(\tfrac{Z}{Z_n}\right)\right] $$
+$$ f(t) = \begin{cases} t^{1/3}, & t \gt \varepsilon \\[4pt] \dfrac{\kappa\, t + 16}{116}, & t \le \varepsilon \end{cases}\qquad \varepsilon = \frac{216}{24389} = \left(\frac{6}{29}\right)^3 \approx 0.008856,\quad \kappa = \frac{24389}{27} \approx 903.3 $$
+<div class="where">\( t \le \varepsilon \)인 어두운 영역에서는 세제곱근 대신 직선을 쓴다(무한대 기울기를 피하기 위해). 초기 문헌의 0.008856, 7.787(=κ/116) 같은 반올림 상수는 두 구간이 정확히 이어지지 않는 작은 틈을 만들므로, CIE 015:2018처럼 유리수 정의를 쓰는 것이 좋다. 경계에서 \( L^* = 8 \)이다.</div>
+</div>
+<figure class="diagram">
+<svg viewBox="0 0 800 300" role="img" aria-label="상대 휘도 Y에 대한 L* 곡선과 어두운 영역의 선형 구간 확대">
+<line x1="70" y1="250" x2="470" y2="250" class="s-axis"/><line x1="70" y1="250" x2="70" y2="25" class="s-axis"/>
+<path d="M70.0 250.0L70.0 249.8L70.2 249.2L70.4 248.2L70.6 246.8L71.0 245.0L71.4 242.8L72.0 240.3L72.6 237.3L73.2 233.9L74.0 230.2L74.8 226.6L75.8 223.1L76.8 219.7L77.8 216.4L79.0 213.2L80.2 210.0L81.6 206.9L83.0 203.8L84.4 200.9L86.0 197.9L87.6 195.0L89.4 192.2L91.2 189.4L93.0 186.6L95.0 183.9L97.0 181.2L99.2 178.6L101.4 176.0L103.6 173.4L106.0 170.8L108.4 168.3L111.0 165.8L113.6 163.3L116.2 160.9L119.0 158.5L121.8 156.1L124.8 153.7L127.8 151.3L130.8 149.0L134.0 146.7L137.2 144.4L140.6 142.1L144.0 139.8L147.4 137.6L151.0 135.3L154.6 133.1L158.4 130.9L162.2 128.8L166.0 126.6L170.0 124.4L174.0 122.3L178.2 120.2L182.4 118.1L186.6 116.0L191.0 113.9L195.4 111.8L200.0 109.8L204.6 107.7L209.2 105.7L214.0 103.7L218.8 101.6L223.8 99.6L228.8 97.7L233.8 95.7L239.0 93.7L244.2 91.7L249.6 89.8L255.0 87.9L260.4 85.9L266.0 84.0L271.6 82.1L277.4 80.2L283.2 78.3L289.0 76.4L295.0 74.5L301.0 72.7L307.2 70.8L313.4 69.0L319.6 67.1L326.0 65.3L332.4 63.4L339.0 61.6L345.6 59.8L352.2 58.0L359.0 56.2L365.8 54.4L372.8 52.6L379.8 50.8L386.8 49.1L394.0 47.3L401.2 45.6L408.6 43.8L416.0 42.1L423.4 40.3L431.0 38.6L438.6 36.9L446.4 35.1L454.2 33.4L462.0 31.7L470.0 30.0" fill="none" class="s-acc" stroke-width="2.5"/>
+<path d="M70.0 250.0L470.0 30.0" fill="none" class="s-line" stroke-dasharray="5 5"/>
+<circle cx="142" cy="141.1" r="4" class="f-acc"/>
+<line x1="142" y1="141.1" x2="142" y2="250" class="s-axis" stroke-dasharray="3 3"/><line x1="70" y1="141.1" x2="142" y2="141.1" class="s-axis" stroke-dasharray="3 3"/>
+<text x="150" y="136" class="t-mono">Y = 0.18 → L* = 49.5</text>
+<text x="300" y="150" class="t-dim">점선: L* = 100·Y (선형이었다면)</text>
+<text x="70" y="270" class="t-mono" text-anchor="middle">0</text><text x="270" y="270" class="t-mono" text-anchor="middle">0.5</text><text x="470" y="270" class="t-mono" text-anchor="middle">1</text>
+<text x="270" y="290" class="t-dim" text-anchor="middle">Y / Yn</text>
+<text x="62" y="254" class="t-mono" text-anchor="end">0</text><text x="62" y="144" class="t-mono" text-anchor="end">50</text><text x="62" y="34" class="t-mono" text-anchor="end">100</text>
+<text x="30" y="20" class="t-dim">L*</text>
+<rect x="520" y="40" width="260" height="220" rx="8" class="f-surface"/>
+<line x1="530" y1="161.1" x2="770" y2="161.1" class="s-axis"/>
+<path d="M530.0 250.0L530.9 222.3L532.7 210.9L534.9 202.1L537.6 194.7L540.6 188.1L543.9 182.2L547.6 176.8L551.5 171.8L555.6 167.0L560.0 162.5L564.6 158.3L569.4 154.2L574.5 150.3L579.7 146.5L585.1 142.9L590.7 139.4L596.5 136.0L602.4 132.6L608.6 129.4L614.9 126.3L621.3 123.2L627.9 120.3L634.6 117.3L641.5 114.5L648.6 111.7L655.8 109.0L663.1 106.3L670.6 103.6L678.2 101.0L685.9 98.5L693.7 96.0L701.7 93.5L709.8 91.1L718.1 88.7L726.4 86.4L734.9 84.0L743.5 81.7L752.2 79.5L761.1 77.3L770.0 75.1" fill="none" class="s-line" stroke-dasharray="4 4"/>
+<path d="M530.0 161.1L530.9 160.7L532.7 160.0L534.9 159.0L537.6 157.9L540.6 156.7L543.9 155.3L547.6 153.8L551.5 152.1L555.6 150.4L560.0 148.6L564.6 146.6L569.4 144.6L574.5 142.5L579.7 140.3L585.1 138.1L590.7 135.7L596.5 133.3L602.4 130.8L608.6 128.2L614.9 125.6L621.3 122.9L627.9 120.2L634.6 117.3L641.5 114.5L648.6 111.7L655.8 109.0L663.1 106.3L670.6 103.6L678.2 101.0L685.9 98.5L693.7 96.0L701.7 93.5L709.8 91.1L718.1 88.7L726.4 86.4L734.9 84.0L743.5 81.7L752.2 79.5L761.1 77.3L770.0 75.1" fill="none" class="s-acc" stroke-width="2.5"/>
+<circle cx="636.3" cy="116.7" r="4" class="f-acc"/>
+<text x="645" y="128" class="t-mono">ε: Y/Yn = 0.008856, L* = 8</text>
+<text x="534" y="58" class="t">어두운 영역 확대 (Y/Yn 0 ~ 0.02)</text>
+<text x="536" y="244" class="t-dim">점선: 116·∛t − 16 (세제곱근만 쓰면 −16까지)</text>
+<text x="536" y="176" class="t-mono">L* = 0</text>
+<text x="536" y="222" class="t-dim">실선: 선형 구간 κ·t로 0에서 시작</text>
+</svg>
+<figcaption><b>그림 7-2.</b> 상대 휘도 Y/Y<sub>n</sub>에 대한 L*. 18% 회색이 L* ≈ 50 근처에 오도록 하는 대략 세제곱근 곡선이다(L* = 50은 Y = 18.4%). 오른쪽은 ε 아래의 선형 구간: 세제곱근만 쓰면 Y=0에서 L* = −16이 되고 기울기가 무한대가 된다.</figcaption>
+</figure>
+<p><strong>각 축의 의미.</strong> \( L^* \)는 0(흑)–100(기준 백색)의 명도<span class="en">(lightness)</span>다. \( a^* \)는 +이면 적(마젠타 쪽), −이면 녹, \( b^* \)는 +이면 황, −이면 청이다. 계수 500과 200은 세 축의 단위 차이가 대략 비슷한 지각 크기가 되도록 정한 값이다. \( a^* \), \( b^* \)에는 이론적 상하한이 없고, 실제 표면색은 대략 ±100, sRGB 원색 청은 \( b^* = -107.9 \)까지 간다.</p>
+<figure class="diagram">
+<svg viewBox="0 0 800 320" role="img" aria-label="CIELAB 원통 좌표: L* 수직축, a* 적-녹 축, b* 황-청 축, C*와 h 표시">
+<defs><marker id="ar7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+<ellipse cx="200" cy="170" rx="150" ry="48" class="f-surface s-line"/>
+<line x1="200" y1="295" x2="200" y2="28" class="s-line" stroke-width="2" marker-end="url(#ar7)"/>
+<circle cx="200" cy="295" r="7" fill="#111"/><circle cx="200" cy="40" r="7" fill="#fff" class="s-line"/>
+<text x="214" y="44" class="t">L* = 100 (기준 백색)</text><text x="214" y="300" class="t">L* = 0</text>
+<line x1="55" y1="170" x2="345" y2="170" class="s-axis"/>
+<line x1="150" y1="218" x2="250" y2="122" class="s-axis"/>
+<circle cx="345" cy="170" r="8" fill="#d63a3a"/><circle cx="55" cy="170" r="8" fill="#2f9e4a"/>
+<circle cx="250" cy="122" r="8" fill="#e8c21a"/><circle cx="150" cy="218" r="8" fill="#3a5fd6"/>
+<text x="350" y="190" class="t-mono">+a*</text><text x="20" y="190" class="t-mono">−a*</text>
+<text x="262" y="118" class="t-mono">+b*</text><text x="100" y="236" class="t-mono">−b*</text>
+<circle cx="580" cy="165" r="120" class="f-surface s-line"/>
+<line x1="450" y1="165" x2="710" y2="165" class="s-axis"/><line x1="580" y1="35" x2="580" y2="295" class="s-axis"/>
+<line x1="580" y1="165" x2="649" y2="107" class="s-acc" stroke-width="2.5" marker-end="url(#ar7)"/>
+<circle cx="649" cy="107" r="6" class="f-acc"/>
+<path d="M630 165 A50 50 0 0 0 618.3 132.9" fill="none" class="s-line" stroke-width="1.5"/>
+<text x="636" y="150" class="t-mono">h_ab</text>
+<text x="588" y="122" class="t-acc">C*</text>
+<text x="658" y="100" class="t">(a*, b*)</text>
+<text x="714" y="170" class="t-mono">+a*</text><text x="586" y="30" class="t-mono">+b*</text>
+<text x="580" y="315" class="t-dim" text-anchor="middle">L* 고정 단면(위에서 본 a*b* 평면)</text>
+</svg>
+<figcaption><b>그림 7-3.</b> CIELAB의 기하. 수직축이 명도 L*, 수평 단면이 반대색 평면 a*b*다. 단면의 극좌표가 채도 C*<sub>ab</sub>(원점에서의 거리)와 색상각 h<sub>ab</sub>(+a* 축에서 반시계 방향 각)이다.</figcaption>
+</figure>
+<p><strong>기준 백색 의존성.</strong> CIELAB은 "백색에 대한 상대값"이다. D65 2° 백색이면 \( (X_n,Y_n,Z_n) = (95.05,\,100,\,108.91) \), D50이면 \( (96.42,\,100,\,82.52) \)다. 같은 시료 XYZ라도 어떤 백색으로 나누느냐에 따라 Lab이 달라지며, ICC 프로파일의 PCS<span class="en">(Profile Connection Space)</span>는 D50 Lab, sRGB·웹 계산은 보통 D65 Lab이다(<a href="management.html">16장</a>). \( X/X_n \) 나눗셈은 백색이 무채색으로 가도록 하는 일종의 von Kries 정규화지만, 원추 공간이 아니라 XYZ 축에서 하므로 정확한 색순응 모델은 아니다(이른바 "잘못된 von Kries", <a href="adaptation.html">8장</a>).</p>
+
+<div class="sim" id="sim-lab">
+<div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>Lab / LCh 탐색기와 a*b* 단면</h3></div>
+<div class="sim-body side">
+<div class="sim-view"><canvas id="cv-lab"></canvas></div>
+<div class="sim-controls">
+<div class="ctrl"><span>입력 좌표계</span><div class="seg" id="lab-mode"><button data-value="lab" class="on">L*a*b*</button><button data-value="lch">L*C*h</button></div></div>
+<label class="ctrl"><span>L* <output id="lab-L-out"></output></span><input type="range" id="lab-L" min="0" max="100" step="0.5" value="50"></label>
+<label class="ctrl"><span><span id="lab-n1">a*</span> <output id="lab-p1-out"></output></span><input type="range" id="lab-p1" min="-128" max="128" step="0.5" value="40"></label>
+<label class="ctrl"><span><span id="lab-n2">b*</span> <output id="lab-p2-out"></output></span><input type="range" id="lab-p2" min="-128" max="128" step="0.5" value="-30"></label>
+<div class="swatch" id="lab-sw"></div>
+<div class="ctrl-row"><button class="btn" id="lab-gray">회색으로 (C*=0)</button><button class="btn" id="lab-blue">sRGB 청</button></div>
+</div>
+</div>
+<div class="sim-readout">
+<div class="stat"><span class="k">L*, a*, b*</span><span class="v" id="o-lab-lab">—</span></div>
+<div class="stat"><span class="k">C*ab, h_ab</span><span class="v" id="o-lab-lch">—</span></div>
+<div class="stat"><span class="k">XYZ (D65, Yn=100)</span><span class="v" id="o-lab-xyz">—</span></div>
+<div class="stat"><span class="k">sRGB</span><span class="v" id="o-lab-hex">—</span></div>
+<div class="stat"><span class="k">가멋</span><span class="v" id="o-lab-gam">—</span></div>
+</div>
+<div class="sim-note">해볼 것: ① L*을 0→100으로 움직이며 sRGB 단면(색이 칠해진 영역)의 모양을 보라. 청(−b*) 방향은 어두운 L*에서 가장 멀리 뻗고, 황(+b*)은 L* 90 이상에서만 크다. ② "sRGB 청"을 누른 뒤 LCh 모드에서 C*만 줄여 보라 — h_ab를 고정했는데 색이 보라로 변한다(8절에서 다룬다). ③ 단면을 클릭하면 그 a*, b*로 이동한다. 가멋 밖 색은 화면에서 클리핑되어 실제와 다르게 보인다.</div>
+</div>
+
+<p>실제 수치 예. 기준 백색 D65에서 sRGB 원색의 Lab은 적 #FF0000 = (53.24, 80.09, 67.20), 녹 #00FF00 = (87.74, −86.18, 83.19), 청 #0000FF = (32.30, 79.20, −107.86), 황 #FFFF00 = (97.14, −21.56, 94.48)이다. 같은 "최대 원색"이라도 명도가 32에서 97까지 흩어져 있다는 점이 RGB 값으로는 보이지 않는 정보다.</p>
+<div class="callout warn"><strong>흔한 실수</strong>
+<p>① 스케일 불일치: 시료 XYZ는 Y=0..1인데 백색을 Y=100으로 주면 L*이 거의 0이 된다. 시료와 백색은 같은 스케일이어야 한다. ② D50 Lab(ICC, 인쇄 측정값)과 D65 Lab(웹·영상 계산)을 섞어 ΔE를 계산하는 것. 같은 색인데도 ΔE가 수 단위로 나온다. 백색을 바꿀 때는 Lab을 직접 고치지 말고 XYZ에서 색순응 변환(Bradford 등) 후 다시 Lab을 계산한다. ③ 감마 인코딩된 R′G′B′ 값으로 바로 Lab 공식을 적용하는 것. 반드시 선형화 → XYZ → Lab 순서다(<a href="transfer.html">6장</a>).</p>
+</div>
+</section>
+
+<section id="lch-luv">
+<h2>LCh 극좌표와 CIELUV</h2>
+<p>a*b* 평면을 극좌표로 쓰면 사람의 언어("더 밝게, 더 선명하게, 더 노랗게")에 대응하는 세 속성이 된다.</p>
+<div class="formula">$$ C^*_{ab} = \sqrt{a^{*2} + b^{*2}},\qquad h_{ab} = \operatorname{atan2}(b^*, a^*)\ \ [0^\circ, 360^\circ) $$
+$$ \Delta H^*_{ab} = \sqrt{\Delta E^{*2}_{ab} - \Delta L^{*2} - \Delta C^{*2}_{ab}} = 2\sqrt{C^*_1 C^*_2}\,\sin\frac{\Delta h_{ab}}{2} $$
+<div class="where">\( \Delta H^* \)는 색상각 차이 \( \Delta h \)(도)가 아니라 <strong>색상 방향의 거리</strong>다. 채도가 큰 색일수록 같은 각도 차가 큰 \( \Delta H^* \)가 된다. 무채색 근처(\( C^* \lt 0.5 \) 정도)에서는 h가 사실상 정의되지 않으므로 색상각을 보고하지 않는다.</div>
+</div>
+<p>CIE94와 CIEDE2000은 모두 이 분해 \( \Delta E^{*2} = \Delta L^{*2} + \Delta C^{*2} + \Delta H^{*2} \) 위에서 각 성분을 서로 다른 척도 S<sub>L</sub>, S<sub>C</sub>, S<sub>H</sub>로 나눈다. 즉 색차식의 가중은 명도·채도·색상 방향에 서로 다른 허용 폭을 주는 것이다.</p>
+<p><strong>CIELUV.</strong> 같은 1976년에 권고된 CIELUV(ISO/CIE 11664-5)는 명도 L*은 CIELAB과 같고, 색도 부분을 u′v′ 색도 좌표의 <strong>차이</strong>로 만든다.</p>
+<div class="formula">$$ u^* = 13\,L^*\,(u' - u'_n),\qquad v^* = 13\,L^*\,(v' - v'_n),\qquad s_{uv} = 13\sqrt{(u'-u'_n)^2 + (v'-v'_n)^2} $$
+<div class="where">\( (u'_n, v'_n) \)은 기준 백색의 색도, \( s_{uv} \)는 CIELUV에서 정의되는 포화도<span class="en">(saturation)</span>다.</div>
+</div>
+<p>CIELUV는 u′v′ 색도도와 직접 연결되어 있으므로 <strong>가산 혼합이 색도도에서 직선</strong>이라는 성질(<a href="chromaticity.html">4장</a>)을 그대로 쓸 수 있다. 그래서 디스플레이·조명 분야에서 백색점 편차를 Δu′v′로 말하는 관행과 잘 맞는다. 반면 백색 정규화가 나눗셈이 아닌 <strong>뺄셈(평행 이동)</strong>이라서 광원이 바뀔 때의 거동은 CIELAB의 von Kries 유사 나눗셈보다 더 나쁘고, 이 때문에 표면색(인쇄, 도장, 섬유)의 색차 평가는 CIELAB으로 굳어졌다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>항목</th><th>CIELAB</th><th>CIELUV</th><th>OKLab</th></tr></thead>
+<tbody>
+<tr><td>발표</td><td>CIE 1976 (ISO/CIE 11664-4)</td><td>CIE 1976 (ISO/CIE 11664-5)</td><td>Ottosson 2020 (CSS Color 4 채택)</td></tr>
+<tr><td>비선형</td><td>f(X/Xn) 등: 세제곱근 + 선형 구간</td><td>L*만 세제곱근, 색도는 u′v′ 차이 × L*</td><td>LMS 유사 신호의 세제곱근</td></tr>
+<tr><td>백색 정규화</td><td>XYZ 축 나눗셈 (von Kries 유사)</td><td>u′v′ 뺄셈 (평행 이동)</td><td>D65 고정 (정규화 단계 없음)</td></tr>
+<tr><td>연결된 색도도</td><td>없음</td><td>u′v′ (가산 혼합 직선)</td><td>없음</td></tr>
+<tr><td>주 용도</td><td>표면색 색차, ICC PCS, 품질 관리</td><td>디스플레이·조명 색도 편차</td><td>그래픽 SW, CSS 색, 그라데이션·팔레트</td></tr>
+<tr><td>알려진 약점</td><td>청색 색상 휨, 고채도 채도 차 과대</td><td>색순응 거동, 색차 균등성</td><td>D65 sRGB 계열 전용, 관측 조건 없음</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section id="de76-94">
+<h2>ΔE*ab(1976)에서 CIE94와 CMC로</h2>
+<p>가장 단순한 색차는 CIELAB에서의 유클리드 거리다.</p>
+<div class="formula">$$ \Delta E^*_{ab} = \sqrt{(\Delta L^*)^2 + (\Delta a^*)^2 + (\Delta b^*)^2} = \sqrt{(\Delta L^*)^2 + (\Delta C^*_{ab})^2 + (\Delta H^*_{ab})^2} $$</div>
+<p>계산이 쉽고 지금도 사양서에 많이 남아 있지만, CIELAB 자체의 불균등이 그대로 드러난다. 가장 큰 문제는 <strong>채도가 높을수록 같은 ΔE*ab가 덜 보인다</strong>는 것이다. 고채도 색의 허용 타원은 채도 방향으로 길게 늘어나므로, ΔE*ab는 선명한 색의 차이를 과대평가하고 회색 근처의 차이를 과소평가한다. 정지 문턱(JND)으로 흔히 인용되는 "ΔE*ab ≈ 2.3"(Mahy 등, 1994)도 색 영역에 따라 크게 달라지는 평균값일 뿐이다.</p>
+<p><strong>CMC l:c (1984).</strong> 영국 염색가협회(SDC)의 색 측정 위원회가 섬유 합격 판정 데이터로 만든 식으로, 성분별 척도를 기준색의 명도·채도·색상각의 함수로 둔다.</p>
+<div class="formula">$$ \Delta E_{CMC(l:c)} = \sqrt{\left(\frac{\Delta L^*}{l\,S_L}\right)^2 + \left(\frac{\Delta C^*}{c\,S_C}\right)^2 + \left(\frac{\Delta H^*}{S_H}\right)^2} $$
+$$ S_L = \begin{cases} 0.511 & L^*_1 \lt 16 \\ \dfrac{0.040975\,L^*_1}{1 + 0.01765\,L^*_1} & \text{otherwise}\end{cases},\quad S_C = \frac{0.0638\,C^*_1}{1+0.0131\,C^*_1} + 0.638,\quad S_H = S_C\,(F\,T + 1 - F) $$
+<div class="where">\( F = \sqrt{C_1^{*4}/(C_1^{*4}+1900)} \), \( T = 0.56 + |0.2\cos(h_1+168^\circ)| \) (164° ≤ h₁ ≤ 345°), 그 외 \( 0.36 + |0.4\cos(h_1+35^\circ)| \). 첨자 1은 기준색. 합격성(acceptability) 판정에는 l:c = 2:1, 지각성(perceptibility)에는 1:1을 쓴다. 섬유 시험 규격 ISO 105-J03이 이 식을 쓴다.</div>
+</div>
+<p><strong>CIE94 (CIE 116-1995).</strong> CMC의 복잡한 함수를 단순한 선형 가중으로 줄인 식이다.</p>
+<div class="formula">$$ \Delta E^*_{94} = \sqrt{\left(\frac{\Delta L^*}{k_L S_L}\right)^2 + \left(\frac{\Delta C^*_{ab}}{k_C S_C}\right)^2 + \left(\frac{\Delta H^*_{ab}}{k_H S_H}\right)^2},\qquad S_L = 1,\ \ S_C = 1 + K_1 C^*_1,\ \ S_H = 1 + K_2 C^*_1 $$
+<div class="where">\( C^*_1 \)은 기준색의 채도(기준이 없으면 두 색 채도의 기하평균). 채도가 높을수록 S<sub>C</sub>, S<sub>H</sub>가 커져 허용 폭이 넓어진다. 기준 조건에서 \( k_C = k_H = 1 \).</div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>식</th><th>용도</th><th class="num">k<sub>L</sub> (또는 l)</th><th class="num">K₁</th><th class="num">K₂</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td>CIE94</td><td>그래픽 아트</td><td class="num">1</td><td class="num">0.045</td><td class="num">0.015</td><td>기준색 채도로 가중 → 비대칭</td></tr>
+<tr><td>CIE94</td><td>섬유</td><td class="num">2</td><td class="num">0.048</td><td class="num">0.014</td><td>명도 차를 절반으로 평가</td></tr>
+<tr><td>CMC 2:1</td><td>섬유 합격성</td><td class="num">l = 2, c = 1</td><td class="num">—</td><td class="num">—</td><td>ISO 105-J03</td></tr>
+<tr><td>CIEDE2000</td><td>범용</td><td class="num">1 (섬유 2)</td><td class="num">—</td><td class="num">—</td><td>CIE 142-2001, ISO/CIE 11664-6</td></tr>
+</tbody>
+</table></div>
+<div class="callout"><strong>공학자 관점: 비대칭 색차식</strong>
+<p>CIE94와 CMC는 \( \Delta E(A,B) \ne \Delta E(B,A) \)다. 어느 쪽이 기준(표준 시료)인지를 반드시 정하고, 측정 SW가 어느 쪽을 기준으로 잡는지 확인해야 한다. 기준을 뒤바꾸면 고채도 영역에서 수 % 이상 다른 값이 나온다. CIEDE2000은 두 색의 평균을 쓰므로 대칭이다.</p>
+</div>
+<p>섬유에서 \( k_L = 2 \)를 쓰는 이유는 직물의 질감·광택 때문에 명도 차이가 덜 민감하게 판정되기 때문이다. 즉 \( k \) 계수는 "관측 조건이 기준 조건(균일한 회색 배경, 매끈한 시료, D65 근사 조명, 1000 lx 근방)과 다를 때" 쓰는 <strong>산업 파라미터</strong>이고, 색차식의 물리적 정의를 바꾸는 것이 아니다.</p>
+</section>
+
+<section id="de2000">
+<h2>CIEDE2000: 항별로 뜯어보기</h2>
+<p>CIEDE2000(CIE 142-2001, ISO/CIE 11664-6)은 CIE94의 구조(성분별 척도)를 유지하면서, 여러 지각 색차 데이터 세트(BFD-P, Leeds, RIT–DuPont, Witt)를 결합해 남은 체계적 오차를 다섯 가지 보정으로 줄인 식이다. 입력은 두 CIELAB 값 \( (L_1^*, a_1^*, b_1^*) \), \( (L_2^*, a_2^*, b_2^*) \)이다.</p>
+<figure class="diagram">
+<svg viewBox="0 0 800 250" role="img" aria-label="CIEDE2000 계산 흐름도">
+<defs><marker id="ar7c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+<rect x="10" y="20" width="130" height="80" rx="10" class="f-elev s-line"/>
+<text x="75" y="52" class="t" text-anchor="middle">Lab₁, Lab₂</text><text x="75" y="76" class="t-dim" text-anchor="middle">CIELAB 입력</text>
+<rect x="175" y="20" width="180" height="80" rx="10" class="f-acc-soft s-acc"/>
+<text x="265" y="46" class="t" text-anchor="middle">① a′ = (1+G)·a*</text><text x="265" y="68" class="t-dim" text-anchor="middle">무채색 근처 a* 확대</text><text x="265" y="88" class="t-dim" text-anchor="middle">C̄* ≪ 25 이면 G → 0.5</text>
+<rect x="390" y="20" width="170" height="80" rx="10" class="f-elev s-line"/>
+<text x="475" y="52" class="t" text-anchor="middle">C′, h′ (극좌표)</text><text x="475" y="76" class="t-dim" text-anchor="middle">ΔL′, ΔC′, ΔH′</text>
+<rect x="595" y="20" width="195" height="80" rx="10" class="f-acc-soft s-acc"/>
+<text x="692" y="46" class="t" text-anchor="middle">② S_L(L̄′)  V자 가중</text><text x="692" y="68" class="t" text-anchor="middle">③ S_C(C̄′)  ④ S_H(C̄′,T(h̄′))</text><text x="692" y="88" class="t-dim" text-anchor="middle">성분별 허용 폭</text>
+<line x1="140" y1="60" x2="172" y2="60" class="s-line" marker-end="url(#ar7c)"/>
+<line x1="355" y1="60" x2="387" y2="60" class="s-line" marker-end="url(#ar7c)"/>
+<line x1="560" y1="60" x2="592" y2="60" class="s-line" marker-end="url(#ar7c)"/>
+<path d="M692 100 V130 H560 V150" fill="none" class="s-line" marker-end="url(#ar7c)"/>
+<rect x="330" y="152" width="300" height="80" rx="10" class="f-acc2-soft s-line"/>
+<text x="480" y="180" class="t" text-anchor="middle">⑤ R_T · (ΔC′/S_C)(ΔH′/S_H)</text><text x="480" y="204" class="t-dim" text-anchor="middle">청색 h̄′ ≈ 275° 부근에서만 큰 회전 교차항</text><text x="480" y="222" class="t-dim" text-anchor="middle">허용 타원을 기울인다</text>
+<line x1="330" y1="192" x2="232" y2="192" class="s-line" marker-end="url(#ar7c)"/>
+<rect x="80" y="160" width="150" height="64" rx="10" class="f-elev s-acc"/>
+<text x="155" y="198" class="t-acc" text-anchor="middle">ΔE₀₀</text>
+</svg>
+<figcaption><b>그림 7-4.</b> CIEDE2000의 계산 흐름. ①–⑤가 ΔE*ab에 더해진 다섯 가지 보정이다. ③④는 CIE94와 같은 발상(채도가 클수록 허용 폭 증가)이고, ①②⑤가 새로 들어간 항이다.</figcaption>
+</figure>
+<p><strong>① a* 축 재척도 (G).</strong> 무채색 근처에서는 a* 방향 차이가 ΔE*ab가 예측하는 것보다 더 잘 보인다. 그래서 두 색의 평균 채도 \( \bar C^* \)가 작을 때 a*를 최대 1.5배 늘린다.</p>
+<div class="formula">$$ G = 0.5\left(1 - \sqrt{\frac{\bar C^{*7}}{\bar C^{*7} + 25^7}}\right),\qquad a'_i = (1+G)\,a^*_i,\qquad C'_i = \sqrt{a'^2_i + b^{*2}_i},\qquad h'_i = \operatorname{atan2}(b^*_i, a'_i) $$</div>
+<p><strong>차이와 평균.</strong> 이후 모든 계산은 수정된 \( a' \)로 한다.</p>
+<div class="formula">$$ \Delta L' = L^*_2 - L^*_1,\quad \Delta C' = C'_2 - C'_1,\quad \Delta H' = 2\sqrt{C'_1 C'_2}\,\sin\frac{\Delta h'}{2},\quad \bar L' = \frac{L^*_1+L^*_2}{2},\ \bar C' = \frac{C'_1+C'_2}{2},\ \bar h' $$
+<div class="where">\( \Delta h' = h'_2 - h'_1 \)을 [−180°, 180°]로 감싼다. 평균 색상각 \( \bar h' \)는 두 각의 차가 180°를 넘으면 360°를 더하거나 빼서 짧은 호의 중점을 취한다. 한쪽 채도가 0이면 \( \Delta h' = 0 \), \( \bar h' = h'_1 + h'_2 \).</div>
+</div>
+<p><strong>② 명도 가중 S<sub>L</sub>.</strong> 중간 회색(L* = 50) 배경에서 관측한 데이터에 맞춰, 명도 차이는 L* = 50 근처에서 가장 민감하고 아주 밝거나 어두운 쪽에서 둔하다(V자 곡선).</p>
+<div class="formula">$$ S_L = 1 + \frac{0.015\,(\bar L' - 50)^2}{\sqrt{20 + (\bar L' - 50)^2}} \qquad (\bar L' = 50: 1.000,\ \ \bar L' = 90: 1.596) $$</div>
+<p><strong>③④ 채도·색상 가중 S<sub>C</sub>, S<sub>H</sub>와 색상 함수 T.</strong></p>
+<div class="formula">$$ S_C = 1 + 0.045\,\bar C',\qquad S_H = 1 + 0.015\,\bar C'\,T $$
+$$ T = 1 - 0.17\cos(\bar h' - 30^\circ) + 0.24\cos(2\bar h') + 0.32\cos(3\bar h' + 6^\circ) - 0.20\cos(4\bar h' - 63^\circ) $$
+<div class="where">T는 색상 방향 허용 폭이 색상각에 따라 달라지는 것을 표현한다. 황(h ≈ 60°–90°, T ≈ 0.61)과 청·청자(h ≈ 270°–300°, T ≈ 0.72–0.45) 근처에서 작아 색상 차이를 더 엄격하게 보고, h ≈ 240°에서는 1.5 이상으로 커진다.</div>
+</div>
+<p><strong>⑤ 회전항 R<sub>T</sub>.</strong> 청색 영역에서는 허용 타원의 장축이 채도 방향에서 기울어 있다. 이는 대각 가중만으로는 표현할 수 없으므로 채도·색상 성분의 교차항을 넣는다.</p>
+<div class="formula">$$ \Delta\theta = 30^\circ \exp\!\left[-\left(\frac{\bar h' - 275^\circ}{25^\circ}\right)^2\right],\qquad R_C = 2\sqrt{\frac{\bar C'^7}{\bar C'^7 + 25^7}},\qquad R_T = -\sin(2\Delta\theta)\,R_C $$
+$$ \Delta E_{00} = \sqrt{\left(\frac{\Delta L'}{k_L S_L}\right)^2 + \left(\frac{\Delta C'}{k_C S_C}\right)^2 + \left(\frac{\Delta H'}{k_H S_H}\right)^2 + R_T\,\frac{\Delta C'}{k_C S_C}\,\frac{\Delta H'}{k_H S_H}} $$
+<div class="where">R<sub>T</sub>는 \( \bar h' \)가 275°에서 멀면 0에 가깝고, 채도가 충분히 크면(\( R_C \to 2 \)) 최소 약 −1.73까지 간다. 교차항의 부호가 ΔC′와 ΔH′의 상대 부호에 따라 바뀌므로, 같은 크기의 이동이라도 "채도 증가 + 한쪽 색상 방향"과 "채도 증가 + 반대쪽 색상 방향"의 ΔE00가 다르다.</div>
+</div>
+
+<div class="sim" id="sim-cmp">
+<div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>두 색 비교기: ΔE76 / 94 / CMC / 2000과 항별 분해</h3></div>
+<div class="sim-body side">
+<div class="sim-view"><canvas id="cv-cmp"></canvas></div>
+<div class="sim-controls">
+<div class="ctrl"><span>색 1 (기준) L*, a*, b* / hex</span>
+<div class="in3"><input class="cb-in" id="ca-L" type="number" step="0.1" aria-label="색 1 L*"><input class="cb-in" id="ca-a" type="number" step="0.1" aria-label="색 1 a*"><input class="cb-in" id="ca-b" type="number" step="0.1" aria-label="색 1 b*"></div>
+<input class="cb-in" id="ca-hex" type="text" maxlength="7" aria-label="색 1 hex">
+</div>
+<div class="ctrl"><span>색 2 (시료) L*, a*, b* / hex</span>
+<div class="in3"><input class="cb-in" id="cb-L" type="number" step="0.1" aria-label="색 2 L*"><input class="cb-in" id="cb-a" type="number" step="0.1" aria-label="색 2 a*"><input class="cb-in" id="cb-b" type="number" step="0.1" aria-label="색 2 b*"></div>
+<input class="cb-in" id="cb-hex" type="text" maxlength="7" aria-label="색 2 hex">
+</div>
+<div class="ctrl"><span>예제 쌍</span><div class="seg" id="cmp-pre"><button data-value="sharma" class="on">Sharma #1</button><button data-value="gray">회색 근처</button><button data-value="red">고채도 적</button><button data-value="light">밝은 회색</button><button data-value="rt">청 R_T</button></div></div>
+<div class="ctrl"><span>CIEDE2000 k<sub>L</sub></span><div class="seg" id="cmp-kl"><button data-value="1" class="on">1 (기준)</button><button data-value="2">2 (섬유)</button></div></div>
+</div>
+</div>
+<div class="sim-readout">
+<div class="stat"><span class="k">ΔE*ab (1976)</span><span class="v" id="o-c76">—</span></div>
+<div class="stat"><span class="k">ΔE94 그래픽 / 섬유</span><span class="v" id="o-c94">—</span></div>
+<div class="stat"><span class="k">CMC (2:1)</span><span class="v" id="o-cmc">—</span></div>
+<div class="stat"><span class="k">ΔE00</span><span class="v" id="o-c00">—</span></div>
+<div class="stat"><span class="k">S_L, S_C, S_H</span><span class="v" id="o-cS">—</span></div>
+<div class="stat"><span class="k">G, T, R_T</span><span class="v" id="o-cRT">—</span></div>
+</div>
+<div class="sim-note">해볼 것: ① "Sharma #1"은 Sharma 등(2005)의 시험 쌍 1번이다. ΔE00 = 2.0425가 나와야 구현이 맞다. 아래 막대에서 R_T 교차항이 제곱합의 약 38%를 차지한다. ② "고채도 적"은 ΔE*ab ≈ 5인데 ΔE00 ≈ 1이다 — 채도 방향 차이는 선명한 색에서 잘 안 보인다. ③ "회색 근처"는 반대로 ΔE00가 ΔE*ab보다 크다(G 항). ④ "밝은 회색"에서 k<sub>L</sub>을 2로 바꿔 보라. ⑤ 숫자 칸이나 hex 칸을 직접 고쳐도 된다(hex는 sRGB D65 기준).</div>
+</div>
+
+<p>실제 수치 예(Sharma 시험 쌍 1번): (50, 2.6772, −79.7751) 대 (50, 0, −82.7485). ΔE*ab = 4.00인데 ΔE00 = 2.0425다. 내부 값은 \( G \approx 0.0001 \), \( S_C = 4.658 \), \( S_H = 1.842 \), \( T = 0.691 \), \( \bar h' = 271.0^\circ \), \( R_T = -1.704 \)이고, 제곱합 4.171 중 채도 항 0.395, 색상 항 2.190, 회전 교차항 1.586이다. 청색 영역에서는 R<sub>T</sub> 없이 계산하면 ΔE00가 1.61로 21% 작게 나온다.</p>
+<div class="callout warn"><strong>구현 함정</strong>
+<p>CIEDE2000 구현 오류는 대부분 ① 색상각을 라디안·도로 섞어 쓰는 것, ② \( \Delta h' \) 감싸기와 \( \bar h' \) 평균의 경우 분기를 빠뜨리는 것, ③ 한쪽 채도가 0인 경우 처리, ④ G를 각 색의 채도가 아니라 <strong>평균 채도</strong>로 계산해야 하는 것을 놓치는 데서 온다. Sharma·Wu·Dalal(2005)이 34쌍의 시험 데이터와 함께 이 함정을 정리했다. 새 구현은 반드시 그 표로 검증하라. 또한 평균 색상각 계산 때문에 ΔE00에는 작은 불연속이 있어, 최적화 목적 함수로 쓸 때 미분이 튈 수 있다.</p>
+</div>
+</section>
+
+<section id="contours">
+<h2>같은 ΔE76, 다른 ΔE00: 허용 타원 지도</h2>
+<p>ΔE*ab = k인 점의 집합은 CIELAB에서 반지름 k인 구(단면에서는 원)다. CIEDE2000에서 같은 k의 등고선은 위치마다 크기·모양·방향이 다른 타원이 된다. 이 타원이 곧 "CIELAB이 얼마나 불균등한가"의 지도다.</p>
+
+<div class="sim" id="sim-contour">
+<div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>a*b* 평면의 ΔE00 = k 등고선 (ΔE76 원과 비교)</h3></div>
+<div class="sim-body side">
+<div class="sim-view"><canvas id="cv-ct"></canvas></div>
+<div class="sim-controls">
+<label class="ctrl"><span>단면 L* <output id="ct-L-out"></output></span><input type="range" id="ct-L" min="10" max="95" step="1" value="50"></label>
+<label class="ctrl"><span>색차 k <output id="ct-k-out"></output></span><input type="range" id="ct-k" min="0.5" max="5" step="0.5" value="2"></label>
+<div class="ctrl"><span>표시 배율</span><div class="seg" id="ct-mag"><button data-value="1">×1</button><button data-value="3" class="on">×3</button><button data-value="6">×6</button></div></div>
+<label class="check"><input type="checkbox" id="ct-76" checked> ΔE76 = k 원(점선) 표시</label>
+<label class="check"><input type="checkbox" id="ct-bg" checked> sRGB 단면 색 표시</label>
+<p class="t-dim" style="font-size:13px;margin:0">단면을 클릭하면 그 위치를 선택 중심으로 삼는다.</p>
+</div>
+</div>
+<div class="sim-readout">
+<div class="stat"><span class="k">선택 중심 (L*, a*, b*)</span><span class="v" id="o-ct-c">—</span></div>
+<div class="stat"><span class="k">채도 방향 반경</span><span class="v" id="o-ct-rc">—</span></div>
+<div class="stat"><span class="k">색상 방향 반경</span><span class="v" id="o-ct-rh">—</span></div>
+<div class="stat"><span class="k">장축/단축</span><span class="v" id="o-ct-ratio">—</span></div>
+<div class="stat"><span class="k">장축의 기울기 (채도 방향 기준)</span><span class="v" id="o-ct-tilt">—</span></div>
+</div>
+<div class="sim-note">해볼 것: ① 원점(무채색) 근처의 등고선은 ΔE76 원보다 작고 a* 방향으로 납작하다(G 항). ② 바깥쪽 고채도 점일수록 등고선이 채도 방향(원점에서 바깥쪽)으로 길어진다(S<sub>C</sub>). ③ a* ≈ 0, b* ≈ −50 부근(청, h ≈ 270°)을 클릭해 장축 기울기를 보라. 다른 색상에서는 0° 근처인데 청색에서만 15°–20° 기운다 — R<sub>T</sub>의 효과다. 원점(무채색)에서는 a* 방향 반경이 b* 방향보다 작다(k=2에서 1.40 대 2.09). ④ L*을 50에서 90으로 올리면 단면 밖 색이 늘어나지만 등고선 모양은 거의 같다(L* 가중은 명도 차이에만 작용).</div>
+</div>
+
+<p>아래 표는 모두 CIELAB 거리 ΔE*ab ≈ 5인 색 쌍이다(좌표는 소수 첫째 자리로 반올림한 값으로 다시 계산했다). 같은 "5"가 CIEDE2000에서는 1.05부터 5.75까지 5배 이상 흩어진다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>영역 · 차이 방향</th><th>색 1 (L*, a*, b*)</th><th>색 2</th><th class="num">ΔE*ab</th><th class="num">ΔE94</th><th class="num">CMC 2:1</th><th class="num">ΔE00</th></tr></thead>
+<tbody>
+<tr><td>무채색 · 명도 (L* 50)</td><td>50, 0, 0</td><td>55, 0, 0</td><td class="num">5.00</td><td class="num">5.00</td><td class="num">2.30</td><td class="num">4.91</td></tr>
+<tr><td>무채색 · 명도 (L* 90)</td><td>90, 0, 0</td><td>95, 0, 0</td><td class="num">5.00</td><td class="num">5.00</td><td class="num">1.75</td><td class="num">3.06</td></tr>
+<tr><td>무채색 → 약한 채도</td><td>50, 0, 0</td><td>50, 3, 4</td><td class="num">5.00</td><td class="num">5.00</td><td class="num">7.84</td><td class="num">5.30</td></tr>
+<tr><td>회색 근처 · a* 방향</td><td>50, 2, 0</td><td>50, 7, 0</td><td class="num">5.00</td><td class="num">4.59</td><td class="num">6.56</td><td class="num">5.75</td></tr>
+<tr><td>고채도 적 · 채도 방향</td><td>50, 61.3, 51.4</td><td>50, 65.1, 54.6</td><td class="num">4.97</td><td class="num">1.08</td><td class="num">1.59</td><td class="num">1.05</td></tr>
+<tr><td>고채도 적 · 색상 방향</td><td>50, 61.3, 51.4</td><td>50, 58.0, 55.2</td><td class="num">5.03</td><td class="num">2.29</td><td class="num">3.47</td><td class="num">2.74</td></tr>
+<tr><td>고채도 황 · 색상 방향</td><td>85, 0, 80</td><td>85, −5, 79.8</td><td class="num">5.00</td><td class="num">2.27</td><td class="num">2.71</td><td class="num">2.85</td></tr>
+<tr><td>청 (h 290°) · 채도 방향</td><td>30, 23.9, −65.8</td><td>30, 25.7, −70.5</td><td class="num">5.03</td><td class="num">1.21</td><td class="num">1.70</td><td class="num">1.14</td></tr>
+<tr><td>청 (h 290°) · 색상 방향</td><td>30, 23.9, −65.8</td><td>30, 28.6, −63.9</td><td class="num">5.07</td><td class="num">2.47</td><td class="num">2.91</td><td class="num">3.66</td></tr>
+<tr><td>청 (h 275°) · 채도↑ + 색상 ⟲</td><td>40, 4.4, −49.8</td><td>40, 8.2, −53.0</td><td class="num">4.97</td><td class="num">2.23</td><td class="num">2.67</td><td class="num">1.57</td></tr>
+<tr><td>청 (h 275°) · 채도↑ + 색상 ⟳</td><td>40, 4.4, −49.8</td><td>40, 1.1, −53.6</td><td class="num">5.03</td><td class="num">2.29</td><td class="num">2.73</td><td class="num">3.34</td></tr>
+</tbody>
+</table></div>
+<p>표에서 읽을 것: ① 고채도 색의 채도 방향 차이는 ΔE*ab가 약 5배 과대평가한다. ② 밝은 회색의 명도 차이는 L* 50보다 덜 보인다(S<sub>L</sub> = 1.60). ③ 마지막 두 행은 기준과 이동 거리가 같고 색상 이동 방향만 반대인데 ΔE00가 1.57 대 3.34로 두 배 넘게 다르다. 대각 가중만 있는 CIE94(2.23 대 2.29)는 이 차이를 구별하지 못한다. 이것이 R<sub>T</sub>가 만든 타원의 기울기다. ④ CMC는 무채색 근처를 특히 엄격하게(7.84) 본다. 식마다 "엄격한 영역"이 다르므로 사양서에는 식 이름을 꼭 쓴다.</p>
+</section>
+
+<section id="tolerance">
+<h2>실무 허용치와 ΔE 판정의 함정</h2>
+<p>색차식은 결국 합격/불합격을 가르는 데 쓰인다. 업계마다 시료 성질(광택, 질감), 관측 조건, 고객 기대가 달라 허용치가 다르며, 아래 표는 <strong>통용되는 대략적 범위의 예시</strong>다. 실제 값은 계약·사내 규격·해당 표준 문서를 따른다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>상황</th><th>흔히 쓰는 지표</th><th>대략적 허용치 (예시)</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td>나란히 놓고 겨우 구별 (JND)</td><td>ΔE00</td><td>≈ 0.5 – 1</td><td>균일 배경·이상적 조건. ΔE*ab로는 약 2.3이 흔히 인용</td></tr>
+<tr><td>디스플레이 캘리브레이션 검증</td><td>ΔE00 (패치 평균 / 최대)</td><td>평균 &lt; 1 – 2, 최대 &lt; 3 – 4</td><td>검증 패치 세트와 기준 백색 명시 필요</td></tr>
+<tr><td>인쇄: 교정쇄·인쇄물 vs 기준 데이터</td><td>ΔE*ab 또는 ΔE00</td><td>원색 솔리드 수 단위, 평균 ΔE00 1 – 3</td><td>ISO 12647-2가 오프셋 인쇄의 ΔE 허용차를 규정</td></tr>
+<tr><td>자동차 외장 도장 (인접 패널)</td><td>ΔE00, 다각도 측정</td><td>≈ 0.5 – 1 (각도별)</td><td>메탈릭·펄은 관측 각도마다 따로 판정</td></tr>
+<tr><td>섬유 염색 합격</td><td>CMC(2:1), ΔE00(2:1:1)</td><td>≈ 1</td><td>ISO 105-J03 (CMC)</td></tr>
+<tr><td>플라스틱·일반 소비재</td><td>ΔE*ab, ΔE00</td><td>≈ 1 – 2</td><td>광원별(D65, A, F) 메타머리즘 확인 병행</td></tr>
+</tbody>
+</table></div>
+<figure class="diagram">
+<svg viewBox="0 0 800 280" role="img" aria-label="허용 원과 허용 타원, 같은 ΔE에서 방향이 다른 시료">
+<line x1="40" y1="240" x2="380" y2="240" class="s-axis"/><line x1="60" y1="260" x2="60" y2="20" class="s-axis"/>
+<text x="384" y="244" class="t-mono">a*</text><text x="66" y="26" class="t-mono">b*</text>
+<line x1="60" y1="240" x2="330" y2="60" class="s-axis" stroke-dasharray="4 4"/>
+<text x="300" y="54" class="t-dim">채도 방향</text>
+<circle cx="240" cy="120" r="50" fill="none" class="s-line" stroke-dasharray="5 4"/>
+<ellipse cx="240" cy="120" rx="78" ry="34" transform="rotate(-33.7 240 120)" class="f-acc-soft s-acc" stroke-width="2"/>
+<circle cx="240" cy="120" r="5" class="f-acc"/><text x="214" y="146" class="t">기준</text>
+<circle cx="295" cy="83" r="6" fill="var(--ok)"/><text x="304" y="86" class="t">A</text>
+<circle cx="216" cy="84" r="6" fill="var(--bad)"/><text x="196" y="80" class="t">B</text>
+<text x="420" y="50" class="t">A와 B는 기준에서 같은 ΔE*ab (점선 원 위)</text>
+<text x="420" y="76" class="t-dim">A: 채도 방향 → ΔE00 작음, 합격</text>
+<text x="420" y="100" class="t-dim">B: 색상 방향 → ΔE00 큼, 불합격</text>
+<text x="420" y="140" class="t">ΔE00가 같은 두 시료라도</text>
+<text x="420" y="164" class="t-dim">하나는 "더 밝음", 하나는 "더 노람" — 숫자 하나는</text>
+<text x="420" y="188" class="t-dim">어느 쪽으로 틀렸는지 알려 주지 않는다.</text>
+<text x="420" y="224" class="t-acc">→ ΔL′, ΔC′, ΔH′ (또는 ΔL*, Δa*, Δb*)를 함께 보고</text>
+</svg>
+<figcaption><b>그림 7-5.</b> 허용 원(ΔE*ab, 점선)과 허용 타원(ΔE00, 색). 고채도 색의 타원은 채도 방향으로 길다. 같은 ΔE*ab 원 위의 A는 합격, B는 불합격이다.</figcaption>
+</figure>
+<div class="callout"><strong>공학자 관점: ΔE 하나로 판정할 때의 함정</strong>
+<p>① <strong>방향성</strong>: 공정 조정에는 "얼마나"보다 "어느 쪽으로"가 필요하다. ΔL′, ΔC′, ΔH′ 성분(또는 Δa*, Δb*의 부호)을 함께 기록하라. 같은 ΔE00 1.5라도 명도 차이는 잉크 농도 조정으로, 색상 차이는 배합 변경으로 해결해야 한다. ② <strong>명도 vs 색상</strong>: 고객은 대개 색상(hue) 차이에 훨씬 엄격하다. 성분별 상한(예: |ΔH′| 를 따로 제한)을 두는 규격이 많다. ③ <strong>통계</strong>: 여러 패치를 평가할 때 평균 ΔE만 보면 한두 개의 큰 오차가 묻힌다. 평균과 함께 최대값 또는 95 백분위수를 보고한다. ④ <strong>측정 조건</strong>: 광원(D50/D65), 관측자(2°/10°), 측정 기하(45°:0°, d:8°), 정반사 포함 여부(SCI/SCE), UV 조건(ISO 13655 M0–M3)이 다르면 같은 시료의 Lab이 달라진다(<a href="measurement.html">11장</a>). ⑤ <strong>식 이름 명시</strong>: "ΔE &lt; 2"는 ΔE*ab, ΔE94, ΔE00 중 무엇이냐에 따라 전혀 다른 요구다.</p>
+</div>
+<p>실제 수치 예: 8비트 sRGB 회색 128 → 129 한 코드 차이는 ΔE00 = 0.38, 10 → 11은 0.17이다. 즉 sRGB 8비트 양자화는 회색 축에서 JND 아래에 있다. 반면 선형 8비트로 저장하면 어두운 쪽 한 코드가 수 ΔE에 달한다(<a href="transfer.html">6장</a>의 밴딩 논의).</p>
+</section>
+
+<section id="hue-linearity">
+<h2>CIELAB의 색상 휨: 파랑이 보라가 된다</h2>
+<p>균등 색공간의 또 다른 요구는 <strong>색상 직선성</strong><span class="en">(hue linearity)</span>이다. 명도와 색상각을 고정하고 채도만 줄이면, 지각되는 색상도 그대로여야 한다. CIELAB은 대부분의 색상에서 이를 대략 만족하지만, 청색 영역(h<sub>ab</sub> ≈ 270°–310°)에서 크게 실패한다. Hung–Berns(1995)의 일정 색상 데이터에서 청색의 일정 색상선은 CIELAB a*b* 평면에서 직선이 아니라 크게 휜 곡선이다. 그래서 CIELAB에서 sRGB 청 #0000FF의 채도를 h<sub>ab</sub> = 306.3° 그대로 줄이면 색이 보라로 보인다.</p>
+<figure class="diagram">
+<svg viewBox="0 0 800 330" role="img" aria-label="OKLab에서 색상을 고정하고 채도를 줄인 경로를 CIELAB a*b* 평면에 그린 곡선">
+<line x1="90" y1="165" x2="410" y2="165" class="s-axis"/><line x1="250" y1="15" x2="250" y2="315" class="s-axis"/>
+<text x="414" y="169" class="t-mono">a*</text><text x="256" y="22" class="t-mono">b*</text>
+<line x1="250" y1="165" x2="341.1" y2="289.0" class="s-axis" stroke-dasharray="4 4"/>
+<path d="M341.1 289.0L332.6 282.6L324.5 276.3L316.8 270.0L309.5 263.8L302.5 257.6L295.9 251.4L289.8 245.3L284.0 239.2L278.7 233.2L273.8 227.1L269.3 221.1L265.3 215.1L261.8 209.0L258.7 202.9L256.1 196.8L253.9 190.7L252.2 184.4L251.0 178.1L250.3 171.6L250.0 165.0" fill="none" stroke="#0000ff" stroke-width="2.5"/>
+<circle cx="341.1" cy="289.0" r="6" fill="#0000ff" class="s-line"/>
+<line x1="250" y1="165" x2="342.1" y2="87.7" class="s-axis" stroke-dasharray="4 4"/>
+<path d="M342.1 87.7L337.1 95.3L332.2 101.6L327.3 107.1L322.4 112.0L317.6 116.5L312.7 120.7L308.0 124.6L303.2 128.4L298.5 131.9L293.8 135.4L289.2 138.7L284.6 141.9L280.1 145.0L275.6 148.0L271.2 151.0L266.8 153.9L262.5 156.7L258.3 159.5L254.1 162.3L250.0 165.0" fill="none" stroke="#ff0000" stroke-width="2.5"/>
+<circle cx="342.1" cy="87.7" r="6" fill="#ff0000" class="s-line"/>
+<line x1="250" y1="165" x2="150.9" y2="69.3" class="s-axis" stroke-dasharray="4 4"/>
+<path d="M150.9 69.3L155.9 76.0L160.9 82.3L165.9 88.2L170.9 93.8L175.9 99.1L180.9 104.3L185.8 109.2L190.8 114.1L195.7 118.7L200.7 123.3L205.6 127.8L210.5 132.2L215.5 136.5L220.4 140.7L225.3 144.9L230.3 149.0L235.2 153.1L240.1 157.1L245.1 161.1L250.0 165.0" fill="none" stroke="#00ff00" stroke-width="2.5"/>
+<circle cx="150.9" cy="69.3" r="6" fill="#00ff00" class="s-line"/>
+<line x1="250" y1="165" x2="225.2" y2="56.3" class="s-axis" stroke-dasharray="4 4"/>
+<path d="M225.2 56.3L225.9 64.5L226.7 71.9L227.5 78.8L228.3 85.3L229.2 91.4L230.2 97.3L231.2 102.9L232.3 108.4L233.5 113.6L234.7 118.8L235.9 123.8L237.3 128.7L238.6 133.5L240.1 138.2L241.6 142.8L243.1 147.4L244.8 151.8L246.5 156.3L248.2 160.7L250.0 165.0" fill="none" stroke="#ffff00" stroke-width="2.5"/>
+<circle cx="225.2" cy="56.3" r="6" fill="#ffff00" class="s-line"/>
+<line x1="250" y1="165" x2="194.7" y2="181.2" class="s-axis" stroke-dasharray="4 4"/>
+<path d="M194.7 181.2L197.4 180.5L200.2 179.7L202.9 178.9L205.6 178.1L208.4 177.3L211.1 176.5L213.8 175.7L216.6 174.9L219.4 174.0L222.1 173.2L224.9 172.4L227.7 171.6L230.4 170.8L233.2 170.0L236.0 169.2L238.8 168.3L241.6 167.5L244.4 166.7L247.2 165.8L250.0 165.0" fill="none" stroke="#00ffff" stroke-width="2.5"/>
+<circle cx="194.7" cy="181.2" r="6" fill="#00ffff" class="s-line"/>
+<line x1="250" y1="165" x2="363.0" y2="235.0" class="s-axis" stroke-dasharray="4 4"/>
+<path d="M363.0 235.0L357.3 231.5L351.6 228.1L345.9 224.7L340.3 221.3L334.6 217.9L329.0 214.4L323.4 211.0L317.7 207.6L312.1 204.1L306.5 200.6L300.9 197.2L295.2 193.7L289.6 190.2L284.0 186.6L278.3 183.1L272.7 179.5L267.0 175.9L261.4 172.3L255.7 168.7L250.0 165.0" fill="none" stroke="#ff00ff" stroke-width="2.5"/>
+<circle cx="363.0" cy="235.0" r="6" fill="#ff00ff" class="s-line"/>
+
+<text x="440" y="50" class="t">sRGB 원색·2차색에서 출발해</text>
+<text x="440" y="72" class="t">OKLab 색상각·명도를 고정하고 채도를 0으로</text>
+<text x="440" y="104" class="t-dim">점선: CIELAB에서 h_ab 고정 (직선)</text>
+<text x="440" y="126" class="t-dim">색 곡선: OKLab에서 h 고정 → CIELAB에 투영</text>
+<text x="440" y="170" class="t-acc">청: h_ab 306° → 274°로 32° 휨</text>
+<text x="440" y="194" class="t-dim">적: 40° → 33.5°, 녹·황·청록·자홍: 6° 이하</text>
+<text x="440" y="236" class="t-dim">곡선이 실제 일정 색상선에 더 가깝다는 것은</text>
+<text x="440" y="258" class="t-dim">Hung–Berns 데이터와 시각 비교로 판단한다.</text>
+</svg>
+<figcaption><b>그림 7-6.</b> OKLab에서 색상각을 고정한 경로(색 곡선)를 CIELAB a*b* 평면에 그린 것. CIELAB의 일정 h<sub>ab</sub> 선(점선)과 거의 겹치는 색상도 있지만, 청색은 크게 휜다. 두 공간이 "같은 색상"에 대해 32°나 다르게 말한다는 뜻이다.</figcaption>
+</figure>
+
+<div class="sim" id="sim-hue">
+<div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>색상 휨 비교 띠: CIELAB vs OKLab</h3></div>
+<div class="sim-body">
+<div class="sim-view"><canvas id="cv-hue"></canvas></div>
+<div class="sim-controls">
+<div class="ctrl"><span>출발 색 (sRGB 최대 채도)</span><div class="seg" id="hue-base"><button data-value="#0000ff" class="on">청</button><button data-value="#ff0000">적</button><button data-value="#00ff00">녹</button><button data-value="#ffff00">황</button><button data-value="#00ffff">청록</button><button data-value="#ff00ff">자홍</button><button data-value="#8000ff">청자</button></div></div>
+</div>
+</div>
+<div class="sim-readout">
+<div class="stat"><span class="k">출발 색 LCh / OKLCh</span><span class="v" id="o-h-base">—</span></div>
+<div class="stat"><span class="k">Lab 선의 OKLab 색상 변화 (채도 50%)</span><span class="v" id="o-h-a">—</span></div>
+<div class="stat"><span class="k">OKLab 선의 Lab 색상 변화 (채도 50%)</span><span class="v" id="o-h-b">—</span></div>
+<div class="stat"><span class="k">끝 회색의 L* (Lab 선 / OKLab 선)</span><span class="v" id="o-h-g">—</span></div>
+</div>
+<div class="sim-note">해볼 것: ① "청"에서 위 띠(CIELAB, h<sub>ab</sub> 고정)의 중간이 보라로 보이는지, 아래 띠(OKLab, h 고정)가 파랑을 유지하는지 비교하라. 그래프에서 Lab 선은 OKLab 기준으로 채도 50%에서 약 26° 돈다. ② "녹", "청록"에서는 두 곡선이 거의 0 근처다 — 휨은 청색 영역 고유의 문제다. ③ 끝 회색의 L*이 다르다: OKLab의 명도 L은 CIELAB L*와 척도가 다르다(청 #0000FF: L* 32.3, OKLab L 0.452 → 회색 L* 36.4).</div>
+</div>
+<p>두 곡선은 서로를 기준으로 잰 것이므로, 어느 쪽이 맞는지는 시각 비교와 일정 색상 실험 데이터(Hung–Berns, Ebner–Fairchild)로 판단한다. 그 데이터에 맞춘 IPT와 이를 이어받은 OKLab에서는 청색 선이 거의 곧다. 실무 결과는 분명하다: CIELAB/LCh에서 채도를 깎는 가멋 매핑이나 팔레트 생성은 청색을 보라로 틀어 버린다(<a href="rgb.html">5장</a>의 가멋 매핑, <a href="dataviz.html">18장</a>의 팔레트 설계).</p>
+</section>
+
+<section id="oklab">
+<h2>OKLab과 색 보간</h2>
+<p>OKLab은 Björn Ottosson이 2020년에 발표한 공간으로, 목표가 분명하다: ① 명도와 채도 예측은 CAM16-UCS에 가깝게, ② 색상 균일성은 IPT처럼(청색 휨 없이), ③ 계산은 행렬 두 번과 세제곱근 한 번으로 단순하고 정확히 역변환 가능하게. 색 외관 모델의 관측 조건 파라미터(주변 휘도, 순응 정도)는 없다 — 그것이 필요하면 CAM16-UCS(<a href="appearance.html">9장</a>)를 쓴다.</p>
+<figure class="diagram">
+<svg viewBox="0 0 800 230" role="img" aria-label="CIELAB과 OKLab의 계산 단계 비교">
+<defs><marker id="ar7d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+<text x="10" y="30" class="t-acc">CIELAB</text>
+<rect x="10" y="42" width="120" height="56" rx="8" class="f-elev s-line"/><text x="70" y="75" class="t" text-anchor="middle">XYZ</text>
+<rect x="170" y="42" width="160" height="56" rx="8" class="f-surface s-line"/><text x="250" y="66" class="t" text-anchor="middle">÷ (Xn, Yn, Zn)</text><text x="250" y="88" class="t-dim" text-anchor="middle">XYZ 축 백색 정규화</text>
+<rect x="370" y="42" width="160" height="56" rx="8" class="f-surface s-line"/><text x="450" y="66" class="t" text-anchor="middle">f(·) = ∛ + 선형</text><text x="450" y="88" class="t-dim" text-anchor="middle">채널별 압축</text>
+<rect x="570" y="42" width="220" height="56" rx="8" class="f-acc-soft s-acc"/><text x="680" y="66" class="t" text-anchor="middle">116fy−16, 500(fx−fy),</text><text x="680" y="88" class="t" text-anchor="middle">200(fy−fz)</text>
+<line x1="130" y1="70" x2="167" y2="70" class="s-line" marker-end="url(#ar7d)"/><line x1="330" y1="70" x2="367" y2="70" class="s-line" marker-end="url(#ar7d)"/><line x1="530" y1="70" x2="567" y2="70" class="s-line" marker-end="url(#ar7d)"/>
+<text x="10" y="138" class="t-acc">OKLab</text>
+<rect x="10" y="150" width="120" height="56" rx="8" class="f-elev s-line"/><text x="70" y="176" class="t" text-anchor="middle">XYZ (D65)</text><text x="70" y="196" class="t-dim" text-anchor="middle">또는 선형 sRGB</text>
+<rect x="170" y="150" width="160" height="56" rx="8" class="f-surface s-line"/><text x="250" y="174" class="t" text-anchor="middle">M₁ → (l, m, s)</text><text x="250" y="196" class="t-dim" text-anchor="middle">원추 응답 유사 공간</text>
+<rect x="370" y="150" width="160" height="56" rx="8" class="f-surface s-line"/><text x="450" y="174" class="t" text-anchor="middle">∛l, ∛m, ∛s</text><text x="450" y="196" class="t-dim" text-anchor="middle">선형 구간 없음</text>
+<rect x="570" y="150" width="220" height="56" rx="8" class="f-acc-soft s-acc"/><text x="680" y="174" class="t" text-anchor="middle">M₂ → (L, a, b)</text><text x="680" y="196" class="t-dim" text-anchor="middle">데이터에 최적화된 행렬</text>
+<line x1="130" y1="178" x2="167" y2="178" class="s-line" marker-end="url(#ar7d)"/><line x1="330" y1="178" x2="367" y2="178" class="s-line" marker-end="url(#ar7d)"/><line x1="530" y1="178" x2="567" y2="178" class="s-line" marker-end="url(#ar7d)"/>
+</svg>
+<figcaption><b>그림 7-7.</b> 두 공간의 구조는 비슷하다(선형 → 압축 → 선형). 차이는 압축 전 공간(XYZ 대 원추 유사 LMS)과 마지막 행렬(고정 계수 대 데이터 최적화)이다. 원추 유사 공간에서 압축하므로 색상이 덜 휜다.</figcaption>
+</figure>
+<div class="formula">$$ \begin{pmatrix} l \\ m \\ s \end{pmatrix} = \mathbf{M}_1 \begin{pmatrix} X \\ Y \\ Z \end{pmatrix},\qquad \begin{pmatrix} L \\ a \\ b \end{pmatrix} = \mathbf{M}_2 \begin{pmatrix} l^{1/3} \\ m^{1/3} \\ s^{1/3} \end{pmatrix},\qquad C = \sqrt{a^2+b^2},\ \ h = \operatorname{atan2}(b, a) $$
+<div class="where">D65 백색이 \( (L,a,b) = (1, 0, 0) \)이 되도록 정규화되어 있다. 선형 sRGB에서 직접 가는 결합 행렬도 공개되어 있다(이 책의 <code>CB.linRGB2oklab</code>). sRGB 청 #0000FF는 OKLab (0.452, −0.032, −0.312), OKLCh (0.452, 0.313, 264.1°)다.</div>
+</div>
+<p><strong>CSS에서의 OKLab.</strong> CSS Color Level 4는 <code>oklab()</code>, <code>oklch()</code> 함수를 정의한다. 예를 들어 <code>oklch(45.2% 0.313 264.1)</code>은 sRGB 청과 같은 색이다. <code>color-mix(in oklch, …)</code>나 <code>linear-gradient(in oklab, …)</code>처럼 보간 공간을 지정하는 문법도 표준화되어, 웹에서 "어느 공간에서 섞을지"를 명시적으로 고를 수 있다.</p>
+
+<div class="sim" id="sim-grad">
+<div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>그라데이션 보간 공간 비교</h3></div>
+<div class="sim-body side">
+<div class="sim-view"><canvas id="cv-grad"></canvas></div>
+<div class="sim-controls">
+<div class="ctrl"><span>시작 / 끝 색 (hex)</span><div class="in2"><input class="cb-in" id="g-a" type="text" maxlength="7" value="#0000ff" aria-label="시작 색"><input class="cb-in" id="g-b" type="text" maxlength="7" value="#ffff00" aria-label="끝 색"></div></div>
+<div class="ctrl"><span>예제</span><div class="seg" id="g-pre"><button data-value="#0000ff,#ffff00" class="on">청→황</button><button data-value="#0000ff,#ffffff">청→백</button><button data-value="#ff0000,#00ff00">적→녹</button><button data-value="#000000,#ffffff">흑→백</button><button data-value="#ff0080,#00a0ff">분홍→하늘</button></div></div>
+<p class="t-dim" style="font-size:13px;margin:0">각 띠 아래의 빨간 눈금은 보간 결과가 sRGB 가멋 밖이라 클리핑된 구간이다. 오른쪽 숫자는 33개 샘플 사이 ΔE00의 합과 최대/평균 비(1에 가까울수록 지각적으로 고르게 변함)다.</p>
+</div>
+</div>
+<div class="sim-readout">
+<div class="stat"><span class="k">sRGB 감마 중간점</span><span class="v" id="o-g-srgb">—</span></div>
+<div class="stat"><span class="k">선형 sRGB 중간점</span><span class="v" id="o-g-linear">—</span></div>
+<div class="stat"><span class="k">CIELAB 중간점</span><span class="v" id="o-g-lab">—</span></div>
+<div class="stat"><span class="k">LCh(ab) 중간점</span><span class="v" id="o-g-lch">—</span></div>
+<div class="stat"><span class="k">OKLab 중간점</span><span class="v" id="o-g-oklab">—</span></div>
+<div class="stat"><span class="k">OKLCh 중간점</span><span class="v" id="o-g-oklch">—</span></div>
+</div>
+<div class="sim-note">해볼 것: ① 청→황: sRGB 감마 보간의 중간점은 정확히 회색 (127.5, 127.5, 127.5)(채도 0)이다. 보색 사이를 직교 좌표로 섞으면 회색을 지나간다. CIELAB은 분홍빛(#CA8AAA, 청 휨의 흔적), OKLab은 청록빛 회색(#6CABC7)을 지난다. 극좌표(LCh, OKLCh)는 채도를 유지하지만 색상환을 돌아 가멋 밖으로 나간다. ② 청→백: CIELAB의 중간점 #B38BFF는 보라, OKLab의 #74A3FF는 파랑이다 — 8절의 휨이 그라데이션에서 드러난 것. ③ 흑→백: 선형 보간은 밝은 쪽에 몰려 최대/평균 비가 크다(L* 중간점 76). Lab은 정의상 L*이 고르게 변한다. OKLab은 아주 어두운 쪽 몇 단계의 ΔE00가 작아 비가 커지는데, OKLab 명도에 선형 구간이 없기 때문이다.</div>
+</div>
+<div class="callout tip"><strong>보간 공간 고르기</strong>
+<p>물리적 빛의 혼합(블러, 리샘플링, 알파 합성, 조명 계산)은 <strong>선형 RGB</strong>가 맞다 — 빛은 선형으로 더해진다. 사람이 보기에 고르게 변해야 하는 UI 그라데이션, 팔레트, 데이터 시각화 색 척도는 <strong>OKLab</strong>(채도가 중간에 줄어도 되는 경우) 또는 <strong>OKLCh</strong>(채도를 유지하고 싶을 때, 가멋 밖 클리핑 주의)가 무난하다. 감마 인코딩된 sRGB 값을 그대로 섞는 것은 어느 쪽에도 맞지 않으며, 역사적 관성일 뿐이다.</p>
+</div>
+<p>OKLab의 한계도 분명하다. D65·sRGB 계열 디스플레이를 전제로 백색이 고정되어 있어 다른 광원 아래의 표면색에는 먼저 색순응 변환이 필요하고, 명도 L에 선형 구간이 없어 아주 어두운 영역의 거동이 L*과 다르며, 산업 색차 판정의 표준 지표도 아니다. 합격 판정은 CIEDE2000, 지각 연구·HDR은 CAM16-UCS나 ICtCp/Jzazbz(<a href="hdr.html">14장</a>)를 쓴다.</p>
+</section>
+
+<section id="solid">
+<h2>색 입체: sRGB 가멋을 Lab 공간에 세우기</h2>
+<p>RGB 큐브는 RGB 좌표에서는 정육면체지만, 균등 색공간에서 보면 크게 일그러진 입체다. 이 입체의 모양이 "그 장치가 어떤 색을 낼 수 있는가"를 지각 단위로 보여 준다. 예를 들어 sRGB의 최대 채도 C*<sub>ab</sub>는 청 133.8, 녹 119.8, 자홍 115.5, 적 104.6, 황 96.9, 청록 50.1로, 청록 방향이 유난히 얕다.</p>
+<div class="sim" id="sim-3d">
+<div class="sim-head"><span class="sim-tag three">3D</span><h3>sRGB 가멋 입체 (CIELAB / OKLab)</h3></div>
+<div class="sim-body side">
+<div class="sim-view three" id="v3d"></div>
+<div class="sim-controls">
+<div class="ctrl"><span>좌표 공간</span><div class="seg" id="s3-space"><button data-value="lab" class="on">CIELAB</button><button data-value="oklab">OKLab</button></div></div>
+<label class="check"><input type="checkbox" id="s3-p3" checked> Display P3 큐브 모서리 (선)</label>
+<label class="check"><input type="checkbox" id="s3-rot"> 자동 회전</label>
+<p class="t-dim" style="font-size:13px;margin:0">세로축 = 명도(L* 또는 L), 가로 평면 = a, b. OKLab은 a, b를 L과 비슷한 크기로 보이도록 배율을 맞췄다(비교용).</p>
+</div>
+</div>
+<div class="sim-readout">
+<div class="stat"><span class="k">적 #FF0000</span><span class="v" id="o-3d-r">—</span></div>
+<div class="stat"><span class="k">녹 #00FF00</span><span class="v" id="o-3d-g">—</span></div>
+<div class="stat"><span class="k">청 #0000FF</span><span class="v" id="o-3d-b">—</span></div>
+<div class="stat"><span class="k">황 #FFFF00</span><span class="v" id="o-3d-y">—</span></div>
+</div>
+<div class="sim-note">해볼 것: ① CIELAB에서 청 꼭짓점이 낮은 명도에서 멀리 튀어나온 뾰족한 모양을 보라. 청과 백을 잇는 큐브 모서리가 Lab에서는 직선이 아니라 휘어 있다(그래서 Lab 직선 보간 청→백은 가멋 밖으로 나간다). ② OKLab으로 바꾸면 청 꼭짓점의 방향이 바뀌고 입체가 더 고르게 둥글어진다. ③ P3 모서리를 켜면 P3가 sRGB보다 주로 녹·적 방향으로 넓다는 것이 보인다(<a href="rgb.html">5장</a>).</div>
+</div>
+<p>가멋 매핑 알고리즘이 이 입체의 "표면"을 다룬다. 가멋 밖 색을 명도와 색상을 유지한 채 채도만 줄여 표면에 붙이는 것이 가장 흔한 전략인데, 앞 절에서 봤듯 "색상 유지"를 CIELAB으로 하면 청색이 보라로 틀어지므로 최근 구현(예: CSS Color 4의 가멋 매핑 알고리즘)은 OKLCh에서 채도를 줄인다.</p>
+</section>
+
+<section class="keypoints" id="summary">
+<h2>핵심 정리</h2>
+<ol>
+<li>XYZ·xy는 등색 공간이지 거리 공간이 아니다. 같은 ΔE00 = 1 경계가 xy에서 면적으로 약 30배, u′v′에서도 약 11배 크기가 다르다.</li>
+<li>CIELAB: L* = 116f(Y/Yn) − 16, a* = 500[f(X/Xn) − f(Y/Yn)], b* = 200[f(Y/Yn) − f(Z/Zn)], f는 ε = 216/24389 위에서 세제곱근, 아래에서 (κt+16)/116 (κ = 24389/27). 기준 백색에 대한 상대값이며 D50/D65 Lab을 섞으면 안 된다.</li>
+<li>LCh는 a*b*의 극좌표다. ΔH*는 각도 차가 아니라 색상 방향 거리 2√(C₁C₂)·sin(Δh/2)이다. CIELUV는 u′v′와 연결되어 가산 혼합 직선을 유지하지만 백색 정규화가 뺄셈이다.</li>
+<li>ΔE*ab는 고채도 색의 차이를 과대평가하고 회색 근처를 과소평가한다. CMC와 CIE94는 채도에 비례하는 S<sub>C</sub>, S<sub>H</sub>로 보정하며, 기준색에 의존하는 비대칭 식이다.</li>
+<li>CIEDE2000 = CIE94 구조 + G(무채색 근처 a* 확대) + S<sub>L</sub>(L* 50 중심 V자) + T(h)(색상별 허용 폭) + R<sub>T</sub>(청색 영역 회전 교차항). Sharma 시험 쌍 1번의 ΔE00 = 2.0425로 구현을 검증한다.</li>
+<li>ΔE*ab = 5인 쌍들의 ΔE00는 1.05–5.75로 흩어진다. 산업 파라미터 k<sub>L</sub>(섬유 2)은 관측 조건 차이를 반영한다.</li>
+<li>허용치는 업계·계약마다 다르다(JND ≈ ΔE00 1 근방). ΔE 하나로 판정하지 말고 ΔL′·ΔC′·ΔH′ 성분, 최대값/백분위, 측정 조건, 식 이름을 함께 보고한다.</li>
+<li>CIELAB은 청색에서 일정 색상선이 휜다(sRGB 청의 채도를 줄이면 OKLab 색상각이 264° → 약 290°). OKLab은 원추 유사 공간에서 압축해 이를 줄이며, 그라데이션·팔레트·CSS 색 보간에 적합하다. 빛의 물리적 혼합은 선형 RGB에서 한다.</li>
+</ol>
+</section>
+
+<section class="quiz-sec" id="quiz">
+<h2>확인 퀴즈</h2>
+<div class="quiz">
+<div class="quiz-q"><p>CIELAB의 f(t)에서 t ≤ 216/24389 구간을 직선으로 바꾼 주된 이유는?</p><div class="opts">
+<button class="opt">계산 속도를 높이려고</button>
+<button class="opt" data-correct>세제곱근은 0 근처에서 기울기가 무한대라 어두운 색의 작은 잡음이 큰 L*·a*·b* 변화가 되기 때문</button>
+<button class="opt">sRGB 전달 함수와 같은 모양으로 만들려고</button>
+<button class="opt">L*의 최대값을 100으로 맞추려고</button>
+</div><div class="quiz-exp">세제곱근의 도함수는 t → 0에서 발산한다. 선형 구간(κt+16)/116은 경계 ε에서 값과 기울기가 세제곱근과 연속이 되도록 정한 것이고, 그래서 ε=(6/29)³, κ=24389/27이라는 유리수가 나온다.</div></div>
+<div class="quiz-q"><p>같은 시료를 D50 기준 Lab과 D65 기준 Lab으로 각각 계산했다. 옳은 설명은?</p><div class="opts">
+<button class="opt">L*만 다르고 a*, b*는 같다</button>
+<button class="opt">두 값은 항상 같다(Lab은 절대 좌표다)</button>
+<button class="opt" data-correct>일반적으로 a*, b*가 다르며, 두 값을 섞어 ΔE를 계산하면 안 된다</button>
+<button class="opt">D65 Lab이 항상 더 정확하다</button>
+</div><div class="quiz-exp">Lab은 기준 백색으로 나눈 상대값이다. Y는 같아도 Xn, Zn이 달라 a*, b*가 바뀐다. 백색을 바꾸려면 XYZ에서 색순응 변환을 한 뒤 다시 계산한다.</div></div>
+
+<div class="quiz-q"><p>고채도 적색(C* ≈ 80)에서 채도 방향으로 ΔE*ab = 5 떨어진 색의 ΔE00는 대략?</p><div class="opts">
+<button class="opt" data-correct>약 1</button><button class="opt">약 5</button><button class="opt">약 10</button><button class="opt">정의되지 않는다</button>
+</div><div class="quiz-exp">S_C = 1 + 0.045·C̄′ ≈ 4.7이므로 채도 성분이 약 1/4.7로 줄어든다. 본문 표의 계산값은 1.05다.</div></div>
+
+<div class="quiz-q"><p>CIEDE2000의 회전항 R_T가 주로 작용하는 영역과 효과는?</p><div class="opts">
+<button class="opt">무채색 근처, a* 축을 늘린다</button>
+<button class="opt">L* = 50 근처, 명도 가중을 줄인다</button>
+<button class="opt" data-correct>평균 색상각 275° 근처의 고채도 청색, 채도·색상 교차항으로 허용 타원을 기울인다</button>
+<button class="opt">황색 영역, 색상 허용 폭을 넓힌다</button>
+</div><div class="quiz-exp">Δθ = 30°·exp(−((h̄′−275°)/25°)²)이고 R_C는 채도가 클수록 2에 가까워진다. 교차항 R_T·(ΔC′/S_C)(ΔH′/S_H)의 부호가 이동 방향에 따라 바뀌어 타원이 기운다.</div></div>
+
+<div class="quiz-q"><p>CIE94로 기준 A와 시료 B의 색차를 구했다. A와 B를 바꿔 계산하면?</p><div class="opts">
+<button class="opt">항상 같다</button>
+<button class="opt" data-correct>S_C, S_H가 기준색 채도로 정해지므로 일반적으로 달라진다</button>
+<button class="opt">부호만 바뀐다</button>
+<button class="opt">ΔL만 바뀐다</button>
+</div><div class="quiz-exp">CIE94와 CMC는 기준색의 C*로 가중하므로 비대칭이다. CIEDE2000은 두 색의 평균을 써서 대칭이다.</div></div>
+
+<div class="quiz-q"><p>섬유 산업에서 CIEDE2000을 k_L = 2로 쓰는 의미는?</p><div class="opts">
+<button class="opt">명도 차이를 두 배 엄격하게 본다</button>
+<button class="opt" data-correct>명도 차이의 기여를 절반으로 줄여, 질감·광택 때문에 명도 차이가 덜 민감하게 판정되는 관측 조건을 반영한다</button>
+<button class="opt">관측자를 10°로 바꾼다</button>
+<button class="opt">기준 백색을 D50으로 바꾼다</button>
+</div><div class="quiz-exp">ΔL′/(k_L S_L)에서 k_L = 2면 명도 성분이 절반이 된다. k 계수는 관측 조건 보정용 산업 파라미터다.</div></div>
+
+<div class="quiz-q"><p>두 시료가 기준에서 모두 ΔE00 = 1.5다. 공정 조정에 가장 필요한 추가 정보는?</p><div class="opts">
+<button class="opt">ΔE*ab 값</button>
+<button class="opt" data-correct>ΔL′, ΔC′, ΔH′ 성분(차이의 방향)</button>
+<button class="opt">시료의 sRGB hex</button>
+<button class="opt">추가 정보는 필요 없다</button>
+</div><div class="quiz-exp">ΔE는 크기만 말한다. 더 밝은지, 더 탁한지, 색상이 어느 쪽으로 돌았는지에 따라 조치가 다르다.</div></div>
+
+<div class="quiz-q"><p>sRGB 청 #0000FF에서 CIELAB의 L*과 h_ab를 고정하고 C*만 줄이면 어떻게 보이는가?</p><div class="opts">
+<button class="opt">파랑 그대로 탁해진다</button>
+<button class="opt" data-correct>보라 쪽으로 색상이 돈다</button>
+<button class="opt">청록 쪽으로 색상이 돈다</button>
+<button class="opt">명도가 크게 올라간다</button>
+</div><div class="quiz-exp">CIELAB의 청색 영역 색상 비직선성이다. OKLab 색상각으로 재면 264°에서 채도 50%일 때 약 290°로 돈다. 그래서 가멋 매핑과 그라데이션에 OKLCh를 많이 쓴다.</div></div>
+</div>
+</section>
+</main>
+
+<script>
+(function () {
+"use strict";
+/*CALC-BEGIN*/
+const RAD = Math.PI / 180;
+const lab2lin = (lab) => CB.XYZ2linRGB(CB.Lab2XYZ(lab));
+const lin2lab = (lin) => CB.XYZ2Lab(CB.linRGB2XYZ(lin));
+const inGamut = (lin, tol = 1e-3) => lin.every((v) => v >= -tol && v <= 1 + tol);
+const lin2hex = (lin) => CB.rgb2hex(lin.map((v) => 255 * CB.srgbEncode(CB.clamp(v, 0, 1))));
+const lab2hex = (lab) => lin2hex(lab2lin(lab));
+const hex2lab = (hex) => CB.XYZ2Lab(CB.rgb82XYZ(CB.hex2rgb(hex)));
+const hex2lin = (hex) => CB.hex2rgb(hex).map((v) => CB.srgbDecode(v / 255));
+const lab2ok = (lab) => CB.linRGB2oklab(lab2lin(lab));
+const ok2lab = (ok) => lin2lab(CB.oklab2linRGB(ok));
+const hueDeg = (a, b) => { const h = Math.atan2(b, a) / RAD; return h < 0 ? h + 360 : h; };
+const wrap180 = (d) => ((((d + 180) % 360) + 360) % 360) - 180;
+
+/** CIE94 (CIE 116-1995). lab1 = 기준(표준). 그래픽 아트: kL=1,K1=.045,K2=.015 / 섬유: kL=2,K1=.048,K2=.014 */
+function dE94(lab1, lab2, kL = 1, K1 = 0.045, K2 = 0.015) {
+const C1 = Math.hypot(lab1[1], lab1[2]), C2 = Math.hypot(lab2[1], lab2[2]);
+const dL = lab1[0] - lab2[0], dC = C1 - C2, da = lab1[1] - lab2[1], db = lab1[2] - lab2[2];
+const dH2 = Math.max(0, da * da + db * db - dC * dC);
+const SC = 1 + K1 * C1, SH = 1 + K2 * C1;
+return Math.sqrt((dL / kL) ** 2 + (dC / SC) ** 2 + dH2 / (SH * SH));
+}
+/** CMC l:c (1984). lab1 = 기준 */
+function dECMC(lab1, lab2, l = 2, c = 1) {
+const [L1, a1, b1] = lab1, [L2, a2, b2] = lab2;
+const C1 = Math.hypot(a1, b1), C2 = Math.hypot(a2, b2);
+const dL = L1 - L2, dC = C1 - C2, dH2 = Math.max(0, (a1 - a2) ** 2 + (b1 - b2) ** 2 - dC * dC);
+const h1 = hueDeg(a1, b1);
+const SL = L1 < 16 ? 0.511 : (0.040975 * L1) / (1 + 0.01765 * L1);
+const SC = (0.0638 * C1) / (1 + 0.0131 * C1) + 0.638;
+const F = Math.sqrt(C1 ** 4 / (C1 ** 4 + 1900));
+const T = h1 >= 164 && h1 <= 345 ? 0.56 + Math.abs(0.2 * Math.cos((h1 + 168) * RAD)) : 0.36 + Math.abs(0.4 * Math.cos((h1 + 35) * RAD));
+const SH = SC * (F * T + 1 - F);
+return Math.sqrt((dL / (l * SL)) ** 2 + (dC / (c * SC)) ** 2 + dH2 / (SH * SH));
+}
+/** CIEDE2000 항별 분해 (값은 CB.dE2000과 같다) */
+function dE00Terms(lab1, lab2, kL = 1, kC = 1, kH = 1) {
+const [L1, a1, b1] = lab1, [L2, a2, b2] = lab2;
+const Cb = (Math.hypot(a1, b1) + Math.hypot(a2, b2)) / 2;
+const G = 0.5 * (1 - Math.sqrt(Cb ** 7 / (Cb ** 7 + 25 ** 7)));
+const a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+const h1p = C1p ? hueDeg(a1p, b1) : 0, h2p = C2p ? hueDeg(a2p, b2) : 0;
+const dLp = L2 - L1, dCp = C2p - C1p;
+let dhp = 0;
+if (C1p * C2p !== 0) dhp = wrap180(h2p - h1p);
+const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin((dhp / 2) * RAD);
+const Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+let hbp = h1p + h2p;
+if (C1p * C2p !== 0) { if (Math.abs(h1p - h2p) > 180) hbp += hbp < 360 ? 360 : -360; hbp /= 2; }
+const T = 1 - 0.17 * Math.cos((hbp - 30) * RAD) + 0.24 * Math.cos(2 * hbp * RAD) + 0.32 * Math.cos((3 * hbp + 6) * RAD) - 0.2 * Math.cos((4 * hbp - 63) * RAD);
+const dTh = 30 * Math.exp(-(((hbp - 275) / 25) ** 2));
+const RC = 2 * Math.sqrt(Cbp ** 7 / (Cbp ** 7 + 25 ** 7));
+const SL = 1 + (0.015 * (Lbp - 50) ** 2) / Math.sqrt(20 + (Lbp - 50) ** 2);
+const SC = 1 + 0.045 * Cbp, SH = 1 + 0.015 * Cbp * T;
+const RT = -Math.sin(2 * dTh * RAD) * RC;
+const tL = dLp / (kL * SL), tC = dCp / (kC * SC), tH = dHp / (kH * SH);
+const dE = Math.sqrt(Math.max(0, tL * tL + tC * tC + tH * tH + RT * tC * tH));
+return { G, dLp, dCp, dHp, SL, SC, SH, T, RT, hbp, tL, tC, tH, cross: RT * tC * tH, dE };
+}
+/** a*b* 평면(고정 L)에서 중심 c로부터 방향 θ로 ΔE00 = k 가 되는 거리 (이분법) */
+function radius00(c, theta, k) {
+const ux = Math.cos(theta), uy = Math.sin(theta);
+const d = (r) => CB.dE2000(c, [c[0], c[1] + r * ux, c[2] + r * uy]);
+let lo = 0, hi = 2 * k, n = 0;
+while (d(hi) < k && n++ < 12) { lo = hi; hi *= 2; }
+for (let i = 0; i < 28; i++) { const m = (lo + hi) / 2; if (d(m) > k) hi = m; else lo = m; }
+return (lo + hi) / 2;
+}
+/** 그라데이션 보간: 반환은 선형 sRGB (가멋 밖일 수 있음) */
+function interp(method, hexA, hexB, t) {
+const A = hex2lin(hexA), B = hex2lin(hexB);
+const mix = (p, q) => p.map((v, i) => v + (q[i] - v) * t);
+const polar = (p, q, toPolar) => {
+const P = toPolar(p), Q = toPolar(q), eps = toPolar === CB.Lab2LCh ? 0.5 : 0.002;
+let h1 = P[2], h2 = Q[2];
+if (P[1] < eps) h1 = h2; if (Q[1] < eps) h2 = h1;
+const dh = wrap180(h2 - h1);
+return [P[0] + (Q[0] - P[0]) * t, P[1] + (Q[1] - P[1]) * t, h1 + dh * t];
+};
+const okLCh = ([L, a, b]) => [L, Math.hypot(a, b), hueDeg(a, b)];
+const okFromLCh = ([L, C, h]) => [L, C * Math.cos(h * RAD), C * Math.sin(h * RAD)];
+switch (method) {
+case "srgb": return mix(A.map(CB.srgbEncode), B.map(CB.srgbEncode)).map(CB.srgbDecode);
+case "linear": return mix(A, B);
+case "lab": return lab2lin(mix(lin2lab(A), lin2lab(B)));
+case "lch": return lab2lin(CB.LCh2Lab(polar(lin2lab(A), lin2lab(B), CB.Lab2LCh)));
+case "oklab": return CB.oklab2linRGB(mix(CB.linRGB2oklab(A), CB.linRGB2oklab(B)));
+case "oklch": return CB.oklab2linRGB(okFromLCh(polar(CB.linRGB2oklab(A), CB.linRGB2oklab(B), okLCh)));
+}
+}
+/** 그라데이션 N단계의 연속 ΔE00 통계 */
+function gradStats(method, hexA, hexB, N = 32) {
+const labs = [];
+let oog = 0;
+for (let i = 0; i <= N; i++) { const lin = interp(method, hexA, hexB, i / N); if (!inGamut(lin)) oog++; labs.push(lin2lab(lin)); }
+const steps = [];
+for (let i = 1; i <= N; i++) steps.push(CB.dE2000(labs[i - 1], labs[i]));
+const sum = steps.reduce((s, v) => s + v, 0), mx = Math.max(...steps), mn = Math.min(...steps);
+const mid = labs[N >> 1];
+return { sum, ratio: mn > 1e-9 ? mx / mn : Infinity, oog, minC: Math.min(...labs.map((l) => Math.hypot(l[1], l[2]))), mid };
+}
+/*CALC-END*/
+
+
+const $ = (id) => document.getElementById(id);
+const mono = (px) => px + "px " + (getComputedStyle(document.body).getPropertyValue("--mono") || "monospace");
+const f1 = (v) => (Math.abs(v) < 0.05 ? 0 : v).toFixed(1);
+const f2 = (v) => v.toFixed(2);
+const chip = (hex) => `<span class="chip" style="background:${hex}"></span>${hex.toUpperCase()}`;
+const isHex = (s) => /^#?[0-9a-fA-F]{6}$/.test(s.trim());
+const normHex = (s) => (s.trim()[0] === "#" ? s.trim() : "#" + s.trim()).toLowerCase();
+
+/** L* 고정 a*b* 단면의 sRGB 색 이미지 (가멋 밖은 투명). n×n, 범위 ±R */
+function makeSlice(L, n, R) {
+const c = document.createElement("canvas");
+c.width = n; c.height = n;
+const g = c.getContext("2d"), img = g.createImageData(n, n);
+for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+const a = -R + (2 * R * (i + 0.5)) / n, b = R - (2 * R * (j + 0.5)) / n;
+const lin = lab2lin([L, a, b]);
+if (!inGamut(lin, 1e-4)) continue;
+const k = (j * n + i) * 4;
+img.data[k] = 255 * CB.srgbEncode(CB.clamp(lin[0], 0, 1));
+img.data[k + 1] = 255 * CB.srgbEncode(CB.clamp(lin[1], 0, 1));
+img.data[k + 2] = 255 * CB.srgbEncode(CB.clamp(lin[2], 0, 1));
+img.data[k + 3] = 255;
+}
+g.putImageData(img, 0, 0);
+return c;
+}
+function sliceCache(n, R) {
+const m = new Map();
+return (L) => {
+const key = L.toFixed(1);
+if (!m.has(key)) { if (m.size > 60) m.clear(); m.set(key, makeSlice(L, n, R)); }
+return m.get(key);
+};
+}
+/** 정사각 a*b* 플롯 상자와 좌표 변환 */
+function abBox(w, h, R) {
+const s = Math.min(w - 56, h - 40);
+const box = { x: 44 + (w - 56 - s) / 2, y: 10, w: s, h: s };
+const X = (a) => box.x + ((a + R) / (2 * R)) * s, Y = (b) => box.y + ((R - b) / (2 * R)) * s;
+const inv = (px, py) => [-R + ((px - box.x) / s) * 2 * R, R - ((py - box.y) / s) * 2 * R];
+return { box, X, Y, inv, s };
+}
+function abGrid(ctx, G, R, P, step) {
+ctx.save();
+ctx.font = mono(10); ctx.lineWidth = 1;
+for (let v = -Math.floor(R / step) * step; v <= R; v += step) {
+ctx.strokeStyle = v === 0 ? P.axis : P.grid;
+ctx.beginPath(); ctx.moveTo(G.X(v), G.box.y); ctx.lineTo(G.X(v), G.box.y + G.box.h); ctx.stroke();
+ctx.beginPath(); ctx.moveTo(G.box.x, G.Y(v)); ctx.lineTo(G.box.x + G.box.w, G.Y(v)); ctx.stroke();
+ctx.fillStyle = P.dim;
+ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText(v, G.X(v), G.box.y + G.box.h + 4);
+ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(v, G.box.x - 4, G.Y(v));
+}
+ctx.strokeStyle = P.axis; ctx.strokeRect(G.box.x, G.box.y, G.box.w, G.box.h);
+ctx.fillStyle = P.dim; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+ctx.fillText("+a*", G.box.x + G.box.w - 4, G.Y(0) - 3);
+ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("+b*", G.X(0) + 4, G.box.y + 3);
+ctx.restore();
+}
+function pointer(cv, fn) {
+cv.addEventListener("pointerdown", (e) => { const r = cv.getBoundingClientRect(); fn(e.clientX - r.left, e.clientY - r.top); });
+}
+
+// 1. Lab / LCh 탐색기
+(function simLab() {
+const R = 128, slice = sliceCache(200, R);
+let lab = [50, 40, -30], syncing = false, G = null;
+const mode = CB.seg("lab-mode", () => syncSliders());
+const sL = CB.range("lab-L", (v) => v.toFixed(1), () => { if (syncing) return; lab[0] = sL(); update(); });
+const s1 = CB.range("lab-p1", (v) => v.toFixed(1), () => fromSliders());
+const s2 = CB.range("lab-p2", (v) => v.toFixed(1) + (mode() === "lch" ? "°" : ""), () => fromSliders());
+function fromSliders() {
+if (syncing) return;
+lab = mode() === "lab" ? [sL(), s1(), s2()] : CB.LCh2Lab([sL(), s1(), s2()]);
+update();
+}
+function syncSliders() {
+syncing = true;
+const lch = CB.Lab2LCh(lab);
+sL.set(lab[0]);
+if (mode() === "lab") {
+s1.el.min = -128; s1.el.max = 128; s2.el.min = -128; s2.el.max = 128;
+$("lab-n1").textContent = "a*"; $("lab-n2").textContent = "b*";
+s1.set(CB.clamp(lab[1], -128, 128)); s2.set(CB.clamp(lab[2], -128, 128));
+} else {
+s1.el.min = 0; s1.el.max = 150; s2.el.min = 0; s2.el.max = 360;
+$("lab-n1").textContent = "C*ab"; $("lab-n2").textContent = "h_ab";
+s1.set(CB.clamp(lch[1], 0, 150)); s2.set(lch[2]);
+}
+syncing = false;
+update();
+}
+const cv = CB.canvas($("cv-lab"), (ctx, w, h) => {
+const P = CB.palette();
+G = abBox(w, h, R);
+ctx.imageSmoothingEnabled = true;
+ctx.drawImage(slice(lab[0]), G.box.x, G.box.y, G.s, G.s);
+abGrid(ctx, G, R, P, 50);
+const [, C, hh] = CB.Lab2LCh(lab);
+const cx = G.X(0), cy = G.Y(0), r = (C / (2 * R)) * G.s;
+ctx.save();
+ctx.setLineDash([4, 4]); ctx.strokeStyle = P.text; ctx.lineWidth = 1.2;
+ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+ctx.setLineDash([]);
+ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(G.X(lab[1]), G.Y(lab[2])); ctx.stroke();
+ctx.lineWidth = 3; ctx.strokeStyle = "#000";
+ctx.beginPath(); ctx.arc(G.X(lab[1]), G.Y(lab[2]), 7, 0, Math.PI * 2); ctx.stroke();
+ctx.lineWidth = 1.5; ctx.strokeStyle = "#fff";
+ctx.beginPath(); ctx.arc(G.X(lab[1]), G.Y(lab[2]), 7, 0, Math.PI * 2); ctx.stroke();
+ctx.fillStyle = P.text; ctx.font = mono(11); ctx.textAlign = "left"; ctx.textBaseline = "top";
+ctx.fillText(`L* = ${lab[0].toFixed(1)} 단면`, G.box.x + 6, G.box.y + G.box.h - 18);
+ctx.restore();
+}, { aspect: 0.92, maxHeight: 480, minHeight: 280 });
+pointer($("cv-lab"), (px, py) => {
+if (!G) return;
+const [a, b] = G.inv(px, py);
+if (Math.abs(a) > R || Math.abs(b) > R) return;
+lab = [lab[0], a, b]; syncSliders();
+});
+function update() {
+const lin = lab2lin(lab), ok = inGamut(lin, 1e-4), hex = lin2hex(lin);
+const XYZ = CB.Lab2XYZ(lab).map((v) => v * 100);
+const lch = CB.Lab2LCh(lab);
+const sw = $("lab-sw");
+sw.style.background = hex;
+sw.style.color = lab[0] > 60 ? "#000" : "#fff";
+sw.textContent = ok ? hex.toUpperCase() : hex.toUpperCase() + " (가멋 밖: 클리핑됨)";
+CB.stat("o-lab-lab", `${f1(lab[0])}, ${f1(lab[1])}, ${f1(lab[2])}`);
+CB.stat("o-lab-lch", lch[1] < 0.5 ? `${f1(lch[1])}, h 정의 안 됨` : `${f1(lch[1])}, ${f1(lch[2])}°`);
+CB.stat("o-lab-xyz", XYZ.map((v) => v.toFixed(2)).join(", "));
+CB.stat("o-lab-hex", chip(hex));
+CB.stat("o-lab-gam", ok ? "sRGB 안" : `<span style="color:var(--bad)">sRGB 밖</span> <small>선형 RGB ${lin.map((v) => v.toFixed(2)).join(", ")}</small>`);
+cv.redraw();
+}
+$("lab-gray").addEventListener("click", () => { lab = [lab[0], 0, 0]; syncSliders(); });
+$("lab-blue").addEventListener("click", () => { lab = hex2lab("#0000ff"); syncSliders(); });
+syncSliders();
+})();
+
+// 2. 두 색 비교기
+(function simCmp() {
+const PRE = {
+sharma: [[50, 2.6772, -79.7751], [50, 0, -82.7485]],
+gray: [[50, 2, 0], [50, 7, 0]],
+red: [[50, 61.3, 51.4], [50, 65.1, 54.6]],
+light: [[90, 0, 0], [95, 0, 0]],
+rt: [[40, 4.4, -49.8], [40, 1.1, -53.6]],
+};
+let A = PRE.sharma[0].slice(), B = PRE.sharma[1].slice(), res = null;
+const ids = { A: ["ca-L", "ca-a", "ca-b", "ca-hex"], B: ["cb-L", "cb-a", "cb-b", "cb-hex"] };
+function write(which, lab, skipHex) {
+const id = ids[which];
+for (let i = 0; i < 3; i++) $(id[i]).value = +lab[i].toFixed(4);
+if (!skipHex) $(id[3]).value = lab2hex(lab);
+}
+function bind(which) {
+const id = ids[which];
+for (let i = 0; i < 3; i++) $(id[i]).addEventListener("input", () => {
+const lab = id.slice(0, 3).map((k) => Number($(k).value));
+if (lab.some((v) => !isFinite(v))) return;
+if (which === "A") A = lab; else B = lab;
+$(id[3]).value = lab2hex(lab);
+update();
+});
+$(id[3]).addEventListener("input", () => {
+const s = $(id[3]).value;
+if (!isHex(s)) return;
+const lab = hex2lab(normHex(s));
+if (which === "A") A = lab; else B = lab;
+write(which, lab, true);
+update();
+});
+}
+bind("A"); bind("B");
+const pre = CB.seg("cmp-pre", (v) => { A = PRE[v][0].slice(); B = PRE[v][1].slice(); write("A", A); write("B", B); update(); });
+const kl = CB.seg("cmp-kl", () => update());
+const cv = CB.canvas($("cv-cmp"), (ctx, w, h) => {
+if (!res) return;
+const P = CB.palette();
+const pad = 12, sh = 64, half = (w - 2 * pad) / 2;
+const inA = inGamut(lab2lin(A)), inB = inGamut(lab2lin(B));
+ctx.fillStyle = lab2hex(A); ctx.fillRect(pad, pad, half, sh);
+ctx.fillStyle = lab2hex(B); ctx.fillRect(pad + half, pad, half, sh);
+ctx.strokeStyle = P.border; ctx.strokeRect(pad, pad, 2 * half, sh);
+ctx.font = mono(11); ctx.textBaseline = "bottom"; ctx.textAlign = "left";
+ctx.fillStyle = A[0] > 60 ? "#000" : "#fff"; ctx.fillText("1 (기준)" + (inA ? "" : " 클리핑"), pad + 6, pad + sh - 5);
+ctx.fillStyle = B[0] > 60 ? "#000" : "#fff"; ctx.fillText("2 (시료)" + (inB ? "" : " 클리핑"), pad + half + 6, pad + sh - 5);
+const lw = Math.min(150, w * 0.38), bx = pad + lw, bw = w - bx - pad - 44;
+let y = pad + sh + 26;
+ctx.fillStyle = P.text; ctx.font = mono(12); ctx.textBaseline = "alphabetic";
+ctx.fillText("공식별 색차", pad, y - 8);
+const rows = [["ΔE*ab", res.d76, P.dim], ["ΔE94 그래픽", res.d94, P.accent2], ["ΔE94 섬유", res.d94t, P.accent2], ["CMC 2:1", res.cmc, P.warn], ["ΔE00 kL=" + kl(), res.t.dE, P.accent]];
+const mx = Math.max(1, ...rows.map((r) => r[1]));
+const rh = 22;
+ctx.font = mono(11);
+rows.forEach(([name, v, col], i) => {
+const yy = y + i * rh;
+ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(name, pad, yy + 8);
+ctx.fillStyle = col; ctx.fillRect(bx, yy + 1, (v / mx) * bw, 14);
+ctx.fillStyle = P.text; ctx.fillText(v.toFixed(2), bx + (v / mx) * bw + 5, yy + 8);
+});
+y += rows.length * rh + 30;
+ctx.fillStyle = P.text; ctx.font = mono(12); ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+ctx.fillText("ΔE00² 의 구성 (합 = " + (res.t.dE ** 2).toFixed(3) + ")", pad, y - 8);
+const t = res.t;
+const parts = [["(ΔL′/kL·SL)²", t.tL * t.tL, P.dim], ["(ΔC′/SC)²", t.tC * t.tC, P.accent2], ["(ΔH′/SH)²", t.tH * t.tH, P.warn], ["R_T 교차항", t.cross, t.cross < 0 ? P.bad : P.ok]];
+const m2 = Math.max(0.5, ...parts.map((p) => Math.abs(p[1])));
+const zero = bx + bw * 0.22, sc = (bw * 0.78) / m2;
+ctx.strokeStyle = P.axis; ctx.beginPath(); ctx.moveTo(zero, y - 2); ctx.lineTo(zero, y + parts.length * rh); ctx.stroke();
+ctx.font = mono(11);
+parts.forEach(([name, v, col], i) => {
+const yy = y + i * rh;
+ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(name, pad, yy + 8);
+ctx.fillStyle = col;
+if (v >= 0) ctx.fillRect(zero, yy + 1, v * sc, 14); else ctx.fillRect(zero + v * sc, yy + 1, -v * sc, 14);
+ctx.fillStyle = P.text; ctx.textAlign = "left";
+ctx.fillText((v >= 0 ? "" : "−") + Math.abs(v).toFixed(3), Math.max(zero, zero + v * sc) + 5, yy + 8);
+});
+}, { height: 400 });
+function update() {
+const k = Number(kl());
+const t = dE00Terms(A, B, k, 1, 1);
+res = { t, d76: CB.dE76(A, B), d94: dE94(A, B), d94t: dE94(A, B, 2, 0.048, 0.014), cmc: dECMC(A, B, 2, 1) };
+CB.stat("o-c76", f2(res.d76));
+CB.stat("o-c94", f2(res.d94) + " / " + f2(res.d94t));
+CB.stat("o-cmc", f2(res.cmc));
+CB.stat("o-c00", t.dE.toFixed(4));
+CB.stat("o-cS", `${t.SL.toFixed(3)}, ${t.SC.toFixed(3)}, ${t.SH.toFixed(3)}`);
+CB.stat("o-cRT", `${t.G.toFixed(4)}, ${t.T.toFixed(3)}, ${t.RT.toFixed(3)} <small>(h̄′ ${t.hbp.toFixed(1)}°)</small>`);
+cv.redraw();
+}
+write("A", A); write("B", B);
+update();
+void pre;
+})();
+
+// 3. ΔE00 등고선 지도
+(function simContour() {
+const R = 100, slice = sliceCache(160, R), NA = 72;
+const GRID = [-60, -30, 0, 30, 60];
+let sel = [10, -55], cache = { key: "", list: [] }, G = null;
+const sL = CB.range("ct-L", (v) => v.toFixed(0), () => update());
+const sk = CB.range("ct-k", (v) => v.toFixed(1), () => update());
+const mag = CB.seg("ct-mag", () => cv.redraw());
+$("ct-76").addEventListener("change", () => cv.redraw());
+$("ct-bg").addEventListener("change", () => cv.redraw());
+function contour(c, k) {
+const pts = [];
+for (let i = 0; i < NA; i++) { const th = (i / NA) * 2 * Math.PI; pts.push([th, radius00(c, th, k)]); }
+return pts;
+}
+function compute() {
+const L = sL(), k = sk(), key = L + "|" + k;
+if (cache.key !== key) {
+const list = [];
+for (const a of GRID) for (const b of GRID) list.push({ c: [L, a, b], pts: contour([L, a, b], k) });
+cache = { key, list };
+}
+return cache.list;
+}
+function drawContour(ctx, c, pts, m, color, width) {
+ctx.strokeStyle = color; ctx.lineWidth = width;
+ctx.beginPath();
+pts.forEach(([th, r], i) => {
+const x = G.X(c[1] + m * r * Math.cos(th)), y = G.Y(c[2] + m * r * Math.sin(th));
+i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+});
+ctx.closePath(); ctx.stroke();
+}
+const cv = CB.canvas($("cv-ct"), (ctx, w, h) => {
+const P = CB.palette(), L = sL(), k = sk(), m = Number(mag());
+G = abBox(w, h, R);
+if ($("ct-bg").checked) { ctx.save(); ctx.globalAlpha = 0.45; ctx.drawImage(slice(L), G.box.x, G.box.y, G.s, G.s); ctx.restore(); }
+abGrid(ctx, G, R, P, 30);
+const list = compute();
+const show76 = $("ct-76").checked;
+ctx.save();
+ctx.beginPath(); ctx.rect(G.box.x, G.box.y, G.box.w, G.box.h); ctx.clip();
+list.forEach(({ c, pts }) => {
+if (show76) {
+ctx.setLineDash([3, 3]); ctx.strokeStyle = P.dim; ctx.lineWidth = 1;
+ctx.beginPath(); ctx.arc(G.X(c[1]), G.Y(c[2]), ((m * k) / (2 * R)) * G.s, 0, Math.PI * 2); ctx.stroke();
+ctx.setLineDash([]);
+}
+drawContour(ctx, c, pts, m, P.text, 1.6);
+});
+const sc = [L, sel[0], sel[1]];
+const sp = contour(sc, k);
+if (show76) {
+ctx.setLineDash([3, 3]); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.2;
+ctx.beginPath(); ctx.arc(G.X(sc[1]), G.Y(sc[2]), ((m * k) / (2 * R)) * G.s, 0, Math.PI * 2); ctx.stroke();
+ctx.setLineDash([]);
+}
+drawContour(ctx, sc, sp, m, P.accent, 2.6);
+ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(G.X(sc[1]), G.Y(sc[2]), 3.5, 0, Math.PI * 2); ctx.fill();
+ctx.restore();
+ctx.fillStyle = P.dim; ctx.font = mono(11); ctx.textAlign = "left"; ctx.textBaseline = "top";
+ctx.fillText(`실선 ΔE00=${k}, 점선 ΔE76=${k}, ×${m}`, G.box.x + 6, G.box.y + 4);
+}, { aspect: 0.92, maxHeight: 520, minHeight: 280 });
+pointer($("cv-ct"), (px, py) => {
+if (!G) return;
+const [a, b] = G.inv(px, py);
+if (Math.abs(a) > R || Math.abs(b) > R) return;
+sel = [a, b]; update();
+});
+function update() {
+const L = sL(), k = sk(), c = [L, sel[0], sel[1]];
+const C = Math.hypot(sel[0], sel[1]), hRad = Math.atan2(sel[1], sel[0]);
+let mx = 0, mn = Infinity, amx = 0;
+for (let i = 0; i < 360; i += 2) { const th = i * RAD, r = radius00(c, th, k); if (r > mx) { mx = r; amx = th; } mn = Math.min(mn, r); }
+CB.stat("o-ct-c", `${L.toFixed(0)}, ${f1(sel[0])}, ${f1(sel[1])} <small>(C* ${f1(C)}, h ${f1(hueDeg(sel[0], sel[1]))}°)</small>`);
+if (C < 2) {
+CB.stat("o-ct-rc", `a* 방향 ${f2(radius00(c, 0, k))}`);
+CB.stat("o-ct-rh", `b* 방향 ${f2(radius00(c, Math.PI / 2, k))}`);
+CB.stat("o-ct-tilt", "무채색: 채도 방향 정의 없음");
+} else {
+const rC = (radius00(c, hRad, k) + radius00(c, hRad + Math.PI, k)) / 2;
+const rH = (radius00(c, hRad + Math.PI / 2, k) + radius00(c, hRad - Math.PI / 2, k)) / 2;
+CB.stat("o-ct-rc", `${f2(rC)} <small>(ΔE76 단위, 원이면 ${k})</small>`);
+CB.stat("o-ct-rh", f2(rH));
+let tilt = ((amx - hRad) / RAD) % 180; if (tilt > 90) tilt -= 180; if (tilt < -90) tilt += 180;
+CB.stat("o-ct-tilt", `${tilt.toFixed(0)}°`);
+}
+CB.stat("o-ct-ratio", (mx / mn).toFixed(2));
+cv.redraw();
+}
+update();
+})();
+
+// 4. 그라데이션 보간
+(function simGrad() {
+const METHODS = [["srgb", "sRGB (감마 인코딩)"], ["linear", "선형 sRGB"], ["lab", "CIELAB"], ["lch", "LCh(ab)"], ["oklab", "OKLab"], ["oklch", "OKLCh"]];
+let ha = "#0000ff", hb = "#ffff00";
+const pre = CB.seg("g-pre", (v) => { [ha, hb] = v.split(","); $("g-a").value = ha; $("g-b").value = hb; update(); });
+["g-a", "g-b"].forEach((id, i) => $(id).addEventListener("input", () => {
+const s = $(id).value; if (!isHex(s)) return;
+if (i === 0) ha = normHex(s); else hb = normHex(s);
+update();
+}));
+let stats = {};
+const cv = CB.canvas($("cv-grad"), (ctx, w, h) => {
+const P = CB.palette(), pad = 10, bw = w - 2 * pad, rowH = (h - 8) / METHODS.length;
+ctx.font = mono(11);
+METHODS.forEach(([m, name], r) => {
+const y0 = 4 + r * rowH, by = y0 + 16, bh = rowH - 30;
+ctx.fillStyle = P.text; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(name, pad, y0);
+const s = stats[m];
+if (s) {
+ctx.fillStyle = P.dim; ctx.textAlign = "right";
+ctx.fillText(`ΣΔE00 ${s.sum.toFixed(1)} · 최대/평균 ${s.rm.toFixed(2)}`, w - pad, y0);
+}
+const step = 2;
+for (let x = 0; x < bw; x += step) {
+const lin = interp(m, ha, hb, x / (bw - 1));
+ctx.fillStyle = lin2hex(lin);
+ctx.fillRect(pad + x, by, step + 0.5, bh);
+if (!inGamut(lin)) { ctx.fillStyle = P.bad; ctx.fillRect(pad + x, by + bh + 2, step + 0.5, 4); }
+}
+ctx.fillStyle = P.text; ctx.fillRect(pad + bw / 2 - 0.5, by - 3, 1, 3);
+});
+}, { height: 420 });
+function update() {
+stats = {};
+METHODS.forEach(([m]) => {
+const N = 32, labs = [];
+for (let i = 0; i <= N; i++) labs.push(lin2lab(interp(m, ha, hb, i / N)));
+const steps = [];
+for (let i = 1; i <= N; i++) steps.push(CB.dE2000(labs[i - 1], labs[i]));
+const sum = steps.reduce((s, v) => s + v, 0);
+stats[m] = { sum, rm: sum > 1e-9 ? Math.max(...steps) / (sum / N) : 1 };
+const mid = interp(m, ha, hb, 0.5), L = lin2lab(mid);
+CB.stat("o-g-" + m, `${chip(lin2hex(mid))} <small>L* ${L[0].toFixed(1)}${inGamut(mid) ? "" : ", 클리핑"}</small>`);
+});
+cv.redraw();
+}
+update();
+void pre;
+})();
+
+// 5. 색상 휨 비교
+(function simHue() {
+let base = "#0000ff";
+CB.seg("hue-base", (v) => { base = v; update(); });
+let D = null;
+function compute() {
+const lin = hex2lin(base), lab = lin2lab(lin), lch = CB.Lab2LCh(lab);
+const ok = CB.linRGB2oklab(lin), oC = Math.hypot(ok[1], ok[2]), oh = Math.atan2(ok[2], ok[1]);
+const labLine = (t) => CB.LCh2Lab([lch[0], lch[1] * t, lch[2]]);
+const okLine = (t) => [ok[0], oC * t * Math.cos(oh), oC * t * Math.sin(oh)];
+const sA = [], sB = [];
+for (let i = 2; i <= 100; i++) {
+const t = i / 100;
+const o = lab2ok(labLine(t));
+sA.push([t, wrap180(Math.atan2(o[2], o[1]) / RAD - oh / RAD)]);
+const l = ok2lab(okLine(t));
+sB.push([t, wrap180(hueDeg(l[1], l[2]) - lch[2])]);
+}
+return { lab, lch, ok, oC, oh, labLine, okLine, sA, sB };
+}
+const cv = CB.canvas($("cv-hue"), (ctx, w, h) => {
+if (!D) return;
+const P = CB.palette(), pad = 50, sw = w - pad - 20, sh = 34;
+ctx.font = mono(11); ctx.textAlign = "left"; ctx.textBaseline = "top";
+const strips = [["CIELAB: L*, h_ab 고정, C* → 0", (t) => lab2lin(D.labLine(t)), 8], ["OKLab: L, h 고정, C → 0", (t) => CB.oklab2linRGB(D.okLine(t)), 8 + sh + 26]];
+strips.forEach(([name, fn, y]) => {
+ctx.fillStyle = P.text; ctx.fillText(name, pad, y);
+for (let x = 0; x < sw; x += 2) { ctx.fillStyle = lin2hex(fn(x / (sw - 1))); ctx.fillRect(pad + x, y + 15, 2.5, sh); }
+});
+const all = D.sA.concat(D.sB).map((p) => Math.abs(p[1]));
+const ym = Math.max(10, Math.ceil((Math.max(...all) + 3) / 10) * 10);
+const top = 8 + 2 * (sh + 26) + 4;
+CB.chart(ctx, { x: pad, y: top, w: sw, h: h - top - 46 }, {
+x: [0, 1], y: [-ym, ym], xLabel: "상대 채도 (0 = 회색, 1 = 출발 색)", yLabel: "색상각 변화 (°)",
+xFmt: (v) => v.toFixed(1),
+series: [{ data: D.sA, color: P.accent, width: 2.4 }, { data: D.sB, color: P.warn, width: 2.4, dash: [6, 4] }],
+hlines: [{ y: 0, color: P.axis, dash: [] }],
+});
+ctx.font = mono(11); ctx.textAlign = "left"; ctx.textBaseline = "top";
+ctx.fillStyle = P.accent; ctx.fillText("— Lab 선을 OKLab 색상각으로 잼", pad + 8, top + 4);
+ctx.fillStyle = P.warn; ctx.fillText("- - OKLab 선을 Lab 색상각으로 잼", pad + 8, top + 20);
+}, { height: 440 });
+function update() {
+D = compute();
+const at = (s, t) => s.reduce((b, p) => (Math.abs(p[0] - t) < Math.abs(b[0] - t) ? p : b))[1];
+CB.stat("o-h-base", `LCh(${f1(D.lch[0])}, ${f1(D.lch[1])}, ${f1(D.lch[2])}°) / OKLCh(${D.ok[0].toFixed(3)}, ${D.oC.toFixed(3)}, ${f1(hueDeg(D.ok[1], D.ok[2]))}°)`);
+CB.stat("o-h-a", `${at(D.sA, 0.5) >= 0 ? "+" : ""}${at(D.sA, 0.5).toFixed(1)}°`);
+CB.stat("o-h-b", `${at(D.sB, 0.5) >= 0 ? "+" : ""}${at(D.sB, 0.5).toFixed(1)}°`);
+CB.stat("o-h-g", `${D.lab[0].toFixed(1)} / ${ok2lab([D.ok[0], 0, 0])[0].toFixed(1)}`);
+cv.redraw();
+}
+update();
+})();
+
+// 6. 3D 가멋 입체
+(function sim3d() {
+const prim = { r: "#ff0000", g: "#00ff00", b: "#0000ff", y: "#ffff00" };
+const space = CB.seg("s3-space", () => { build(); stats(); });
+function stats() {
+Object.entries(prim).forEach(([k, hex]) => {
+const lin = hex2lin(hex);
+if (space() === "lab") { const l = lin2lab(lin); CB.stat("o-3d-" + k, `L* ${f1(l[0])}, a* ${f1(l[1])}, b* ${f1(l[2])}`); }
+else { const o = CB.linRGB2oklab(lin); CB.stat("o-3d-" + k, `L ${o[0].toFixed(3)}, a ${o[1].toFixed(3)}, b ${o[2].toFixed(3)}`); }
+});
+}
+stats();
+const T = CB.three($("v3d"), { camera: [9, 7, 9], target: [0, 2.5, 0], fov: 40, minDistance: 5, maxDistance: 30 });
+if (!T) return;
+const THREE = T.THREE;
+const map = (lin) => {
+if (space() === "lab") { const l = lin2lab(lin); return [l[1] * 0.05, l[0] * 0.05, -l[2] * 0.05]; }
+const o = CB.linRGB2oklab(lin); return [o[1] * 16, o[0] * 5, -o[2] * 16];
+};
+let group = null;
+const M_P3 = CB.rgb2xyzMatrix(CB.SPACES.p3);
+function cubeEdges(toLin, segs) {
+const corners = [];
+for (let i = 0; i < 8; i++) corners.push([i & 1, (i >> 1) & 1, (i >> 2) & 1]);
+const pts = [];
+for (let i = 0; i < 8; i++) for (let j = i + 1; j < 8; j++) {
+const d = corners[i].map((v, k) => Math.abs(v - corners[j][k])).reduce((s, v) => s + v, 0);
+if (d !== 1) continue;
+for (let s = 0; s < segs; s++) {
+const p = corners[i].map((v, k) => v + ((corners[j][k] - v) * s) / segs), q = corners[i].map((v, k) => v + ((corners[j][k] - v) * (s + 1)) / segs);
+pts.push(...map(toLin(p)), ...map(toLin(q)));
+}
+}
+const g = new THREE.BufferGeometry();
+g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+return g;
+}
+function build() {
+if (group) { T.scene.remove(group); group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
+group = new THREE.Group();
+const N = 28, pos = [], col = [], idx = [];
+for (let f = 0; f < 6; f++) {
+const axis = f >> 1, val = f & 1, u = (axis + 1) % 3, v = (axis + 2) % 3, start = pos.length / 3;
+for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+const rgb = [0, 0, 0]; rgb[axis] = val; rgb[u] = i / N; rgb[v] = j / N;
+pos.push(...map(rgb)); col.push(...rgb);
+}
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+const a = start + j * (N + 1) + i, b = a + 1, c = a + N + 1, d = c + 1;
+idx.push(a, b, d, a, d, c);
+}
+}
+const geo = new THREE.BufferGeometry();
+geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+geo.setIndex(idx);
+group.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+group.add(new THREE.LineSegments(cubeEdges((p) => p, 16), new THREE.LineBasicMaterial({ color: 0x222222 })));
+const p3 = new THREE.LineSegments(cubeEdges((p) => CB.XYZ2linRGB(CB.mat.vec(M_P3, p)), 24), new THREE.LineBasicMaterial({ color: 0x888888 }));
+p3.visible = $("s3-p3").checked; p3.name = "p3";
+group.add(p3);
+const ax = [0, 0, 0, 0, 5.4, 0, -6, 0, 0, 6, 0, 0, 0, 0, -6, 0, 0, 6];
+const ag = new THREE.BufferGeometry(); ag.setAttribute("position", new THREE.Float32BufferAttribute(ax, 3));
+group.add(new THREE.LineSegments(ag, new THREE.LineBasicMaterial({ color: 0x888888 })));
+T.scene.add(group);
+}
+T.label("명도", [0, 5.6, 0]);
+T.label("+a", [6.2, 0, 0]); T.label("−a", [-6.2, 0, 0]);
+T.label("+b", [0, 0, -6.2]); T.label("−b", [0, 0, 6.2]);
+build();
+$("s3-p3").addEventListener("change", () => { const p = group && group.getObjectByName("p3"); if (p) p.visible = $("s3-p3").checked; });
+$("s3-rot").addEventListener("change", () => { if (T.controls) T.controls.autoRotate = $("s3-rot").checked; });
+})();
+})();
+</script>
+</body>
+</html>

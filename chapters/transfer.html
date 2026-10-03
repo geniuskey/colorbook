@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<title>전달 함수, 감마, 양자화 · ColorBook</title>
+<meta name="description" content="OETF·EOTF·OOTF와 sRGB·BT.709·BT.1886 전달 함수, 선형광에서 해야 하는 블렌딩과 축소, 비트 깊이와 Weber 비율, 밴딩과 디더링을 시뮬레이터로 계산한다.">
+<link rel="canonical" href="https://colorbook.euiyun.com/chapters/transfer.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ColorBook">
+<meta property="og:title" content="전달 함수, 감마, 양자화 · ColorBook">
+<meta property="og:description" content="OETF·EOTF·OOTF와 sRGB·BT.709·BT.1886 전달 함수, 선형광에서 해야 하는 블렌딩과 축소, 비트 깊이와 Weber 비율, 밴딩과 디더링을 시뮬레이터로 계산한다.">
+<meta property="og:url" content="https://colorbook.euiyun.com/chapters/transfer.html">
+<meta property="og:image" content="https://colorbook.euiyun.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"전달 함수, 감마, 양자화","name":"전달 함수, 감마, 양자화 · ColorBook","url":"https://colorbook.euiyun.com/chapters/transfer.html","mainEntityOfPage":"https://colorbook.euiyun.com/chapters/transfer.html","inLanguage":"ko","isAccessibleForFree":true,"learningResourceType":"interactive textbook chapter","position":6,"image":"https://colorbook.euiyun.com/og.png","dateModified":"2026-10-03","isPartOf":{"@type":"Book","@id":"https://colorbook.euiyun.com/#book","name":"ColorBook — 인터랙티브 색채공학 교과서","url":"https://colorbook.euiyun.com/"},"publisher":{"@type":"Organization","name":"ColorBook","url":"https://colorbook.euiyun.com/"},"description":"OETF·EOTF·OOTF와 sRGB·BT.709·BT.1886 전달 함수, 선형광에서 해야 하는 블렌딩과 축소, 비트 깊이와 Weber 비율, 밴딩과 디더링을 시뮬레이터로 계산한다."},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ColorBook","item":"https://colorbook.euiyun.com/"},{"@type":"ListItem","position":2,"name":"06 전달 함수, 감마, 양자화","item":"https://colorbook.euiyun.com/chapters/transfer.html"}]}]}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/common.js"></script>
+<style>
+  .sim-controls input[type=color] { width: 100%; height: 34px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elev); padding: 2px; cursor: pointer; }
+  .sim-view canvas { touch-action: pan-y; }
+</style>
+</head>
+<body data-chapter="transfer">
+<main class="chapter">
+  <header class="chapter-hero">
+    <div class="eyebrow">Chapter 06</div>
+    <h1>전달 함수, 감마, 양자화</h1>
+    <p class="lead">5장의 3×3 행렬은 <strong>선형광</strong><span class="en">(linear light)</span>, 즉 빛의 양에 비례하는 RGB를 다룬다. 그러나 파일과 영상 신호, 그래픽 API가 주고받는 숫자는 거의 언제나 비선형으로 <em>인코딩된</em> 값이다. 이 장은 그 비선형 곡선(전달 함수)이 왜 필요한지, 표준 곡선의 정확한 식이 무엇인지, 인코딩된 값으로 계산하면 어떤 오류가 생기는지, 그리고 유한한 비트로 매끄러운 그라데이션을 만드는 법을 숫자로 다룬다.</p>
+    <ul class="objectives">
+      <li>Weber–Fechner·Stevens 법칙과 CIE L*로 "지각적으로 균등한 코드 배분"이 무엇인지 설명한다.</li>
+      <li>OETF·EOTF·OOTF를 구분하고, sRGB(IEC 61966-2-1)·BT.709·BT.1886·BT.2020의 식과 상수를 정확히 쓴다.</li>
+      <li>블렌딩·알파 합성·축소·블러·조명 계산을 선형광에서 해야 하는 이유를 수치로 보인다.</li>
+      <li>비트 깊이별 코드 하나당 휘도 단계(ΔL/L)를 계산하고, 밴딩이 보이는 조건을 판단한다.</li>
+      <li>랜덤·정렬(Bayer)·오차 확산(Floyd–Steinberg) 디더링을 구현 수준에서 이해하고 비교한다.</li>
+    </ul>
+  </header>
+
+  <!-- ============================================================ 1 -->
+  <section id="why">
+    <h2>왜 비선형으로 인코딩하는가</h2>
+    <p>빛의 양(휘도 \(Y\))을 그대로 정수로 저장하면 가장 단순하다. 문제는 사람의 밝기 지각이 휘도에 비례하지 않는다는 데 있다. 19세기 Weber는 겨우 구별되는 차이 \(\Delta I\)가 기준 자극 \(I\)에 비례한다는 것을 관찰했다(<span class="term">Weber 법칙</span>, \(\Delta I / I \approx\) 일정). 명소시의 넓은 시야에서 휘도의 Weber 비율은 대략 1~2%다. Fechner는 이를 적분해 감각이 자극의 로그에 비례한다고 보았다(<span class="term">Weber–Fechner 법칙</span>). 20세기 중반 Stevens는 크기 추정 실험으로 감각이 자극의 거듭제곱에 비례한다는 <span class="term">멱법칙</span><span class="en">(Stevens' power law)</span>을 제시했고, 어두운 배경 속 넓은 시야(약 5°) 표적의 밝기<span class="en">(brightness)</span> 지수로 약 0.33을 보고했다.</p>
+    <div class="formula">$$\text{Fechner: } S = k\ln\frac{I}{I_0},\qquad \text{Stevens: } S = k\,I^{\,a}\;(a\approx 0.33)$$
+      <div class="where">로그와 세제곱근은 넓은 범위에서는 다르지만, 실제 영상의 휘도 범위(대비 수백:1)에서는 둘 다 "어두운 쪽을 확대하고 밝은 쪽을 압축하는" 오목한 곡선이다.</div>
+    </div>
+    <p>CIE 1976 명도 \(L^*\)는 반사 표면의 명도 척도(먼셀 명도)를 근사하도록 만든 세제곱근 식이다. 7장에서 색차를 다룰 때 다시 쓰지만, 여기서는 "지각적으로 균등한 밝기 축"의 기준으로 쓴다.</p>
+    <div class="formula">$$L^* = \begin{cases}116\,\left(Y/Y_n\right)^{1/3} - 16, & Y/Y_n > (6/29)^3 \approx 0.008856\\[2pt] (29/3)^3\,(Y/Y_n)\approx 903.3\,(Y/Y_n), & \text{otherwise}\end{cases}$$
+      <div class="where">\(Y_n\)은 기준 백색의 휘도. 18% 회색은 \(L^*=49.5\), 휘도 50%는 \(L^*=76.1\)이다. 휘도 절반이 "중간 밝기"가 아니라는 점이 이 장 전체의 출발점이다.</div>
+    </div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 270" role="img" aria-label="휘도 등간격 회색 단계와 L* 등간격 회색 단계 비교">
+        <text x="70" y="38" class="t-acc">휘도 Y 등간격 (0, 0.1, …, 1.0) — 아래 숫자는 L*</text>
+<rect x="70" y="50" width="58" height="58" fill="#000000" stroke="var(--border)"/><text x="99" y="124" text-anchor="middle" class="t-mono">0</text>
+<rect x="132" y="50" width="58" height="58" fill="#595959" stroke="var(--border)"/><text x="161" y="124" text-anchor="middle" class="t-mono">38</text>
+<rect x="194" y="50" width="58" height="58" fill="#7c7c7c" stroke="var(--border)"/><text x="223" y="124" text-anchor="middle" class="t-mono">52</text>
+<rect x="256" y="50" width="58" height="58" fill="#959595" stroke="var(--border)"/><text x="285" y="124" text-anchor="middle" class="t-mono">62</text>
+<rect x="318" y="50" width="58" height="58" fill="#aaaaaa" stroke="var(--border)"/><text x="347" y="124" text-anchor="middle" class="t-mono">69</text>
+<rect x="380" y="50" width="58" height="58" fill="#bcbcbc" stroke="var(--border)"/><text x="409" y="124" text-anchor="middle" class="t-mono">76</text>
+<rect x="442" y="50" width="58" height="58" fill="#cbcbcb" stroke="var(--border)"/><text x="471" y="124" text-anchor="middle" class="t-mono">82</text>
+<rect x="504" y="50" width="58" height="58" fill="#dadada" stroke="var(--border)"/><text x="533" y="124" text-anchor="middle" class="t-mono">87</text>
+<rect x="566" y="50" width="58" height="58" fill="#e7e7e7" stroke="var(--border)"/><text x="595" y="124" text-anchor="middle" class="t-mono">92</text>
+<rect x="628" y="50" width="58" height="58" fill="#f3f3f3" stroke="var(--border)"/><text x="657" y="124" text-anchor="middle" class="t-mono">96</text>
+<rect x="690" y="50" width="58" height="58" fill="#ffffff" stroke="var(--border)"/><text x="719" y="124" text-anchor="middle" class="t-mono">100</text>
+        <text x="70" y="158" class="t-acc">L* 등간격 (0, 10, …, 100) — 아래 숫자는 휘도 Y</text>
+<rect x="70" y="170" width="58" height="58" fill="#000000" stroke="var(--border)"/><text x="99" y="244" text-anchor="middle" class="t-mono">0.00</text>
+<rect x="132" y="170" width="58" height="58" fill="#1b1b1b" stroke="var(--border)"/><text x="161" y="244" text-anchor="middle" class="t-mono">0.01</text>
+<rect x="194" y="170" width="58" height="58" fill="#303030" stroke="var(--border)"/><text x="223" y="244" text-anchor="middle" class="t-mono">0.03</text>
+<rect x="256" y="170" width="58" height="58" fill="#474747" stroke="var(--border)"/><text x="285" y="244" text-anchor="middle" class="t-mono">0.06</text>
+<rect x="318" y="170" width="58" height="58" fill="#5e5e5e" stroke="var(--border)"/><text x="347" y="244" text-anchor="middle" class="t-mono">0.11</text>
+<rect x="380" y="170" width="58" height="58" fill="#777777" stroke="var(--border)"/><text x="409" y="244" text-anchor="middle" class="t-mono">0.18</text>
+<rect x="442" y="170" width="58" height="58" fill="#919191" stroke="var(--border)"/><text x="471" y="244" text-anchor="middle" class="t-mono">0.28</text>
+<rect x="504" y="170" width="58" height="58" fill="#ababab" stroke="var(--border)"/><text x="533" y="244" text-anchor="middle" class="t-mono">0.41</text>
+<rect x="566" y="170" width="58" height="58" fill="#c6c6c6" stroke="var(--border)"/><text x="595" y="244" text-anchor="middle" class="t-mono">0.57</text>
+<rect x="628" y="170" width="58" height="58" fill="#e2e2e2" stroke="var(--border)"/><text x="657" y="244" text-anchor="middle" class="t-mono">0.76</text>
+<rect x="690" y="170" width="58" height="58" fill="#ffffff" stroke="var(--border)"/><text x="719" y="244" text-anchor="middle" class="t-mono">1.00</text>
+      </svg>
+      <figcaption><b>그림 6-1.</b> 위: 휘도를 0.1씩 똑같이 늘린 11단계. 첫 칸과 둘째 칸 사이(L* 0→38)가 크게 벌어지고, 밝은 쪽 칸들은 거의 구별되지 않는다. 아래: L*를 10씩 늘린 단계는 눈에 고르게 보이지만, 휘도로는 0.01, 0.03, 0.06…처럼 어두운 쪽에 촘촘하다(sRGB 화면 기준으로 표시).</figcaption>
+    </figure>
+    <p>이제 8비트(256단계)로 휘도를 저장한다고 하자. 위 줄처럼 휘도에 균등하게 코드를 주면, 밝은 쪽 코드는 사람이 구별하지 못하는 차이에 낭비되고 어두운 쪽은 한 단계가 너무 커서 계단(<span class="term">밴딩</span><span class="en">(banding)</span>)이 보인다. 아래 줄처럼 지각에 균등하게 코드를 주면 같은 비트 수로 모든 밝기에서 단계를 비슷하게 작게 만들 수 있다. 이것이 <strong>비선형 인코딩의 본질적인 목적</strong>이다. 감마 곡선은 "어두운 영역을 확대하는 압축 코덱"이다.</p>
+    <div class="callout deep">
+      <strong>감마의 역사: 두 개의 우연</strong>
+      <p>CRT의 휘도는 구동 전압에 대해 지수 약 2.35~2.55의 멱함수에 가깝다(전자총 특성). 텔레비전은 수상기를 바꾸는 대신 송출 쪽(카메라)에서 역함수를 미리 곱했다. NTSC(1953)는 수상기 감마 2.2를 가정했다. 그런데 이 CRT 곡선의 역함수(지수 약 0.4~0.45)가 공교롭게도 사람의 밝기 지각(지수 약 1/3, 주변 조건에 따라 달라짐)과 비슷했다. 그 결과 전송 신호는 지각적으로 거의 균등한 척도가 되었고, 채널에 더해진 잡음도 디스플레이를 거치며 어두운 쪽에서 눌려 눈에 덜 띄었다. CRT가 사라진 지금도 감마 인코딩이 남은 이유는 바로 이 두 번째, <em>지각적 부호화</em> 효과 때문이다. LCD·OLED는 원래 감마 특성이 없지만 구동 회로에서 일부러 CRT형 EOTF를 흉내 낸다(13장).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 2 -->
+  <section id="terms">
+    <h2>OETF, EOTF, OOTF — 용어 정리</h2>
+    <p>"감마"라는 말은 문맥마다 뜻이 달라 혼란을 부른다. 현대 표준(특히 ITU-R BT.2100)은 곡선이 <em>어디에서 어디로</em> 가는지로 이름을 붙인다.</p>
+    <ul>
+      <li><span class="term">OETF</span><span class="en">(Opto-Electronic Transfer Function)</span>: 장면의 빛(카메라가 받은 선형 값) → 신호. 카메라·인코더 쪽 곡선. 예: BT.709 OETF.</li>
+      <li><span class="term">EOTF</span><span class="en">(Electro-Optical Transfer Function)</span>: 신호 → 디스플레이가 내는 빛. 디스플레이 쪽 곡선. 예: BT.1886, SMPTE ST 2084(PQ).</li>
+      <li><span class="term">OOTF</span><span class="en">(Opto-Optical Transfer Function)</span>: 장면의 빛 → 화면의 빛. 전체 시스템의 합성 함수이며 \(\mathrm{OOTF}=\mathrm{EOTF}\circ\mathrm{OETF}\). 일반적으로 항등 함수가 <em>아니고</em>, 화면에서 의도한 "보이는 느낌"을 위해 일부러 비선형이다.</li>
+      <li><span class="term">디스플레이 감마</span><span class="en">(display gamma)</span>: EOTF를 \(L = V^{\gamma}\)로 근사했을 때의 지수 \(\gamma\). 반대로 인코딩 지수(\(1/\gamma\), 예: 0.45)를 "인코딩 감마"라 부르기도 한다. 어느 쪽인지 반드시 확인해야 한다.</li>
+    </ul>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="장면 빛에서 OETF, 신호, EOTF, 디스플레이 빛으로 가는 파이프라인과 OOTF">
+        <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="90" width="120" height="70" rx="10" class="f-surface"/>
+        <text x="80" y="120" text-anchor="middle" class="t">장면 빛</text><text x="80" y="142" text-anchor="middle" class="t-mono">L, RGB (선형)</text>
+        <line x1="140" y1="125" x2="178" y2="125" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="180" y="90" width="110" height="70" rx="10" class="f-acc-soft"/>
+        <text x="235" y="120" text-anchor="middle" class="t-acc">OETF</text><text x="235" y="142" text-anchor="middle" class="t-dim">카메라·인코더</text>
+        <line x1="290" y1="125" x2="328" y2="125" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="330" y="90" width="140" height="70" rx="10" class="f-elev"/>
+        <text x="400" y="118" text-anchor="middle" class="t">신호 R′G′B′</text><text x="400" y="140" text-anchor="middle" class="t-mono">8/10/12비트 코드</text>
+        <line x1="470" y1="125" x2="508" y2="125" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="510" y="90" width="110" height="70" rx="10" class="f-acc2-soft"/>
+        <text x="565" y="120" text-anchor="middle" class="t">EOTF</text><text x="565" y="142" text-anchor="middle" class="t-dim">디스플레이</text>
+        <line x1="620" y1="125" x2="658" y2="125" class="s-line" marker-end="url(#ar2)"/>
+        <rect x="660" y="90" width="120" height="70" rx="10" class="f-surface"/>
+        <text x="720" y="120" text-anchor="middle" class="t">화면 빛</text><text x="720" y="142" text-anchor="middle" class="t-mono">cd/m²</text>
+        <path d="M80 82 V50 H720 V82" class="s-acc" marker-end="url(#ar2)"/>
+        <text x="400" y="40" text-anchor="middle" class="t-acc">OOTF = EOTF ∘ OETF  (렌더링 의도, 보통 국소 지수 ≈ 1.1~1.3)</text>
+        <text x="400" y="190" text-anchor="middle" class="t-dim">프라임(′) = 비선형으로 인코딩된 값.  R′G′B′ → Y′CbCr(15장), Y′는 "루마"이지 휘도 Y가 아니다.</text>
+        <text x="400" y="216" text-anchor="middle" class="t-dim">압축·전송·저장·편집은 대부분 R′G′B′ 영역에서 일어난다 — 그래서 "어느 영역의 숫자인가"를 늘 따져야 한다.</text>
+      </svg>
+      <figcaption><b>그림 6-2.</b> 영상 체인의 세 전달 함수. 선형 값에는 프라임이 없고(\(R, G, B, Y\)), 인코딩된 값에는 프라임을 붙인다(\(R', G', B', Y'\)). 이 관례는 ITU-R 문서와 Poynton의 교재에서 일관되게 쓰인다.</figcaption>
+    </figure>
+    <p>OOTF가 1이 아닌 이유는 9장(색 외관)의 주제와 맞닿아 있다. 밝은 야외 장면(수천 cd/m²)을 어두운 거실의 100 cd/m² 화면으로 보면, 휘도가 줄고 주변이 어두워져 대비와 채도가 낮아 보인다(Stevens 효과, Bartleson–Breneman 효과). 이를 보상하려고 시스템 전체에 약간의 대비 증폭(국소 지수 1보다 큼)을 넣는다. 전통 HDTV는 BT.709 OETF(유효 지수 약 0.5)와 BT.1886 EOTF(2.4)의 조합으로 중간 톤에서 약 1.2의 시스템 감마를 얻고, BT.2100 HLG는 1,000 cd/m² 디스플레이에서 OOTF 감마 1.2를 명시한다(<a href="hdr.html">14장</a>).</p>
+    <div class="callout tip">
+      <strong>공학자 관점: 문서에서 "gamma 2.2"를 만났을 때</strong>
+      <p>세 가지를 확인한다. ① 인코딩 지수인가 디코딩 지수인가(0.4545 = 1/2.2). ② 순수 멱함수인가 선형 구간이 있는 구간 함수인가. ③ OETF인가 EOTF인가. 예컨대 BT.709는 OETF만 정의하고 디스플레이 EOTF는 BT.1886이 따로 정의한다. sRGB는 디스플레이 기준으로 정의된 곡선이다. 이 셋을 섞어 쓰면 어두운 영역에서 수 배의 휘도 오차가 난다(다음 절).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 3 -->
+  <section id="srgb">
+    <h2>sRGB 전달 함수와 표준 곡선들</h2>
+    <p>sRGB(IEC 61966-2-1:1999)는 PC·웹의 기본 색공간이다. 원색과 백색점(D65)은 BT.709와 같고(5장), 전달 함수는 0 근처에 짧은 직선 구간을 둔 <span class="term">구간 함수</span><span class="en">(piecewise function)</span>다. 기준 디스플레이 백색 휘도는 80 cd/m², 기준 주변 조도는 64 lx로 정해져 있다.</p>
+    <div class="formula">$$V' = \begin{cases}12.92\,L, & L \le 0.0031308\\ 1.055\,L^{1/2.4} - 0.055, & L > 0.0031308\end{cases}
+\qquad
+L = \begin{cases}V'/12.92, & V' \le 0.04045\\ \left(\dfrac{V'+0.055}{1.055}\right)^{2.4}, & V' > 0.04045\end{cases}$$
+      <div class="where">\(L\)은 선형 값(0~1), \(V'\)은 인코딩 값(0~1, 8비트 코드 = \(255V'\)). 임계값 \(0.04045 = 12.92\times 0.0031308\). 지수 2.4에 오프셋 0.055가 붙어, 전체 곡선은 순수 2.2 멱함수에 가깝게 보인다(최소자승으로 맞추면 약 2.23).</div>
+    </div>
+    <p>왜 이렇게 복잡한가? 순수 멱함수 \(L^{1/2.2}\)는 0에서 기울기가 무한대라, 0 근처 카메라 잡음이 엄청나게 증폭되고 역함수를 수치적으로 다루기도 어렵다. 직선 구간은 기울기를 유한(12.92)하게 묶는다. 오프셋 0.055는 직선과 곡선이 만나는 점에서 값이 이어지도록 고른 상수다(기울기는 12.92와 약 12.70으로 거의 이어진다).</p>
+    <p>그 대가로 sRGB 곡선과 순수 2.2 곡선은 <strong>어두운 영역에서 크게 다르다</strong>. 코드 128에서는 21.59%와 21.95%로 2%도 차이 나지 않지만, 코드 20에서는 1.9배, 코드 10에서는 3.8배, 코드 5에서는 8.7배 차이 난다. sRGB 파일을 순수 2.2로 보정된 디스플레이에 띄우면 그림자 디테일이 눌리고, 그 반대면 그림자가 들뜬다.</p>
+
+    <div class="sim" id="sim-tf">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>전달 함수 비교: sRGB · 2.2 · 2.4 · BT.709 · BT.1886 · L*</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-tf"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--accent)"></i>sRGB</span><span><i style="background:var(--accent-2)"></i>순수 γ 2.2</span><span><i style="background:var(--warn)"></i>γ 2.4 (BT.1886, Lb=0)</span><span><i style="background:var(--ok)"></i>BT.1886 (Lb 반영, 점선)</span><span><i style="background:var(--bad)"></i>BT.709 OETF</span><span><i style="background:var(--text-dim)"></i>L* (점선)</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>그래프</span><div class="seg" id="tf-mode"><button data-value="eotf" class="on">EOTF</button><button data-value="oetf">OETF</button><button data-value="slope">국소 지수</button><button data-value="ootf">OOTF</button></div></div>
+          <label class="ctrl"><span>코드값 (8비트) <output id="tf-code-out"></output></span><input type="range" id="tf-code" min="0" max="255" value="10"></label>
+          <label class="ctrl"><span>백색 휘도 Lw <output id="tf-lw-out"></output></span><input type="range" id="tf-lw" min="80" max="300" step="10" value="100"></label>
+          <label class="ctrl"><span>블랙 레벨 Lb (BT.1886) <output id="tf-lb-out"></output></span><input type="range" id="tf-lb" min="0" max="1" step="0.01" value="0.1"></label>
+          <label class="check"><input type="checkbox" id="tf-log" checked> 로그 축 (어둠부 확대)</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">신호 V′</span><span class="v" id="o-tf-v">—</span></div>
+        <div class="stat"><span class="k">sRGB EOTF 휘도</span><span class="v" id="o-tf-srgb">—</span></div>
+        <div class="stat"><span class="k">순수 2.2 휘도</span><span class="v" id="o-tf-g22">—</span></div>
+        <div class="stat"><span class="k">BT.1886 휘도</span><span class="v" id="o-tf-1886">—</span></div>
+        <div class="stat"><span class="k">sRGB / 2.2 비</span><span class="v" id="o-tf-ratio">—</span></div>
+        <div class="stat"><span class="k">국소 지수 sRGB · OOTF</span><span class="v" id="o-tf-exp">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① EOTF + 로그 축에서 코드값을 1~30으로 움직이며 sRGB와 2.2의 비를 보자. 코드 10에서 약 3.8배다. ② "국소 지수" \(d\ln L/d\ln V'\)를 보면 sRGB는 직선 구간에서 1, 중간에서 약 2.16, 백색 근처에서 2.27로 변한다 — "sRGB 감마 = 2.2"는 평균적인 말일 뿐이다. ③ OOTF 모드에서 BT.709 OETF → BT.1886의 합성 곡선을 선형 재현(점선)과 비교하고, Lb를 올려 블랙이 들뜨는 모습을 보자.</div>
+    </div>
+
+    <p>표준마다 곡선이 조금씩 다르다. 아래 표는 이 책 전체에서 쓰는 SDR 전달 함수를 정리한 것이다. HDR 곡선(PQ, HLG)은 <a href="hdr.html">14장</a>에서 다룬다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>곡선</th><th>문서</th><th>방향</th><th>식(요약)</th><th>직선 구간</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>sRGB</td><td>IEC 61966-2-1</td><td>인코딩/디코딩</td><td>\(1.055L^{1/2.4}-0.055\)</td><td>\(L\le0.0031308\): ×12.92</td><td>백색 80 cd/m². Display P3도 같은 곡선</td></tr>
+        <tr><td>BT.709</td><td>ITU-R BT.709-6</td><td>OETF</td><td>\(1.099L^{0.45}-0.099\)</td><td>\((Lt 0.018)\): ×4.5</td><td>카메라용. 디스플레이 곡선 아님</td></tr>
+        <tr><td>BT.2020</td><td>ITU-R BT.2020-2</td><td>OETF</td><td>\(\alpha L^{0.45}-(\alpha-1)\)</td><td>\(L<\beta\): ×4.5</td><td>10비트 α=1.099, β=0.018; 12비트 α=1.0993, β=0.0181</td></tr>
+        <tr><td>BT.1886</td><td>ITU-R BT.1886</td><td>EOTF</td><td>\(a\max(V'+b,0)^{2.4}\)</td><td>없음</td><td>블랙 레벨 \(L_b\) 반영, HD 마스터링</td></tr>
+        <tr><td>Adobe RGB</td><td>Adobe RGB (1998)</td><td>디코딩</td><td>\(V'^{563/256}\)</td><td>없음</td><td>지수 2.19921875</td></tr>
+        <tr><td>DCI-P3 (영화)</td><td>SMPTE RP 431-2</td><td>디코딩</td><td>\(V'^{2.6}\)</td><td>없음</td><td>어두운 극장, 48 cd/m²</td></tr>
+        <tr><td>L*</td><td>CIE 015</td><td>지각 척도</td><td>\(116Y^{1/3}-16\)</td><td>\(Y\le0.008856\): ×903.3</td><td>일부 ICC 작업 공간(ECI-RGB v2)의 TRC</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout deep">
+      <strong>정밀 상수와 0.03928</strong>
+      <p>BT.2020의 12비트 상수를 곡선이 값과 기울기 모두 연속이 되도록 풀면 \(\alpha = 1.09929682680944\), \(\beta = 0.018053968510807\)이다. BT.709의 1.099/0.018은 이를 반올림한 값이라 경계에서 아주 작은 불연속(0.0810 대 0.0812)이 있다. 오래된 sRGB 문헌에 나오는 디코딩 임계값 0.03928은 표준 이전 초안의 값이며, IEC 표준은 0.04045를 쓴다. 8비트에서는 코드 10(0.0392)이 두 경우 모두 직선 구간, 코드 11(0.0431)이 모두 곡선 구간이라 결과가 같다. 그러나 16비트나 부동소수점 파이프라인에서는 IEC 값을 써야 왕복 변환 오차가 최소가 된다.</p>
+    </div>
+    <div class="callout warn">
+      <strong>sRGB 디스플레이의 EOTF는 무엇인가?</strong>
+      <p>IEC 61966-2-1은 구간 함수를 RGB 값과 XYZ 사이의 변환으로 정의한다. 그런데 실제 모니터 다수는 순수 2.2 멱함수로 보정되어 출하되고, "sRGB 디스플레이는 구간 함수로 디코딩해야 하는가, 2.2로 디코딩해야 하는가"는 업계에서 지금도 논쟁 중이다. 실무 결론: 색 <em>변환 계산</em>(행렬, 블렌딩, ICC)에서는 표준의 구간 함수를 쓰고, 어두운 영역의 <em>표시 결과</em>를 따질 때는 실제 디스플레이의 EOTF를 측정해서 확인한다(13장 GOG 모델).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 4 -->
+  <section id="video">
+    <h2>BT.709 OETF와 BT.1886 EOTF, 시스템 감마</h2>
+    <p>방송 체인에서는 카메라 곡선과 디스플레이 곡선이 따로 정의된다. BT.709 OETF는 카메라가 받은 정규화된 장면 빛 \(L\)을 신호 \(V'\)로 바꾼다.</p>
+    <div class="formula">$$V' = \begin{cases}4.5\,L, & 0 \le L < 0.018\\ 1.099\,L^{0.45} - 0.099, & 0.018 \le L \le 1\end{cases}$$
+      <div class="where">18% 회색 카드는 \(V' = 0.409\)이 되고, 8비트 리미티드 레인지(16~235, 15장)로는 코드 약 106이다. 지수 0.45에 오프셋이 더해져 유효 인코딩 지수는 약 0.5다.</div>
+    </div>
+    <p>BT.1886(2011)은 CRT의 실제 특성을 모델링해 HDTV 마스터링 디스플레이의 EOTF를 정했다. 순수 2.4 멱함수에 디스플레이의 블랙 레벨 \(L_b\)를 반영하는 오프셋을 더한 형태다.</p>
+    <div class="formula">$$L = a\,\max(V'+b,\,0)^{\gamma},\quad \gamma = 2.4,\quad a = \left(L_W^{1/\gamma}-L_B^{1/\gamma}\right)^{\gamma},\quad b = \frac{L_B^{1/\gamma}}{L_W^{1/\gamma}-L_B^{1/\gamma}}$$
+      <div class="where">\(L_W\), \(L_B\): 화면 백색과 블랙의 휘도(cd/m²). \(V'=0\)이면 \(L=L_B\), \(V'=1\)이면 \(L=L_W\). \(L_B=0\)이면 순수 \(L_W V'^{2.4}\). HDTV 프로그램 평가의 기준 백색은 100 cd/m²(ITU-R BT.2035)다.</div>
+    </div>
+    <p>두 곡선을 합성한 OOTF의 국소 지수를 계산하면(\(L_W=100\), \(L_B=0\)): 장면 휘도 0.9에서 1.19, 0.5에서 1.23, 18% 회색에서 1.34, 5%에서 1.65다. 즉 OETF와 EOTF가 서로의 역함수가 아니어서, 중간 톤에서 장면 대비가 약 1.2승으로 강조된다. 이것이 흔히 말하는 "시스템 감마 1.2"이며, 어두운 시청 환경(dim surround)에서 화면이 실제 장면처럼 보이도록 하는 의도적인 설계다. 시뮬레이터의 OOTF 모드에서 확인할 수 있다.</p>
+    <div class="callout tip">
+      <strong>공학자 관점: 카메라 영상을 "선형화"할 때</strong>
+      <p>BT.709로 녹화된 영상을 합성·VFX용으로 선형화할 때는 <em>OETF의 역함수</em>를 써야 장면의 빛이 나온다. 이것을 BT.1886(2.4)으로 디코딩하면 디스플레이의 빛, 즉 OOTF가 이미 적용된 "화면에 보이는 빛"이 나온다. 둘은 중간 톤에서 약 1.2승만큼 다르다. 어느 쪽이 맞는지는 목적에 달렸다. 장면 조명을 재현하는 CG 합성이라면 장면 기준(scene-referred), 화면에 보이는 그대로 맞추는 그래픽이라면 디스플레이 기준(display-referred)이다. ACES·OCIO 파이프라인은 이 구분을 명시적으로 다룬다(<a href="management.html">16장</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 5 -->
+  <section id="linear">
+    <h2>선형광에서 해야 하는 연산</h2>
+    <p>빛은 더해진다. 두 광원이 한 점을 비추면 휘도가 더해지고(3장 그라스만 법칙), 픽셀 하나에 두 물체가 반씩 걸치면 센서는 두 빛의 평균을 받는다. 따라서 <strong>빛의 물리적 혼합을 흉내 내는 연산은 모두 선형 값에서 해야 한다</strong>.</p>
+    <ul>
+      <li><b>알파 합성·블렌딩</b>: 알파는 면적 비율(커버리지)이다. \(C = \alpha C_s + (1-\alpha) C_d\)는 선형 값에서만 물리적으로 맞다.</li>
+      <li><b>리사이즈·블러·안티에일리어싱·모션 블러</b>: 모두 이웃 픽셀 빛의 가중 평균이다.</li>
+      <li><b>조명 계산</b>: 램버트 \(\rho\,(\mathbf n\cdot\mathbf l)\), 광원 여러 개의 합, 반사율 곱은 선형 값의 연산이다.</li>
+      <li><b>평균·통계</b>: 평균 휘도, 노출 측정, 화이트 밸런스 게인 추정, 색차 측정 전 평균.</li>
+    </ul>
+    <p>인코딩된 값으로 평균을 내면 무엇이 잘못되는지 가장 간단한 예로 보자. 검정(0)과 흰색(255) 픽셀 두 개를 섞는다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 270" role="img" aria-label="검정과 흰색의 평균을 인코딩 값과 선형 값에서 계산한 결과 비교">
+        <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="30" y="80" width="60" height="60" fill="#000000" stroke="var(--border)"/><rect x="95" y="80" width="60" height="60" fill="#ffffff" stroke="var(--border)"/>
+        <text x="92" y="165" text-anchor="middle" class="t-mono">0 , 255</text>
+        <line x1="165" y1="100" x2="290" y2="60" class="s-line" marker-end="url(#ar3)"/>
+        <line x1="165" y1="120" x2="290" y2="190" class="s-line" marker-end="url(#ar3)"/>
+        <text x="300" y="40" class="t">인코딩 값 평균: (0+255)/2 = 128</text>
+        <rect x="300" y="50" width="70" height="50" fill="#808080" stroke="var(--border)"/>
+        <text x="385" y="70" class="t-dim">디코딩하면 선형 0.216 (빛의 21.6%)</text>
+        <text x="385" y="92" class="t-dim">L* 53.6 — 실제 평균보다 어둡다</text>
+        <text x="300" y="170" class="t">선형 평균: (0+1)/2 = 0.5 → 인코딩</text>
+        <rect x="300" y="180" width="70" height="50" fill="#bcbcbc" stroke="var(--border)"/>
+        <text x="385" y="200" class="t-acc">코드 188 (187.5) — 빛의 50%</text>
+        <text x="385" y="222" class="t-dim">L* 76.1 — 멀리서 본 체커와 같은 밝기</text>
+        <text x="400" y="258" text-anchor="middle" class="t-dim">빛 기준 오차: 0.216 / 0.5 = 0.43 → 57% 어둡게 계산됨</text>
+      </svg>
+      <figcaption><b>그림 6-3.</b> 0과 255를 평균한 128은 빛으로 21.6%에 불과하다. 검정·흰색이 반씩 섞인 영역(1픽셀 체커)을 멀리서 보면 빛의 50%이며, 이는 sRGB 코드 188이다. 이미지 축소·블러·폰트 안티에일리어싱이 인코딩 값에서 수행되면 고대비 경계가 어둡게 변한다.</figcaption>
+    </figure>
+    <p>색이 있으면 문제가 더 두드러진다. 빨강 (255,0,0)과 초록 (0,255,0)을 인코딩 값으로 반반 섞으면 (128,128,0)이고, 휘도는 \(Y = (0.2126+0.7152)\times0.2159 = 0.200\), \(L^*=51.9\)다. 양 끝인 빨강(\(L^*=53.2\)), 초록(\(L^*=87.7\))보다 <em>어둡다</em>. 그라데이션 한가운데 탁하고 어두운 띠가 생기는 이유다. 선형 혼합은 (188,188,0), \(Y=0.464\), \(L^*=73.8\)이다.</p>
+
+    <div class="sim" id="sim-blend">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>그라데이션: 감마 공간 혼합 vs 선형광 혼합 vs OKLab</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-bl"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--accent)"></i>감마(인코딩 값) 혼합</span><span><i style="background:var(--accent-2)"></i>선형광 혼합</span><span><i style="background:var(--warn)"></i>OKLab 혼합</span></div>
+        </div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>프리셋</span><div class="seg" id="bl-preset"><button data-value="rg" class="on">빨강–초록</button><button data-value="rb">빨강–파랑</button><button data-value="by">파랑–노랑</button><button data-value="kw">검정–흰색</button></div></div>
+          <label class="ctrl"><span>색 A</span><input type="color" id="bl-a" value="#ff0000"></label>
+          <label class="ctrl"><span>색 B</span><input type="color" id="bl-b" value="#00ff00"></label>
+          <label class="ctrl"><span>혼합 비율 t <output id="bl-t-out"></output></span><input type="range" id="bl-t" min="0" max="100" value="50"></label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">감마 혼합</span><span class="v" id="o-bl-g">—</span></div>
+        <div class="stat"><span class="k">선형 혼합</span><span class="v" id="o-bl-l">—</span></div>
+        <div class="stat"><span class="k">OKLab 혼합</span><span class="v" id="o-bl-o">—</span></div>
+        <div class="stat"><span class="k">감마 vs 선형 ΔE00</span><span class="v" id="o-bl-d">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 빨강–초록에서 t=50%: 감마 혼합의 L*가 양 끝 어느 쪽보다도 낮아지는 "어두운 띠"를 그래프로 확인하자. ② 검정–흰색에서는 선형 혼합의 L*가 처음에 급히 올라간다 — 선형광 혼합은 물리적으로 옳지만 <em>지각적으로 균등한</em> 그라데이션은 아니다. 균등한 램프가 목적이면 OKLab(7장)처럼 지각 공간을 쓴다. ③ 파랑–노랑에서 세 방식의 중간색 차이(ΔE00)가 얼마나 큰지 보자.</div>
+    </div>
+    <div class="callout">
+      <strong>목적에 따라 공간을 고른다</strong>
+      <p>"선형광이 항상 옳다"는 말은 반만 맞다. <b>물리 현상의 시뮬레이션</b>(블러, 알파 커버리지, 조명, 축소, 렌즈 디포커스)은 선형광에서 해야 한다. <b>사람이 보기에 고른 변화</b>를 원하는 디자인 그라데이션, 컬러맵, 색 보간 애니메이션은 지각 균등 공간(OKLab, CIELAB; 7장·18장)이 더 낫다. 인코딩된 sRGB 값에서의 보간은 어느 쪽에도 맞지 않으며, 그저 계산이 싸고 역사적으로 기본값이었을 뿐이다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 6 -->
+  <section id="resize">
+    <h2>축소·블러에서의 밝기 변화</h2>
+    <p>이미지 축소는 박스·바이큐빅·란초스 같은 필터로 이웃 픽셀을 가중 평균하는 연산이다. 고대비 미세 패턴이 있는 영역에서 인코딩 값을 평균하면, 위의 128 대 188 오류가 그대로 생긴다. 가는 흰 선, 어두운 하늘의 별, 반짝이는 하이라이트, 나뭇잎 사이 하늘처럼 <em>밝은 점이 어두운 배경에 흩어진</em> 영역이 가장 크게 어두워진다. 반대로 흰 바탕의 가는 검은 선(텍스트)은 상대적으로 덜 변한다.</p>
+    <div class="sim" id="sim-resize">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>이미지 축소: 인코딩 값 평균 vs 선형광 평균</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-rs"></canvas></div>
+        <div class="sim-controls">
+          <div class="ctrl"><span>축소 배율 (박스 필터)</span><div class="seg" id="rs-f"><button data-value="2" class="on">1/2</button><button data-value="4">1/4</button><button data-value="8">1/8</button></div></div>
+          <p style="margin:0;font-size:13.5px;color:var(--text-dim)">영역(왼쪽부터): ① 흑백 1px 세로 줄무늬 ② 빨강/초록 1px 체커 ③ 어두운 하늘의 별(4%) ④ 흰 바탕 검은 격자. 축소 결과는 원본과 같은 크기로 확대해 보여 준다.</p>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">① 줄무늬 Y: 원본 → 감마 / 선형</span><span class="v" id="o-rs-a">—</span></div>
+        <div class="stat"><span class="k">② R/G 체커 Y</span><span class="v" id="o-rs-b">—</span></div>
+        <div class="stat"><span class="k">③ 별 Y</span><span class="v" id="o-rs-c">—</span></div>
+        <div class="stat"><span class="k">④ 격자 Y</span><span class="v" id="o-rs-d">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: 화면에서 조금 떨어져 눈을 가늘게 뜨고 원본 줄과 두 축소 줄의 밝기를 비교하자. 선형 축소 줄이 원본과 같은 밝기로 보이고, 감마 축소 줄은 ①·②·③ 영역이 눈에 띄게 어둡다. 수치는 영역 평균 상대 휘도 Y(선형)이다. 브라우저 확대 배율이 100%가 아니면 원본 줄무늬가 브라우저에 의해 다시 리샘플링되어 비교가 흐려질 수 있다.</div>
+    </div>
+    <p>박스 필터 1/2 축소에서 ①은 원본 Y=0.500이 감마 평균으로 0.216(−57%)이 되고, ②의 빨강/초록 체커는 0.464가 0.200이 된다. 선형 평균은 모든 영역에서 원본 평균 휘도를 정확히 보존한다. 선형 박스 필터는 정의상 영역의 빛 총량을 보존하는 연산이기 때문이다. 바이큐빅·란초스처럼 음의 로브가 있는 필터는 선형광에서 쓰면 고대비 경계 주변에 링잉이 더 눈에 띄는 경향이 있어, 실무에서는 선형광 + 클램핑, 또는 시그모이드 공간에서 처리하는 절충을 쓰기도 한다.</p>
+    <div class="callout warn">
+      <strong>흔한 실수: 썸네일과 밉맵</strong>
+      <p>많은 이미지 라이브러리와 브라우저의 이미지 축소는 기본적으로 인코딩된 값을 그대로 평균한다. ImageMagick에서는 <code>-colorspace RGB -resize 25% -colorspace sRGB</code>처럼 선형 공간으로 변환한 뒤 축소하는 방법이 문서화되어 있다. GPU 밉맵도 sRGB 텍스처 포맷으로 선언해야 하드웨어가 선형광에서 필터링한다(10절). 밉맵이 감마 공간에서 만들어지면 멀리 있는 고대비 텍스처(울타리, 잔디 하이라이트)가 거리에 따라 어두워진다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 7 -->
+  <section id="quant">
+    <h2>양자화: 비트 깊이와 Weber 비율</h2>
+    <p>\(n\)비트 인코딩은 \(N = 2^n - 1\)개의 단계를 갖는다. 코드 \(k\)의 디코딩 휘도를 \(L_k = \mathrm{EOTF}(k/N)\)라 하면, 코드 하나가 바뀔 때의 상대 휘도 변화, 즉 <span class="term">Weber 비율</span>은 다음과 같다.</p>
+    <div class="formula">$$\frac{\Delta L}{L}\bigg|_k = \frac{L_{k+1}-L_k}{L_k} \approx \frac{1}{N}\,\frac{d\ln L}{dV'} = \frac{\gamma_\text{local}}{N\,V'}$$
+      <div class="where">선형 인코딩(\(L=V'\))이면 \(\Delta L/L = 1/k\): 코드 10에서 10%, 코드 100에서 1%. 감마 인코딩은 \(\gamma/(NV')\)로, 어두운 쪽으로 갈수록 커지긴 하지만 훨씬 완만하다.</div>
+    </div>
+    <p>이 비율이 시각의 대비 감도 임계(중간~밝은 휘도에서 대략 1% 부근)보다 크면 매끄러운 그라데이션에 계단이 보인다. 시각의 임계 자체도 휘도에 따라 변한다. 어두울수록 임계가 커지는데(드브리스–로즈 영역), 이를 정량화한 Barten 대비 감도 모델과 그 위에 만든 PQ 곡선은 <a href="hdr.html">14장</a>에서 다룬다. 여기서는 1%를 기준선으로 삼는다.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="4비트 16단계 코드를 L* 축 위에 찍었을 때 선형, sRGB, L* 인코딩의 코드 위치">
+        <text x="150" y="28" class="t-dim">각 눈금 = 4비트 코드 하나 (16단계). 가로축은 지각 명도 L* 0 → 100</text>
+<line x1="150" y1="60" x2="750" y2="60" class="s-axis"/><text x="140" y="64" text-anchor="end" class="t">선형 4비트</text>
+<line x1="150.0" y1="49" x2="150.0" y2="71" class="s-acc" stroke-width="2"/><line x1="336.2" y1="49" x2="336.2" y2="71" class="s-acc" stroke-width="2"/><line x1="409.6" y1="49" x2="409.6" y2="71" class="s-acc" stroke-width="2"/><line x1="461.0" y1="49" x2="461.0" y2="71" class="s-acc" stroke-width="2"/><line x1="502.0" y1="49" x2="502.0" y2="71" class="s-acc" stroke-width="2"/><line x1="536.6" y1="49" x2="536.6" y2="71" class="s-acc" stroke-width="2"/><line x1="566.8" y1="49" x2="566.8" y2="71" class="s-acc" stroke-width="2"/><line x1="593.9" y1="49" x2="593.9" y2="71" class="s-acc" stroke-width="2"/><line x1="618.4" y1="49" x2="618.4" y2="71" class="s-acc" stroke-width="2"/><line x1="641.0" y1="49" x2="641.0" y2="71" class="s-acc" stroke-width="2"/><line x1="662.0" y1="49" x2="662.0" y2="71" class="s-acc" stroke-width="2"/><line x1="681.6" y1="49" x2="681.6" y2="71" class="s-acc" stroke-width="2"/><line x1="700.1" y1="49" x2="700.1" y2="71" class="s-acc" stroke-width="2"/><line x1="717.6" y1="49" x2="717.6" y2="71" class="s-acc" stroke-width="2"/><line x1="734.2" y1="49" x2="734.2" y2="71" class="s-acc" stroke-width="2"/><line x1="750.0" y1="49" x2="750.0" y2="71" class="s-acc" stroke-width="2"/>
+<line x1="150" y1="122" x2="750" y2="122" class="s-axis"/><text x="140" y="126" text-anchor="end" class="t">sRGB 4비트</text>
+<line x1="150.0" y1="111" x2="150.0" y2="133" class="s-acc" stroke-width="2"/><line x1="180.4" y1="111" x2="180.4" y2="133" class="s-acc" stroke-width="2"/><line x1="229.4" y1="111" x2="229.4" y2="133" class="s-acc" stroke-width="2"/><line x1="277.5" y1="111" x2="277.5" y2="133" class="s-acc" stroke-width="2"/><line x1="323.1" y1="111" x2="323.1" y2="133" class="s-acc" stroke-width="2"/><line x1="366.9" y1="111" x2="366.9" y2="133" class="s-acc" stroke-width="2"/><line x1="409.2" y1="111" x2="409.2" y2="133" class="s-acc" stroke-width="2"/><line x1="450.2" y1="111" x2="450.2" y2="133" class="s-acc" stroke-width="2"/><line x1="490.2" y1="111" x2="490.2" y2="133" class="s-acc" stroke-width="2"/><line x1="529.3" y1="111" x2="529.3" y2="133" class="s-acc" stroke-width="2"/><line x1="567.7" y1="111" x2="567.7" y2="133" class="s-acc" stroke-width="2"/><line x1="605.3" y1="111" x2="605.3" y2="133" class="s-acc" stroke-width="2"/><line x1="642.3" y1="111" x2="642.3" y2="133" class="s-acc" stroke-width="2"/><line x1="678.7" y1="111" x2="678.7" y2="133" class="s-acc" stroke-width="2"/><line x1="714.6" y1="111" x2="714.6" y2="133" class="s-acc" stroke-width="2"/><line x1="750.0" y1="111" x2="750.0" y2="133" class="s-acc" stroke-width="2"/>
+<line x1="150" y1="184" x2="750" y2="184" class="s-axis"/><text x="140" y="188" text-anchor="end" class="t">L* 4비트</text>
+<line x1="150.0" y1="173" x2="150.0" y2="195" class="s-acc" stroke-width="2"/><line x1="190.0" y1="173" x2="190.0" y2="195" class="s-acc" stroke-width="2"/><line x1="230.0" y1="173" x2="230.0" y2="195" class="s-acc" stroke-width="2"/><line x1="270.0" y1="173" x2="270.0" y2="195" class="s-acc" stroke-width="2"/><line x1="310.0" y1="173" x2="310.0" y2="195" class="s-acc" stroke-width="2"/><line x1="350.0" y1="173" x2="350.0" y2="195" class="s-acc" stroke-width="2"/><line x1="390.0" y1="173" x2="390.0" y2="195" class="s-acc" stroke-width="2"/><line x1="430.0" y1="173" x2="430.0" y2="195" class="s-acc" stroke-width="2"/><line x1="470.0" y1="173" x2="470.0" y2="195" class="s-acc" stroke-width="2"/><line x1="510.0" y1="173" x2="510.0" y2="195" class="s-acc" stroke-width="2"/><line x1="550.0" y1="173" x2="550.0" y2="195" class="s-acc" stroke-width="2"/><line x1="590.0" y1="173" x2="590.0" y2="195" class="s-acc" stroke-width="2"/><line x1="630.0" y1="173" x2="630.0" y2="195" class="s-acc" stroke-width="2"/><line x1="670.0" y1="173" x2="670.0" y2="195" class="s-acc" stroke-width="2"/><line x1="710.0" y1="173" x2="710.0" y2="195" class="s-acc" stroke-width="2"/><line x1="750.0" y1="173" x2="750.0" y2="195" class="s-acc" stroke-width="2"/>
+        <text x="243" y="92" text-anchor="middle" class="t-dim">빈 구간 L* 0→31</text>
+        <text x="150" y="226" class="t-mono">0</text><text x="450" y="226" text-anchor="middle" class="t-mono">50</text><text x="750" y="226" text-anchor="end" class="t-mono">100 (L*)</text>
+      </svg>
+      <figcaption><b>그림 6-4.</b> 같은 16단계를 지각 명도 축에 찍으면 차이가 분명하다. 선형 인코딩은 첫 단계가 L* 0에서 31로 건너뛰고 밝은 쪽은 촘촘하다. sRGB는 거의 균등하며(직선 구간 탓에 첫 간격만 조금 좁다), L* 인코딩은 정의상 완전히 균등하다.</figcaption>
+    </figure>
+
+    <div class="sim" id="sim-weber">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>비트 깊이별 Weber 비율 ΔL/L과 밴딩 램프</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-wb"></canvas>
+          <div class="legend" style="padding-bottom:10px"><span><i style="background:var(--bad)"></i>선형</span><span><i style="background:var(--accent)"></i>sRGB</span><span><i style="background:var(--accent-2)"></i>γ 2.2</span><span><i style="background:var(--ok)"></i>L*</span></div>
+        </div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>비트 깊이 <output id="wb-bits-out"></output></span><input type="range" id="wb-bits" min="6" max="12" value="8"></label>
+          <label class="ctrl"><span>백색 휘도 <output id="wb-lw-out"></output></span><input type="range" id="wb-lw" min="80" max="1000" step="10" value="100"></label>
+          <div class="ctrl"><span>램프 인코딩</span><div class="seg" id="wb-enc"><button data-value="lin" class="on">선형</button><button data-value="srgb">sRGB</button><button data-value="g22">2.2</button><button data-value="lstar">L*</button></div></div>
+          <div class="ctrl"><span>램프 범위 (백색 대비)</span><div class="seg" id="wb-span"><button data-value="0.05" class="on">0–5%</button><button data-value="0.25">0–25%</button><button data-value="1">0–100%</button></div></div>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">램프 안 서로 다른 코드 수</span><span class="v" id="o-wb-lv">—</span></div>
+        <div class="stat"><span class="k">ΔL/L &gt; 1%인 구간</span><span class="v" id="o-wb-th">—</span></div>
+        <div class="stat"><span class="k">첫 비영 코드 휘도</span><span class="v" id="o-wb-min">—</span></div>
+        <div class="stat"><span class="k">18% 회색에서 ΔL/L</span><span class="v" id="o-wb-g18">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 8비트·선형·0–5% 램프: 백색의 5%까지를 겨우 13단계로 그리므로 굵은 계단이 보인다. sRGB로 바꾸면 같은 범위에 64단계가 들어간다. ② 비트를 10, 12로 올리며 선형 곡선이 1% 선 아래로 내려오는 지점을 보자. 선형으로 sRGB 8비트의 어둠부 분해능을 맞추려면 약 12비트가 필요하다. ③ 램프는 최종적으로 8비트 sRGB로 화면에 표시되므로, 9비트 이상 차이는 이 램프로 볼 수 없다(그래프로 판단).</div>
+    </div>
+    <p>계산 결과를 표로 정리하면 다음과 같다(해당 휘도에 가장 가까운 코드에서의 \(\Delta L/L\)).</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>비트</th><th>인코딩</th><th>Y = 1%</th><th>Y = 10%</th><th>Y = 50%</th><th>첫 비영 코드 (백색 대비)</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="4">8</td><td>선형</td><td>33.3%</td><td>3.85%</td><td>0.78%</td><td>0.39%</td></tr>
+        <tr><td>sRGB</td><td>6.26%</td><td>2.35%</td><td>1.19%</td><td>0.030%</td></tr>
+        <tr><td>γ 2.2</td><td>7.23%</td><td>2.46%</td><td>1.19%</td><td>0.0005%</td></tr>
+        <tr><td>L*</td><td>4.78%</td><td>2.21%</td><td>1.28%</td><td>0.043%</td></tr>
+        <tr><td rowspan="2">10</td><td>선형</td><td>10.0%</td><td>0.98%</td><td>0.20%</td><td>0.098%</td></tr>
+        <tr><td>sRGB</td><td>1.52%</td><td>0.58%</td><td>0.30%</td><td>0.0076%</td></tr>
+        <tr><td rowspan="2">12</td><td>선형</td><td>2.44%</td><td>0.24%</td><td>0.05%</td><td>0.024%</td></tr>
+        <tr><td>sRGB</td><td>0.38%</td><td>0.15%</td><td>0.07%</td><td>0.0019%</td></tr>
+      </tbody>
+    </table></div>
+    <p>몇 가지를 읽어 낼 수 있다. 첫째, <strong>선형 8비트는 어둠부에서 처참하다</strong>. 백색 80 cd/m²에서 첫 비영 코드가 0.31 cd/m²이고, 그 아래는 전부 검정이다. 코드 1~99(백색의 39% 이하, 약 31 cd/m² 이하)가 모두 1%를 넘는다. 둘째, sRGB 8비트도 거의 전 구간에서 1%를 약간 넘는다. 그래서 하늘이나 비네팅 같은 아주 매끄러운 그라데이션에서 8비트 밴딩이 "겨우 보이는" 경계에 있고, 실무에서 디더링이나 10비트 파이프라인을 쓴다. 셋째, 순수 2.2는 0 근처 코드가 지나치게 촘촘해(코드 1 = 백색의 0.0005%) 어떤 디스플레이로도 재현되지 않는 단계에 코드를 낭비한다. 이 점에서 sRGB의 직선 구간은 합리적이다.</p>
+    <div class="callout tip">
+      <strong>공학자 관점: 영상 파이프라인의 비트 예산</strong>
+      <p>카메라 RAW는 선형 12~14비트(ADC)이고, ISP가 감마/로그 곡선을 적용한 뒤 8~10비트로 줄인다. 같은 이유로 렌더링 엔진의 중간 버퍼는 선형 16비트 부동소수점(half float, 지수부 덕분에 상대 정밀도가 거의 일정)을 쓰고, 출력 직전에만 sRGB 8비트로 인코딩한다. "선형으로 저장하려면 부동소수점, 정수로 저장하려면 지각 곡선"이 원칙이다. 리미티드 레인지(16~235)는 8비트에서 실제 단계를 219개로 줄인다는 점도 기억하자(<a href="encoding.html">15장</a>).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 8 -->
+  <section id="dither">
+    <h2>디더링으로 밴딩 지우기</h2>
+    <p>비트 수를 늘릴 수 없을 때는 양자화 오차를 공간에 퍼뜨린다. <span class="term">디더링</span><span class="en">(dithering)</span>은 양자화 직전에 신호에 작은 변동을 더하거나(임계값 변조), 앞 픽셀의 오차를 이웃에 넘겨서(오차 확산), <em>국소 평균</em>이 원래 값과 같아지게 한다. 눈은 공간적으로 적분하므로, 고주파 잡음 한 겹을 대가로 계단(저주파의 구조적 오차)이 사라진다.</p>
+    <ul>
+      <li><b>랜덤(백색 잡음) 디더</b>: 두 인접 레벨 사이 위치 \(t\)를 균일 난수와 비교해 위/아래를 고른다. 구현이 가장 쉽지만 저주파 잡음도 섞여 거칠다.</li>
+      <li><b>정렬 디더</b><span class="en">(ordered dither)</span>: 난수 대신 고정된 임계값 행렬(Bayer 행렬)을 타일링한다. 병렬화가 쉬워 GPU·디스플레이 구동 회로(FRC와 함께)에서 쓰인다. 격자 무늬 텍스처가 보인다.</li>
+      <li><b>오차 확산</b><span class="en">(error diffusion)</span>: 가장 가까운 레벨로 양자화한 뒤 오차를 아직 처리하지 않은 이웃에 가중치로 나눈다. Floyd–Steinberg(1976)가 대표적이다. 잡음이 고주파(청색 잡음)에 몰려 가장 깨끗하지만, 순차 처리라 병렬화가 어렵고 "벌레" 같은 패턴이 생길 수 있다(지그재그 스캔으로 완화).</li>
+    </ul>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 250" role="img" aria-label="4x4 Bayer 임계값 행렬과 Floyd-Steinberg 오차 확산 가중치">
+        <text x="40" y="30" class="t-acc">Bayer 4×4 (임계값 = (값+0.5)/16)</text>
+        <g class="t-mono">
+          <rect x="40" y="44" width="160" height="160" class="f-surface"/>
+          <text x="60" y="74" text-anchor="middle" class="t-mono">0</text><text x="100" y="74" text-anchor="middle" class="t-mono">8</text><text x="140" y="74" text-anchor="middle" class="t-mono">2</text><text x="180" y="74" text-anchor="middle" class="t-mono">10</text>
+          <text x="60" y="114" text-anchor="middle" class="t-mono">12</text><text x="100" y="114" text-anchor="middle" class="t-mono">4</text><text x="140" y="114" text-anchor="middle" class="t-mono">14</text><text x="180" y="114" text-anchor="middle" class="t-mono">6</text>
+          <text x="60" y="154" text-anchor="middle" class="t-mono">3</text><text x="100" y="154" text-anchor="middle" class="t-mono">11</text><text x="140" y="154" text-anchor="middle" class="t-mono">1</text><text x="180" y="154" text-anchor="middle" class="t-mono">9</text>
+          <text x="60" y="194" text-anchor="middle" class="t-mono">15</text><text x="100" y="194" text-anchor="middle" class="t-mono">7</text><text x="140" y="194" text-anchor="middle" class="t-mono">13</text><text x="180" y="194" text-anchor="middle" class="t-mono">5</text>
+        </g>
+        <line x1="80" y1="44" x2="80" y2="204" class="s-axis"/><line x1="120" y1="44" x2="120" y2="204" class="s-axis"/><line x1="160" y1="44" x2="160" y2="204" class="s-axis"/>
+        <line x1="40" y1="84" x2="200" y2="84" class="s-axis"/><line x1="40" y1="124" x2="200" y2="124" class="s-axis"/><line x1="40" y1="164" x2="200" y2="164" class="s-axis"/>
+        <text x="40" y="232" class="t-dim">재귀: M₂ₙ = [4Mₙ, 4Mₙ+2; 4Mₙ+3, 4Mₙ+1]</text>
+        <text x="300" y="30" class="t-acc">Floyd–Steinberg 오차 확산</text>
+        <rect x="300" y="60" width="70" height="60" class="f-surface"/><rect x="370" y="60" width="70" height="60" class="f-acc-soft"/><rect x="440" y="60" width="70" height="60" class="f-elev" stroke="var(--border)"/>
+        <rect x="300" y="120" width="70" height="60" class="f-elev" stroke="var(--border)"/><rect x="370" y="120" width="70" height="60" class="f-elev" stroke="var(--border)"/><rect x="440" y="120" width="70" height="60" class="f-elev" stroke="var(--border)"/>
+        <text x="335" y="95" text-anchor="middle" class="t-dim">처리됨</text><text x="405" y="95" text-anchor="middle" class="t-acc">현재 e</text>
+        <text x="475" y="96" text-anchor="middle" class="t-mono">7/16</text>
+        <text x="335" y="156" text-anchor="middle" class="t-mono">3/16</text><text x="405" y="156" text-anchor="middle" class="t-mono">5/16</text><text x="475" y="156" text-anchor="middle" class="t-mono">1/16</text>
+        <text x="560" y="80" class="t">e = (값 + 받은 오차) − 양자화 레벨</text>
+        <text x="560" y="106" class="t-dim">가중치 합 = 1 → 오차가 사라지지 않고</text>
+        <text x="560" y="126" class="t-dim">이웃으로 옮겨져 국소 평균이 보존된다</text>
+        <text x="560" y="160" class="t-dim">스캔: 왼→오, 위→아래</text>
+        <text x="560" y="180" class="t-dim">(지그재그 스캔이면 방향성 감소)</text>
+      </svg>
+      <figcaption><b>그림 6-5.</b> 왼쪽: 4×4 Bayer 행렬. 인접한 임계값이 공간적으로 최대한 떨어지게 배치되어 패턴이 고주파가 된다. 오른쪽: Floyd–Steinberg 가중치. 현재 픽셀의 양자화 오차를 오른쪽과 아래 세 픽셀에 나눈다.</figcaption>
+    </figure>
+    <p>한 가지 미묘한 점이 있다. 디더링이 보존하는 "국소 평균"은 <em>어느 영역의 평균</em>인가? 인코딩 값에서 디더링하면 인코딩 값의 평균이 보존되고, 눈이 실제로 적분하는 것은 빛이므로 밝기가 틀어진다. 극단적으로 1비트(흑/백)로 인코딩 값 0.5(코드 128) 회색을 디더링하면 흰 픽셀이 50%가 되어, 멀리서 보면 빛의 50%, 즉 코드 188처럼 밝게 보인다. 정확한 톤 재현이 필요하면 레벨 판단과 오차 계산을 선형광에서 해야 한다. 비트 수가 6 이상이면 두 방식의 차이는 작지만, 1~3비트(전자종이, 프린터 하프톤, 저가 LCD 패널의 6비트+FRC)에서는 중요하다.</p>
+
+    <div class="sim" id="sim-dither">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>비트 수를 줄인 그라데이션과 디더링 비교</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-dt"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>출력 비트 (채널당) <output id="dt-bits-out"></output></span><input type="range" id="dt-bits" min="1" max="8" value="3"></label>
+          <div class="ctrl"><span>방법</span><div class="seg" id="dt-m"><button data-value="none">없음</button><button data-value="rand">랜덤</button><button data-value="bayer">Bayer 8×8</button><button data-value="fs" class="on">F–S</button></div></div>
+          <div class="ctrl"><span>원본</span><div class="seg" id="dt-src"><button data-value="gray" class="on">회색 램프</button><button data-value="dark">어두운 램프</button><button data-value="sky">하늘</button></div></div>
+          <label class="ctrl"><span>픽셀 확대 <output id="dt-zoom-out"></output></span><input type="range" id="dt-zoom" min="1" max="4" value="1"></label>
+          <label class="check"><input type="checkbox" id="dt-lin"> 선형광에서 레벨 판단·오차 계산</label>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">채널당 레벨 수</span><span class="v" id="o-dt-lv">—</span></div>
+        <div class="stat"><span class="k">RMS 오차 (8비트 코드)</span><span class="v" id="o-dt-rms">—</span></div>
+        <div class="stat"><span class="k">멀리서 본 톤 오차 (평균 |ΔL*|)</span><span class="v" id="o-dt-tone">—</span></div>
+        <div class="stat"><span class="k">처리 시간</span><span class="v" id="o-dt-ms">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: ① 3비트, "없음"에서 8개의 굵은 띠가 보인다. F–S로 바꾸면 띠가 사라지고 RMS 오차는 오히려 커진다 — 디더링은 오차를 <em>줄이는</em> 것이 아니라 <em>보이지 않는 주파수로 옮기는</em> 것이다. ② 1비트·회색 램프에서 셋째 줄(선형광에서 흐린 "멀리서 본 모습")의 톤 오차를 보고, "선형광에서" 옵션을 켜서 비교하자. ③ Bayer와 랜덤의 질감 차이를 픽셀 확대 3~4배로 관찰하자.</div>
+    </div>
+    <div class="callout tip">
+      <strong>공학자 관점: 디더는 마지막 양자화 바로 앞에서 한 번</strong>
+      <p>디더 잡음의 진폭은 최종 양자화 한 단계(1 LSB) 수준이면 충분하다. 고비트 렌더 버퍼(부동소수점)를 8비트로 출력할 때 셰이더 마지막에 ±0.5 LSB의 청색 잡음 텍스처나 삼각 분포 잡음을 더하는 것이 게임 엔진의 표준 기법이다. 디더한 결과를 다시 압축(JPEG, H.264)하면 고주파 잡음이 양자화로 지워지거나 비트레이트를 잡아먹으므로, 디더는 인코더 앞단이 아니라 디스플레이 앞단에서 하는 것이 원칙이다.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ 9 -->
+  <section id="check">
+    <h2>내 화면의 감마 확인하기</h2>
+    <p>디더 원리를 거꾸로 쓰면 디스플레이의 EOTF를 눈으로 잴 수 있다. 검정과 흰색이 1픽셀씩 번갈아 놓인 패턴은 <em>디스플레이의 EOTF와 무관하게</em> 백색 휘도의 정확히 50%를 낸다(검정 픽셀의 빛 0과 흰 픽셀의 빛 \(L_W\)의 평균). 그 옆에 균일한 회색 코드 \(c\)를 놓고 같은 밝기가 될 때까지 조절하면 \( (c/255)^{\gamma} = 0.5 \)에서 \(\gamma = \ln 0.5 / \ln(c/255)\)를 얻는다. sRGB 디스플레이라면 \(c \approx 188\), 순수 2.2면 186, 2.4면 191이다.</p>
+    <div class="sim" id="sim-gamma">
+      <div class="sim-head"><span class="sim-tag">SIMULATOR</span><h3>체커보드 감마 확인 패턴</h3></div>
+      <div class="sim-body side">
+        <div class="sim-view"><canvas id="cv-gc"></canvas></div>
+        <div class="sim-controls">
+          <label class="ctrl"><span>가운데 회색 코드 <output id="gc-code-out"></output></span><input type="range" id="gc-code" min="0" max="255" value="128"></label>
+          <div class="ctrl"><span>패턴</span><div class="seg" id="gc-pat"><button data-value="lines" class="on">가로줄</button><button data-value="checker">체커</button></div></div>
+          <div class="ctrl"><span>밝은 픽셀 비율</span><div class="seg" id="gc-frac"><button data-value="0.5" class="on">50%</button><button data-value="0.25">25%</button></div></div>
+          <div class="ctrl"><span>밝은 픽셀 코드</span><div class="seg" id="gc-hi"><button data-value="255" class="on">255</button><button data-value="128">128 (어둠부)</button></div></div>
+          <button class="btn primary" id="gc-set">sRGB 예측값으로 설정</button>
+        </div>
+      </div>
+      <div class="sim-readout">
+        <div class="stat"><span class="k">패턴의 상대 휘도</span><span class="v" id="o-gc-y">—</span></div>
+        <div class="stat"><span class="k">예측 코드 sRGB · 2.2 · 2.4</span><span class="v" id="o-gc-pred">—</span></div>
+        <div class="stat"><span class="k">맞춘 값에서 추정 감마</span><span class="v" id="o-gc-gam">—</span></div>
+      </div>
+      <div class="sim-note">해볼 것: 화면에서 1~2 m 떨어지거나 눈을 가늘게 뜨고, 가운데 사각형이 주변 패턴에 녹아들 때까지 슬라이더를 움직이자. 초기값 128은 확연히 어둡다 — "128이 중간 회색"이라는 직관이 틀렸다는 증거다. 밝은 픽셀 코드를 128로 바꾸면 중간 이하 톤의 감마를 따로 잴 수 있다. 주의: 브라우저 확대 배율과 OS 배율이 정수배가 아니면(예: 125%) 패턴이 리샘플링되어(그것도 대개 감마 공간에서!) 결과가 틀어진다. 가로줄 패턴이 체커보다 LCD 응답·크로스토크에 덜 민감하다.</div>
+    </div>
+    <p>이 방법은 디스플레이가 픽셀 사이에 간섭이 없고(이웃 픽셀의 구동이 서로 영향을 주지 않음) 휘도가 공간적으로 가산적이라는 가정에 기댄다. OLED는 대체로 잘 맞고, 일부 LCD는 1픽셀 체커에서 화소 간 크로스토크나 극성 반전(인버전) 패턴과 간섭해 오차가 생긴다. 정밀한 특성화는 측색기로 램프를 측정해 GOG 모델을 맞추는 방법을 쓴다(<a href="display.html">13장</a>).</p>
+  </section>
+
+  <!-- ============================================================ 10 -->
+  <section id="pitfalls">
+    <h2>실무 함정: API의 기본값은 감마 공간</h2>
+    <p>대부분의 그래픽·이미지 API는 역사적 이유로 숫자를 <em>있는 그대로</em>, 즉 인코딩된 값으로 다룬다. 선형광 처리를 원하면 명시적으로 요청해야 한다.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>환경</th><th>기본 동작</th><th>선형광으로 처리하려면</th></tr></thead>
+      <tbody>
+        <tr><td>CSS 그라데이션·<code>color-mix()</code></td><td>레거시 색(<code>#hex</code>, <code>rgb()</code>) 그라데이션은 인코딩 sRGB 값에서 보간</td><td>CSS Color 4 보간 공간 지정: <code>linear-gradient(in srgb-linear, …)</code>, <code>in oklab</code>; <code>color-mix(in srgb-linear, red, lime)</code></td></tr>
+        <tr><td>Canvas 2D</td><td><code>globalAlpha</code> 합성, <code>drawImage</code> 축소가 인코딩 값에서 수행되는 것이 일반적</td><td><code>getImageData</code>로 직접 디코딩→연산→인코딩</td></tr>
+        <tr><td>WebGL / OpenGL ES</td><td><code>RGBA8</code> 텍스처는 샘플링해도 디코딩하지 않음. 기본 드로잉 버퍼는 sRGB 인코딩을 하지 않음</td><td>텍스처를 <code>SRGB8_ALPHA8</code>로 업로드(샘플링·필터링이 선형), 셰이더 끝에서 sRGB 인코딩 또는 sRGB 렌더 타깃 사용</td></tr>
+        <tr><td>Vulkan / D3D / Metal</td><td>포맷이 결정: <code>*_UNORM</code>은 그대로, <code>*_SRGB</code>는 읽을 때 디코딩·쓸 때 인코딩</td><td>색 텍스처·스왑체인은 <code>_SRGB</code>, 노멀맵·러프니스 등 데이터 텍스처는 <code>_UNORM</code></td></tr>
+        <tr><td>이미지 라이브러리 (Pillow, OpenCV 등)</td><td>리사이즈·블러·블렌딩이 저장된 값 그대로</td><td>float로 변환 후 디코딩→처리→인코딩, 또는 선형 공간 옵션 사용</td></tr>
+        <tr><td>PNG</td><td><code>gAMA</code> 청크: 파일 인코딩 지수 × 100000 (예: 45455 = 1/2.2). <code>sRGB</code> 청크가 있으면 sRGB 곡선이 우선</td><td>색 관리 디코더는 <code>iCCP</code>/<code>sRGB</code>/<code>gAMA</code> 순으로 해석. 청크가 없으면 sRGB로 가정</td></tr>
+      </tbody>
+    </table></div>
+    <figure class="diagram">
+      <svg viewBox="0 0 800 220" role="img" aria-label="GPU 렌더링에서 sRGB 텍스처 디코딩, 선형 셰이딩, 블렌딩, sRGB 인코딩 단계">
+        <defs><marker id="ar6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--text-dim)"/></marker></defs>
+        <rect x="20" y="60" width="130" height="70" rx="10" class="f-elev" stroke="var(--border)"/><text x="85" y="90" text-anchor="middle" class="t">텍스처 (sRGB)</text><text x="85" y="112" text-anchor="middle" class="t-mono">SRGB8_ALPHA8</text>
+        <line x1="150" y1="95" x2="178" y2="95" class="s-line" marker-end="url(#ar6)"/>
+        <rect x="180" y="60" width="130" height="70" rx="10" class="f-acc2-soft"/><text x="245" y="90" text-anchor="middle" class="t">샘플러 디코딩</text><text x="245" y="112" text-anchor="middle" class="t-dim">필터링도 선형</text>
+        <line x1="310" y1="95" x2="338" y2="95" class="s-line" marker-end="url(#ar6)"/>
+        <rect x="340" y="60" width="130" height="70" rx="10" class="f-acc-soft"/><text x="405" y="90" text-anchor="middle" class="t-acc">셰이딩 (선형)</text><text x="405" y="112" text-anchor="middle" class="t-dim">조명·톤 매핑</text>
+        <line x1="470" y1="95" x2="498" y2="95" class="s-line" marker-end="url(#ar6)"/>
+        <rect x="500" y="60" width="130" height="70" rx="10" class="f-acc2-soft"/><text x="565" y="90" text-anchor="middle" class="t">블렌딩 (선형)</text><text x="565" y="112" text-anchor="middle" class="t-dim">sRGB 렌더 타깃</text>
+        <line x1="630" y1="95" x2="658" y2="95" class="s-line" marker-end="url(#ar6)"/>
+        <rect x="660" y="60" width="120" height="70" rx="10" class="f-elev" stroke="var(--border)"/><text x="720" y="90" text-anchor="middle" class="t">인코딩 출력</text><text x="720" y="112" text-anchor="middle" class="t-dim">+ 디더</text>
+        <text x="400" y="170" text-anchor="middle" class="t-dim">각 경계에서 한 번씩만 변환한다. 두 번 디코딩(너무 어둡고 대비 강함)이나</text>
+        <text x="400" y="192" text-anchor="middle" class="t-dim">디코딩 누락(밝고 물 빠진 그림자, 조명 경계가 딱딱함)이 가장 흔한 버그다.</text>
+      </svg>
+      <figcaption><b>그림 6-6.</b> 선형 워크플로의 GPU 파이프라인. 색 텍스처만 sRGB로 선언하고, 노멀맵·마스크 같은 데이터 텍스처는 디코딩하면 안 된다.</figcaption>
+    </figure>
+    <div class="callout warn">
+      <strong>흔한 실수 모음</strong>
+      <p>① 감마 인코딩된 RGB를 평균해 "평균 색"이나 "평균 밝기"를 계산한다(이 장의 핵심 오류). ② 셰이더에서 sRGB 텍스처를 하드웨어가 이미 디코딩했는데 <code>pow(c, 2.2)</code>를 한 번 더 한다. ③ 데이터 텍스처(노멀맵)를 sRGB 포맷으로 올린다. ④ \(Y = 0.2126R'+0.7152G'+0.0722B'\)처럼 인코딩 값에 휘도 계수를 곱하고 "휘도"라 부른다 — 그것은 루마 \(Y'\)이며 휘도가 아니다(15장). ⑤ 알파를 곱해 둔(premultiplied) 색을 다시 인코딩한 뒤 합성한다 — 알파 곱도 선형 값에서 해야 일관된다. ⑥ 0.5 회색을 sRGB 코드 128로 만든다 — 빛의 50%는 188이다.</p>
+    </div>
+    <p>WCAG 대비비 계산(18장)과 <code>CB.relLum</code>은 정확히 이 원칙을 따른다. 8비트 값을 먼저 sRGB 디코딩한 뒤 0.2126/0.7152/0.0722를 곱해 상대 휘도를 얻는다. 이 책의 모든 색 계산 헬퍼도 내부적으로 선형 값에서 행렬 연산을 하고, 화면에 칠할 때만 인코딩한다.</p>
+  </section>
+
+  <!-- ============================================================ summary -->
+  <section class="keypoints" id="summary">
+    <h2>핵심 정리</h2>
+    <ol>
+      <li>밝기 지각은 휘도에 대해 오목하다(Weber 비율 약 1%, Stevens 지수 약 1/3, \(L^* = 116Y^{1/3}-16\)). 비선형 인코딩은 제한된 코드를 지각적으로 고르게 배분하는 압축이다.</li>
+      <li>OETF는 장면 빛→신호, EOTF는 신호→화면 빛, OOTF는 그 합성이다. 프라임(′)은 인코딩된 값을 뜻한다. 전통 HDTV의 OOTF는 중간 톤에서 국소 지수 약 1.2다.</li>
+      <li>sRGB: 직선 구간 12.92 (\(L\le0.0031308\), \(V'\le0.04045\)), 곡선 \(1.055L^{1/2.4}-0.055\). 순수 2.2와는 중간 톤에서 2% 이내지만 코드 10에서 3.8배 다르다.</li>
+      <li>BT.709 OETF: \(4.5L\) / \(1.099L^{0.45}-0.099\) (경계 0.018). BT.1886 EOTF: \(a\max(V'+b,0)^{2.4}\)로 블랙 레벨을 반영한다. BT.2020 12비트 상수는 1.0993/0.0181.</li>
+      <li>블렌딩·알파 합성·축소·블러·조명·평균은 선형광에서 한다. 0과 255의 평균은 128(빛 21.6%)이 아니라 188(빛 50%)이며, 빨강–초록 감마 혼합의 중간은 빨강보다 어둡다(L* 51.9).</li>
+      <li>코드당 \(\Delta L/L\): 선형 8비트는 백색의 39% 이하에서 1%를 넘고, 첫 단계가 백색의 0.39%다. sRGB 8비트는 전 구간에서 약 1~6%로 경계선에 있으며, 선형으로 같은 어둠부 분해능을 얻으려면 약 12비트가 필요하다.</li>
+      <li>디더링은 오차를 고주파로 옮겨 밴딩을 없앤다. 랜덤·Bayer·Floyd–Steinberg(7/16, 3/16, 5/16, 1/16) 순으로 품질이 좋아지며, 저비트에서 정확한 톤을 원하면 선형광에서 디더링한다.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ quiz -->
+  <section class="quiz-sec" id="quiz">
+    <h2>확인 퀴즈</h2>
+    <div class="quiz">
+      <div class="quiz-q"><p>8비트 영상에 감마(비선형) 인코딩을 쓰는 가장 근본적인 이유는?</p><div class="opts">
+        <button class="opt">CRT가 사라진 뒤에도 하위 호환을 지키기 위해서만</button>
+        <button class="opt" data-correct>제한된 코드 수를 지각적으로 균등하게 배분해 어둠부 밴딩을 줄이기 위해</button>
+        <button class="opt">색역을 넓히기 위해</button>
+        <button class="opt">압축률을 높이기 위해 밝은 영역의 정보를 늘리려고</button>
+      </div><div class="quiz-exp">시각의 Weber 비율은 대략 일정하므로 어두운 곳일수록 작은 절대 단계가 필요하다. 감마 곡선은 어둠부에 코드를 더 주어 모든 밝기에서 단계를 비슷한 지각 크기로 만든다. CRT 호환은 역사적 계기였을 뿐이다.</div></div>
+
+      <div class="quiz-q"><p>sRGB 코드 128(회색)이 내는 빛은 백색의 약 몇 %인가?</p><div class="opts">
+        <button class="opt">50%</button>
+        <button class="opt">73.5%</button>
+        <button class="opt" data-correct>21.6%</button>
+        <button class="opt">12.9%</button>
+      </div><div class="quiz-exp">\(((128/255+0.055)/1.055)^{2.4} = 0.2159\). 빛의 50%는 sRGB 인코딩 0.7354, 즉 코드 188이다.</div></div>
+
+      <div class="quiz-q"><p>sRGB 구간 함수와 순수 γ 2.2 멱함수의 차이가 가장 큰 곳은?</p><div class="opts">
+        <button class="opt">백색 근처(코드 240 이상)</button>
+        <button class="opt">중간 톤(코드 128 근처)</button>
+        <button class="opt" data-correct>어둠부(코드 수십 이하)</button>
+        <button class="opt">차이가 없다 — 같은 곡선의 다른 표기다</button>
+      </div><div class="quiz-exp">sRGB는 0 근처에 기울기 12.92의 직선 구간이 있어 어둠부 디코딩 값이 2.2보다 크다. 코드 10에서 3.8배, 코드 5에서 8.7배 차이 나며, 코드 128에서는 2% 이내다.</div></div>
+
+      <div class="quiz-q"><p>sRGB 빨강 (255,0,0)과 초록 (0,255,0)을 저장된 값 그대로 50:50 섞은 (128,128,0)에 대해 옳은 것은?</p><div class="opts">
+        <button class="opt">두 빛을 반씩 섞은 물리적 결과와 같다</button>
+        <button class="opt" data-correct>휘도가 약 0.20으로, 빨강 단독(0.21)보다도 어둡다</button>
+        <button class="opt">휘도가 약 0.46으로 정확하다</button>
+        <button class="opt">색도만 틀리고 휘도는 맞다</button>
+      </div><div class="quiz-exp">코드 128의 선형 값은 0.2159이므로 \(Y = 0.2159\times(0.2126+0.7152)=0.200\). 선형 혼합 (0.5, 0.5, 0)의 \(Y=0.464\)(코드 188,188,0)와 크게 다르다. 그라데이션 중간의 어두운 띠가 이것이다.</div></div>
+
+      <div class="quiz-q"><p>BT.709 OETF와 BT.1886 EOTF를 합성한 OOTF가 1이 아닌(중간 톤 국소 지수 약 1.2) 이유로 가장 적절한 것은?</p><div class="opts">
+        <button class="opt">두 표준을 만든 위원회가 달라서 생긴 오류다</button>
+        <button class="opt">양자화 오차를 줄이기 위해서다</button>
+        <button class="opt" data-correct>어둡고 덜 밝은 시청 환경에서 낮아 보이는 대비를 보상하는 의도적 렌더링이다</button>
+        <button class="opt">디스플레이 블랙 레벨을 0으로 만들기 위해서다</button>
+      </div><div class="quiz-exp">장면보다 훨씬 어두운 화면을 어두운 주변에서 보면 대비·채도가 낮아 보인다(Stevens, Bartleson–Breneman 효과). 시스템 감마 1.2 정도의 대비 증폭으로 이를 보상한다. BT.2100 HLG도 1,000 cd/m²에서 OOTF 감마 1.2를 쓴다.</div></div>
+
+      <div class="quiz-q"><p>선형 8비트 인코딩에서 코드 한 단계의 \(\Delta L/L\)이 1%를 넘는 범위는?</p><div class="opts">
+        <button class="opt">백색의 1% 이하만</button>
+        <button class="opt" data-correct>백색의 약 39% 이하(코드 1~99) 전부</button>
+        <button class="opt">백색의 90% 이상</button>
+        <button class="opt">없다 — 8비트면 충분하다</button>
+      </div><div class="quiz-exp">선형에서 \(\Delta L/L = 1/k\)이므로 \(k < 100\)이면 1%를 넘는다. 코드 99는 백색의 38.8%다. 첫 비영 코드도 백색의 0.39%로, 80 cd/m² 화면에서 0.31 cd/m² 아래는 모두 검정이 된다.</div></div>
+
+      <div class="quiz-q"><p>디더링에 대한 설명으로 옳은 것은?</p><div class="opts">
+        <button class="opt">양자화 RMS 오차를 줄여 화질을 개선한다</button>
+        <button class="opt" data-correct>RMS 오차는 비슷하거나 커지지만, 오차를 고주파로 옮겨 눈에 띄는 계단(밴딩)을 없앤다</button>
+        <button class="opt">Floyd–Steinberg는 오차를 이전에 처리한 픽셀로 되돌려 보낸다</button>
+        <button class="opt">Bayer 디더는 난수 발생기가 필요하다</button>
+      </div><div class="quiz-exp">디더는 국소 평균을 맞추는 대신 픽셀 단위 잡음을 더한다. 눈의 공간 적분(저역 통과) 때문에 고주파 잡음은 덜 보이고 구조적인 띠는 사라진다. F–S는 아직 처리하지 않은 오른쪽·아래 이웃에 7/16, 3/16, 5/16, 1/16로 나눈다. Bayer는 고정 임계 행렬이다.</div></div>
+
+      <div class="quiz-q"><p>1픽셀 흑/백 체커보드와 같은 밝기로 보이는 균일 회색이 코드 186이었다. 이 디스플레이의 중간 톤 감마로 가장 가까운 것은?</p><div class="opts">
+        <button class="opt">1.8</button>
+        <button class="opt" data-correct>2.2</button>
+        <button class="opt">2.6</button>
+        <button class="opt">알 수 없다 — 체커의 밝기가 감마에 따라 달라서</button>
+      </div><div class="quiz-exp">체커는 EOTF와 무관하게 백색의 50% 빛을 낸다. \((186/255)^\gamma = 0.5\)에서 \(\gamma = \ln0.5/\ln(0.7294) = 2.2\). sRGB 구간 함수라면 188, 2.4라면 191이다.</div></div>
+
+      <div class="quiz-q"><p>WebGL2에서 색 텍스처를 <code>SRGB8_ALPHA8</code> 포맷으로 업로드했다. 셰이더에서 올바른 처리는?</p><div class="opts">
+        <button class="opt">샘플링한 값에 <code>pow(c, 2.2)</code>를 적용해 선형화한다</button>
+        <button class="opt" data-correct>샘플러가 이미 선형 값으로 디코딩(필터링도 선형)하므로 그대로 조명 계산에 쓴다</button>
+        <button class="opt">노멀맵도 같은 포맷으로 올려야 일관된다</button>
+        <button class="opt">출력 전 인코딩이 필요 없다</button>
+      </div><div class="quiz-exp">sRGB 텍스처 포맷은 하드웨어가 디코딩하므로 다시 <code>pow</code>를 하면 이중 디코딩이 된다. 노멀맵 같은 데이터는 <code>UNORM</code>이어야 하며, 기본 드로잉 버퍼에 쓸 때는 셰이더에서 sRGB 인코딩을 해야 한다(또는 sRGB 렌더 타깃 사용).</div></div>
+
+      <div class="quiz-q"><p>1비트(흑/백)로 인코딩 값 0.5(코드 128) 회색 영역을 인코딩 값 기준 오차 확산으로 디더링했다. 멀리서 보면?</p><div class="opts">
+        <button class="opt">코드 128과 같은 밝기로 보인다</button>
+        <button class="opt" data-correct>흰 픽셀이 약 50%가 되어 빛의 50%, 즉 코드 188처럼 더 밝게 보인다</button>
+        <button class="opt">검게 보인다</button>
+        <button class="opt">흰 픽셀이 약 21.6%가 되어 정확한 밝기가 된다</button>
+      </div><div class="quiz-exp">인코딩 값 평균을 보존하는 디더는 흰 픽셀을 50% 배치한다. 눈은 빛을 적분하므로 결과는 빛 50%(코드 188 상당)다. 정확한 톤을 원하면 선형광에서 디더링해 흰 픽셀을 21.6%로 만들어야 한다.</div></div>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  const dec = CB.srgbDecode, enc = CB.srgbEncode, clamp = CB.clamp;
+  const Lstar = (Y) => (Y > 216 / 24389 ? 116 * Math.cbrt(Y) - 16 : (24389 / 27) * Y);
+  const LstarInv = (L) => (L > 8 ? Math.pow((L + 16) / 116, 3) : (L * 27) / 24389);
+  const pw = (v, g) => Math.pow(Math.max(v, 0), g);
+  const TF = {
+    lin: { enc: (v) => v, dec: (v) => v },
+    srgb: { enc: (v) => enc(clamp(v, 0, 1)), dec: (v) => dec(clamp(v, 0, 1)) },
+    g22: { enc: (v) => pw(v, 1 / 2.2), dec: (v) => pw(v, 2.2) },
+    g24: { enc: (v) => pw(v, 1 / 2.4), dec: (v) => pw(v, 2.4) },
+    bt709: { enc: (L) => (L < 0.018 ? 4.5 * L : 1.099 * pw(L, 0.45) - 0.099), dec: (V) => (V < 0.081 ? V / 4.5 : pw((V + 0.099) / 1.099, 1 / 0.45)) },
+    lstar: { enc: (Y) => Lstar(Math.max(Y, 0)) / 100, dec: (V) => LstarInv(V * 100) },
+  };
+  const bt1886 = (V, Lw, Lb) => {
+    const w = Math.pow(Lw, 1 / 2.4), b0 = Math.pow(Lb, 1 / 2.4);
+    return Math.pow(w - b0, 2.4) * pw(V + b0 / (w - b0), 2.4);
+  };
+  const localExp = (f, x) => { const d = 1e-4, y0 = f(x), y1 = f(x * (1 + d)); return y0 > 0 && y1 > 0 && x > 0 ? Math.log(y1 / y0) / Math.log(1 + d) : NaN; };
+  const dprOf = (ctx) => (ctx.getTransform ? ctx.getTransform().a : 1);
+  const lab8 = (c) => CB.XYZ2Lab(CB.rgb82XYZ(c));
+  const fixWidth = (ctx, w) => { ctx.canvas.style.width = w + "px"; };
+  const monoFont = () => "11px " + getComputedStyle(document.body).getPropertyValue("--mono");
+  const textFont = () => "12px " + getComputedStyle(document.body).getPropertyValue("--font");
+  function put(ctx, x, y, W, H, data) {
+    const img = new ImageData(W, H);
+    for (let i = 0, j = 0; i < W * H; i++, j += 3) { img.data[i * 4] = data[j]; img.data[i * 4 + 1] = data[j + 1]; img.data[i * 4 + 2] = data[j + 2]; img.data[i * 4 + 3] = 255; }
+    ctx.putImageData(img, x, y);
+  }
+
+  /* ---------------------------------------------------- 1. 전달 함수 비교 */
+  const tfMode = CB.seg("tf-mode", () => cvTF.redraw());
+  const tfCode = CB.range("tf-code", (v) => v + " / 255", () => cvTF.redraw());
+  const tfLw = CB.range("tf-lw", (v) => v + " cd/m²", () => cvTF.redraw());
+  const tfLb = CB.range("tf-lb", (v) => v.toFixed(2) + " cd/m²", () => cvTF.redraw());
+  const tfLog = document.getElementById("tf-log");
+  tfLog.addEventListener("change", () => cvTF.redraw());
+  function samp(f, x0, x1, logx, n = 600) {
+    const d = [];
+    for (let i = 0; i <= n; i++) { const x = logx ? x0 * Math.pow(x1 / x0, i / n) : x0 + ((x1 - x0) * i) / n; d.push([x, f(x)]); }
+    return d;
+  }
+  function drawTF(ctx, w, h) {
+    const P = CB.palette(), mode = tfMode(), V = tfCode() / 255, Lw = tfLw(), Lb = Math.min(tfLb(), Lw / 2), log = tfLog.checked;
+    const box = { x: 62, y: 14, w: w - 80, h: h - 62 };
+    const ootf = (s) => bt1886(TF.bt709.enc(s), Lw, Lb);
+    let o;
+    if (mode === "eotf") {
+      o = { x: [0, 1], y: log ? [1e-5, 1] : [0, 1], logY: log, xLabel: "신호 V′ (코드값 / 255)", yLabel: "상대 휘도 L / Lw",
+        series: [
+          { data: samp(TF.lstar.dec, 0, 1), color: P.dim, width: 1.5, dash: [2, 3] },
+          { data: samp(TF.bt709.dec, 0, 1), color: P.bad, width: 1.2, dash: [5, 4] },
+          { data: samp(TF.g24.dec, 0, 1), color: P.warn, width: 1.8 },
+          { data: samp((v) => bt1886(v, Lw, Lb) / Lw, 0, 1), color: P.ok, width: 1.8, dash: [6, 4] },
+          { data: samp(TF.g22.dec, 0, 1), color: P.accent2, width: 2 },
+          { data: samp(dec, 0, 1), color: P.accent, width: 2.6 },
+        ],
+        vlines: [{ x: V, color: P.faint }],
+        points: V > 0 ? [{ x: V, y: dec(V), color: P.accent }, { x: V, y: pw(V, 2.2), color: P.accent2 }] : [] };
+    } else if (mode === "oetf") {
+      const x0 = log ? 1e-4 : 0, xc = Math.max(dec(V), log ? 1e-4 : 0);
+      o = { x: [log ? 1e-4 : 0, 1], y: [0, 1], logX: log, xLabel: "선형 값 L (장면/화면 빛, 정규화)", yLabel: "인코딩 신호 V′",
+        series: [
+          { data: samp(TF.lstar.enc, x0 || 0, 1, log), color: P.dim, width: 1.5, dash: [2, 3] },
+          { data: samp(TF.bt709.enc, x0 || 0, 1, log), color: P.bad, width: 2 },
+          { data: samp(TF.g24.enc, x0 || 0, 1, log), color: P.warn, width: 1.8 },
+          { data: samp(TF.g22.enc, x0 || 0, 1, log), color: P.accent2, width: 2 },
+          { data: samp(enc, x0 || 0, 1, log), color: P.accent, width: 2.6 },
+        ],
+        vlines: [{ x: xc, color: P.faint }], hlines: [{ y: V, color: P.faint }],
+        points: [{ x: xc, y: V, color: P.accent }] };
+    } else if (mode === "slope") {
+      o = { x: [0, 1], y: [0, 3.2], xLabel: "신호 V′", yLabel: "국소 지수 d ln L / d ln V′",
+        series: [
+          { data: samp((v) => localExp(TF.lstar.dec, v), 0.002, 1), color: P.dim, width: 1.5, dash: [2, 3] },
+          { data: samp((v) => localExp(TF.g24.dec, v), 0.002, 1), color: P.warn, width: 1.8 },
+          { data: samp((v) => localExp((u) => bt1886(u, Lw, Lb), v), 0.002, 1), color: P.ok, width: 1.8, dash: [6, 4] },
+          { data: samp((v) => localExp(TF.g22.dec, v), 0.002, 1), color: P.accent2, width: 2 },
+          { data: samp((v) => localExp(dec, v), 0.002, 1), color: P.accent, width: 2.6 },
+        ],
+        vlines: [{ x: V, color: P.faint }], hlines: [{ y: 1, color: P.faint, label: "선형 (1.0)" }],
+        points: V > 0 ? [{ x: V, y: localExp(dec, V), color: P.accent }] : [] };
+    } else {
+      const s = Math.max(TF.bt709.dec(V), 1e-3);
+      o = { x: [1e-3, 1], y: [0.01, Lw * 1.3], logX: true, logY: true, xLabel: "장면 상대 휘도 (카메라 입력)", yLabel: "화면 휘도 (cd/m²)",
+        series: [
+          { data: samp((x) => x * Lw, 1e-3, 1, true), color: P.dim, width: 1.5, dash: [4, 4] },
+          { data: samp((x) => Lw * TF.g22.dec(TF.bt709.enc(x)), 1e-3, 1, true), color: P.accent2, width: 1.8 },
+          { data: samp(ootf, 1e-3, 1, true), color: P.ok, width: 2.6 },
+        ],
+        vlines: [{ x: s, color: P.faint }],
+        hlines: Lb > 0 ? [{ y: Lb, color: P.faint, label: "Lb" }] : [],
+        points: [{ x: s, y: ootf(s), color: P.ok, label: "709→1886" }] };
+    }
+    CB.chart(ctx, box, o);
+    if (mode === "ootf") {
+      ctx.font = textFont(); ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillStyle = P.dim; ctx.fillText("점선: 선형 재현(OOTF=1) · 파랑: 709 OETF → 2.2 · 초록: 709 OETF → BT.1886", box.x + 8, box.y + 4);
+    }
+    const Ls = dec(V) * Lw, L22 = pw(V, 2.2) * Lw, L86 = bt1886(V, Lw, Lb);
+    CB.stat("o-tf-v", V.toFixed(4));
+    CB.stat("o-tf-srgb", CB.fmt(Ls, 3) + " cd/m²");
+    CB.stat("o-tf-g22", CB.fmt(L22, 3) + " cd/m²");
+    CB.stat("o-tf-1886", CB.fmt(L86, 3) + " cd/m²");
+    CB.stat("o-tf-ratio", V > 0 ? (Ls / L22).toFixed(2) + "×" : "—");
+    const sScene = TF.bt709.dec(V);
+    CB.stat("o-tf-exp", V > 0 ? localExp(dec, V).toFixed(2) + " · " + localExp(ootf, Math.max(sScene, 1e-4)).toFixed(2) : "—");
+  }
+  const cvTF = CB.canvas("#cv-tf", drawTF, { aspect: 0.62, minHeight: 300, maxHeight: 460 });
+
+  /* ---------------------------------------------------- 2. 블렌딩 */
+  const blA = document.getElementById("bl-a"), blB = document.getElementById("bl-b");
+  const PRESET = { rg: ["#ff0000", "#00ff00"], rb: ["#ff0000", "#0000ff"], by: ["#0000ff", "#ffff00"], kw: ["#000000", "#ffffff"] };
+  CB.seg("bl-preset", (v) => { blA.value = PRESET[v][0]; blB.value = PRESET[v][1]; cvBL.redraw(); });
+  const blT = CB.range("bl-t", (v) => v + " %", () => cvBL.redraw());
+  [blA, blB].forEach((el) => el.addEventListener("input", () => cvBL.redraw()));
+  const mixG = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  const mixL = (a, b, t) => a.map((v, i) => { const la = dec(v / 255), lb = dec(b[i] / 255); return Math.round(255 * enc(la + (lb - la) * t)); });
+  const mixO = (a, b, t) => {
+    const oa = CB.linRGB2oklab(a.map((v) => dec(v / 255))), ob = CB.linRGB2oklab(b.map((v) => dec(v / 255)));
+    return CB.oklab2linRGB(oa.map((v, i) => v + (ob[i] - v) * t)).map((v) => Math.round(255 * enc(clamp(v, 0, 1))));
+  };
+  const MIX = [["감마(인코딩 값) 혼합", mixG], ["선형광 혼합", mixL], ["OKLab 혼합", mixO]];
+  function drawBL(ctx, w, h) {
+    const P = CB.palette(), a = CB.hex2rgb(blA.value), b = CB.hex2rgb(blB.value), t = blT() / 100;
+    const x0 = 16, sw = w - 32, sh = 30, gap = 20;
+    ctx.font = textFont();
+    MIX.forEach(([name, f], k) => {
+      const y = 8 + k * (sh + gap);
+      ctx.fillStyle = P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(name, x0, y);
+      for (let x = 0; x < sw; x++) { ctx.fillStyle = CB.rgb8css(f(a, b, x / (sw - 1))); ctx.fillRect(x0 + x, y + 16, 1.5, sh); }
+    });
+    const cx = x0 + t * sw;
+    ctx.strokeStyle = P.text; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx, 22); ctx.lineTo(cx, 8 + 3 * (sh + gap) - 2); ctx.stroke();
+    const top = 8 + 3 * (sh + gap) + 6;
+    const cols = [P.accent, P.accent2, P.warn];
+    const series = MIX.map(([, f], k) => ({ color: cols[k], width: k === 0 ? 2.6 : 2, data: samp((u) => Lstar(CB.relLum(f(a, b, u))), 0, 1, false, 200).map(([u, L]) => [u * 100, L]) }));
+    CB.chart(ctx, { x: 52, y: top, w: w - 70, h: h - top - 46 }, { x: [0, 100], y: [0, 100], xLabel: "혼합 비율 t (%)", yLabel: "L*", series, vlines: [{ x: t * 100, color: P.faint }],
+      points: MIX.map(([, f], k) => ({ x: t * 100, y: Lstar(CB.relLum(f(a, b, t))), color: cols[k] })) });
+    const out = MIX.map(([, f]) => f(a, b, t));
+    ["o-bl-g", "o-bl-l", "o-bl-o"].forEach((id, k) => {
+      const c = out[k], Y = CB.relLum(c);
+      CB.stat(id, `<span style="display:inline-block;width:.9em;height:.9em;border-radius:3px;vertical-align:-.1em;border:1px solid var(--border);background:${CB.rgb8css(c)}"></span> ${CB.rgb2hex(c)} · Y ${Y.toFixed(3)} · L* ${Lstar(Y).toFixed(1)}`);
+    });
+    CB.stat("o-bl-d", CB.dE2000(lab8(out[0]), lab8(out[1])).toFixed(1));
+  }
+  const cvBL = CB.canvas("#cv-bl", drawBL, { aspect: 0.66, minHeight: 360, maxHeight: 480 });
+
+  /* ---------------------------------------------------- 3. 축소 */
+  const RS_W = 256, RS_H = 64;
+  const rsSrc = (() => {
+    const a = new Uint8ClampedArray(RS_W * RS_H * 3);
+    let seed = 12345;
+    const rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
+    for (let y = 0; y < RS_H; y++) for (let x = 0; x < RS_W; x++) {
+      const r = x >> 6, lx = x & 63;
+      let c;
+      if (r === 0) c = lx & 1 ? [255, 255, 255] : [0, 0, 0];
+      else if (r === 1) c = (lx + y) & 1 ? [255, 0, 0] : [0, 255, 0];
+      else if (r === 2) c = rnd() < 0.04 ? [255, 255, 255] : [24, 24, 32];
+      else c = y % 4 === 0 || lx % 4 === 0 ? [0, 0, 0] : [255, 255, 255];
+      a.set(c, (y * RS_W + x) * 3);
+    }
+    return a;
+  })();
+  function downscale(src, W, H, f, linear) {
+    const w = W / f, h = H / f, out = new Uint8ClampedArray(w * h * 3), n = f * f;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) {
+      let s = 0;
+      for (let j = 0; j < f; j++) for (let i = 0; i < f; i++) { const v = src[((y * f + j) * W + x * f + i) * 3 + c]; s += linear ? dec(v / 255) : v; }
+      out[(y * w + x) * 3 + c] = linear ? Math.round(255 * enc(s / n)) : Math.round(s / n);
+    }
+    return out;
+  }
+  function regionY(img, W, H, reg) {
+    const rw = W / 4; let s = 0, n = 0;
+    for (let y = 0; y < H; y++) for (let x = reg * rw; x < (reg + 1) * rw; x++) { const i = (y * W + x) * 3; s += CB.relLum([img[i], img[i + 1], img[i + 2]]); n++; }
+    return s / n;
+  }
+  const rsF = CB.seg("rs-f", () => cvRS.redraw());
+  function upscale(img, w, h, s) {
+    const W = w * s, H = h * s, out = new Uint8ClampedArray(W * H * 3);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const si = (((y / s) | 0) * w + ((x / s) | 0)) * 3, di = (y * W + x) * 3; out[di] = img[si]; out[di + 1] = img[si + 1]; out[di + 2] = img[si + 2]; }
+    return { W, H, out };
+  }
+  function drawRS(ctx, w, h) {
+    fixWidth(ctx, w);
+    const P = CB.palette(), dpr = dprOf(ctx), f = Number(rsF());
+    const g = downscale(rsSrc, RS_W, RS_H, f, false), l = downscale(rsSrc, RS_W, RS_H, f, true);
+    const labH = 20;
+    const sd = Math.max(1, Math.min(Math.floor(((w - 16) * dpr) / RS_W), Math.floor(((h - 3 * labH - 8) * dpr) / 3 / RS_H)));
+    const imgW = (RS_W * sd) / dpr, imgH = (RS_H * sd) / dpr, x0 = Math.round((w - imgW) / 2);
+    const rows = [["원본", rsSrc, 1], ["1/" + f + " 축소 — 인코딩 값 평균", g, f], ["1/" + f + " 축소 — 선형광 평균", l, f]];
+    ctx.font = textFont();
+    rows.forEach(([name, img, ff], k) => {
+      const y = 4 + k * (imgH + labH);
+      ctx.fillStyle = k === 1 ? P.accent : k === 2 ? P.accent2 : P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText(name, x0, y + 2);
+      const U = upscale(img, RS_W / ff, RS_H / ff, sd * ff);
+      put(ctx, Math.round(x0 * dpr), Math.round((y + labH) * dpr), U.W, U.H, U.out);
+    });
+    ["o-rs-a", "o-rs-b", "o-rs-c", "o-rs-d"].forEach((id, r) => {
+      const yo = regionY(rsSrc, RS_W, RS_H, r), yg = regionY(g, RS_W / f, RS_H / f, r), yl = regionY(l, RS_W / f, RS_H / f, r);
+      const pc = ((yg / yo - 1) * 100).toFixed(0);
+      CB.stat(id, `${yo.toFixed(3)} → <span style="color:var(--accent)">${yg.toFixed(3)} (${pc}%)</span> / <span style="color:var(--accent-2)">${yl.toFixed(3)}</span>`);
+    });
+  }
+  const cvRS = CB.canvas("#cv-rs", drawRS, { aspect: 0.8, minHeight: 280, maxHeight: 640 });
+
+  /* ---------------------------------------------------- 4. Weber 비율 */
+  const rd4 = () => cvWB.redraw();
+  const wbBits = CB.range("wb-bits", (v) => v + " 비트 (" + ((1 << v) - 1) + " 단계)", rd4);
+  const wbLw = CB.range("wb-lw", (v) => v + " cd/m²", rd4);
+  const wbEnc = CB.seg("wb-enc", rd4), wbSpan = CB.seg("wb-span", rd4);
+  function weber(tf, N) {
+    const d = [];
+    for (let k = 1; k < N; k++) { const a = tf.dec(k / N), b = tf.dec((k + 1) / N); if (a > 0) d.push([a, (b - a) / a]); }
+    return d;
+  }
+  function drawWB(ctx, w, h) {
+    const P = CB.palette(), bits = wbBits(), N = (1 << bits) - 1, Lw = wbLw(), sel = wbEnc(), span = Number(wbSpan());
+    const rampH = 40, box = { x: 62, y: 14, w: w - 80, h: h - 62 - rampH - 18 };
+    const encs = [["lin", P.bad], ["g22", P.accent2], ["lstar", P.ok], ["srgb", P.accent]];
+    const data = {};
+    encs.forEach(([k]) => (data[k] = weber(TF[k], N)));
+    CB.chart(ctx, box, { x: [Lw * 1e-4, Lw], y: [0.01, 100], logX: true, logY: true, xLabel: "휘도 (cd/m²)", yLabel: "코드 1단계 ΔL/L (%)",
+      yFmt: (v) => (v >= 1 ? String(v) : String(Number(v.toPrecision(2)))),
+      series: encs.map(([k, c]) => ({ color: c, width: k === sel ? 2.8 : 1.3, data: data[k].map(([Y, r]) => [Y * Lw, r * 100]) })),
+      hlines: [{ y: 1, color: P.text, label: "1 % (Weber 근사)" }],
+      bands: [{ x0: Lw * 1e-4, x1: Lw * span, color: "rgba(128,128,128,0.08)" }] });
+    // ramp
+    const ry = h - rampH - 6, rx = box.x, rw = box.w, tf = TF[sel], seen = new Set();
+    for (let x = 0; x < rw; x++) {
+      const Y = (span * x) / (rw - 1), code = Math.round(clamp(tf.enc(Y), 0, 1) * N);
+      seen.add(code);
+      const c = Math.round(255 * enc(clamp(tf.dec(code / N), 0, 1)));
+      ctx.fillStyle = `rgb(${c},${c},${c})`; ctx.fillRect(rx + x, ry, 1.5, rampH);
+    }
+    ctx.strokeStyle = P.border; ctx.lineWidth = 1; ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rampH - 1);
+    const d = data[sel], over = d.filter(([, r]) => r > 0.01), thY = over.length ? Math.max(...over.map(([Y]) => Y)) : 0;
+    const near = (Y0) => d.reduce((p, q) => (Math.abs(Math.log(q[0] / Y0)) < Math.abs(Math.log(p[0] / Y0)) ? q : p), d[0]);
+    CB.stat("o-wb-lv", seen.size + " 개 (0–" + span * 100 + "%)");
+    CB.stat("o-wb-th", thY ? "≤ " + CB.fmt(thY * Lw, 3) + " cd/m² (" + CB.fmt(thY * 100, 3) + "%)" : "없음");
+    CB.stat("o-wb-min", CB.fmt(tf.dec(1 / N) * Lw, 3) + " cd/m²");
+    CB.stat("o-wb-g18", (near(0.18)[1] * 100).toFixed(2) + " %");
+  }
+  const cvWB = CB.canvas("#cv-wb", drawWB, { aspect: 0.66, minHeight: 360, maxHeight: 500 });
+
+  /* ---------------------------------------------------- 5. 디더링 */
+  const BAYER8 = (() => {
+    let m = [[0]];
+    for (let n = 1; n < 8; n *= 2) {
+      const r = [];
+      for (let y = 0; y < 2 * n; y++) { r.push([]); for (let x = 0; x < 2 * n; x++) r[y].push(4 * m[y % n][x % n] + [0, 2, 3, 1][(y < n ? 0 : 2) + (x < n ? 0 : 1)]); }
+      m = r;
+    }
+    return m;
+  })();
+  function quantize(src, Wd, Hd, bits, method, linDom) {
+    const N = (1 << bits) - 1, out = new Uint8ClampedArray(Wd * Hd * 3);
+    const toD = linDom ? dec : (v) => v, frD = linDom ? enc : (v) => v;
+    const lev = new Float64Array(N + 1);
+    for (let k = 0; k <= N; k++) lev[k] = toD(k / N);
+    const lo = (x) => clamp(Math.floor(frD(clamp(x, 0, 1)) * N + 1e-9), 0, N - 1);
+    let e0 = null, e1 = null;
+    if (method === "fs") { e0 = new Float64Array((Wd + 2) * 3); e1 = new Float64Array((Wd + 2) * 3); }
+    for (let y = 0; y < Hd; y++) {
+      if (e0) { const t = e0; e0 = e1; e1 = t; e1.fill(0); }
+      for (let x = 0; x < Wd; x++) for (let c = 0; c < 3; c++) {
+        let v = toD(src[x * 3 + c]);
+        const i = (x + 1) * 3 + c;
+        if (e0) v += e0[i];
+        const k0 = lo(v), a = lev[k0], b = lev[k0 + 1], t = (v - a) / (b - a);
+        const thr = method === "rand" ? Math.random() : method === "bayer" ? (BAYER8[y & 7][x & 7] + 0.5) / 64 : 0.5;
+        const k = t > thr ? k0 + 1 : k0;
+        if (e0) { const e = v - lev[k]; e0[i + 3] += (e * 7) / 16; e1[i - 3] += (e * 3) / 16; e1[i] += (e * 5) / 16; e1[i + 3] += e / 16; }
+        out[(y * Wd + x) * 3 + c] = Math.round((255 * k) / N);
+      }
+    }
+    return out;
+  }
+  const dtBits = CB.range("dt-bits", (v) => v + " 비트", () => cvDT.redraw());
+  const dtZoom = CB.range("dt-zoom", (v) => "×" + v, () => cvDT.redraw());
+  const dtM = CB.seg("dt-m", () => cvDT.redraw()), dtSrc = CB.seg("dt-src", () => cvDT.redraw());
+  const dtLin = document.getElementById("dt-lin");
+  dtLin.addEventListener("change", () => cvDT.redraw());
+  const SKY = [[0.02, 0.06, 0.22], [0.55, 0.72, 0.92]];
+  function srcCol(kind, u) {
+    if (kind === "gray") return [u, u, u];
+    if (kind === "dark") return [0.25 * u, 0.25 * u, 0.25 * u];
+    return SKY[0].map((v, i) => enc(v + (SKY[1][i] - v) * u));
+  }
+  function boxBlur1D(a, r) {
+    const n = a.length, o = new Float64Array(n);
+    for (let i = 0; i < n; i++) { let s = 0, c = 0; for (let j = Math.max(0, i - r); j <= Math.min(n - 1, i + r); j++) { s += a[j]; c++; } o[i] = s / c; }
+    return o;
+  }
+  function drawDT(ctx, w, h) {
+    fixWidth(ctx, w);
+    const P = CB.palette(), dpr = dprOf(ctx), bits = dtBits(), z = dtZoom(), m = dtM(), kind = dtSrc(), lin = dtLin.checked;
+    const x0 = 16, rowH = 52, labH = 18;
+    const Wdev = Math.round((w - 32) * dpr), Hdev = Math.round(rowH * dpr);
+    const Wd = Math.ceil(Wdev / z), Hd = Math.ceil(Hdev / z);
+    const src = new Float64Array(Wd * 3), src8 = new Uint8ClampedArray(Wd * Hd * 3);
+    for (let x = 0; x < Wd; x++) { const c = srcCol(kind, x / (Wd - 1)); for (let k = 0; k < 3; k++) src[x * 3 + k] = c[k]; }
+    for (let y = 0; y < Hd; y++) for (let x = 0; x < Wd; x++) for (let k = 0; k < 3; k++) src8[(y * Wd + x) * 3 + k] = Math.round(255 * src[x * 3 + k]);
+    const t0 = performance.now();
+    const q = quantize(src, Wd, Hd, bits, m, lin);
+    const ms = performance.now() - t0;
+    // far view: vertical mean in linear light, then horizontal box blur
+    const r = Math.max(2, Math.round(4 / z) + 2);
+    const prof = (img) => [0, 1, 2].map((k) => { const a = new Float64Array(Wd); for (let x = 0; x < Wd; x++) { let s = 0; for (let y = 0; y < Hd; y++) s += dec(img[(y * Wd + x) * 3 + k] / 255); a[x] = s / Hd; } return boxBlur1D(boxBlur1D(a, r), r); });
+    const pq = prof(q), ps = prof(src8);
+    const far = new Uint8ClampedArray(Wd * Hd * 3);
+    for (let x = 0; x < Wd; x++) for (let k = 0; k < 3; k++) { const v = Math.round(255 * enc(clamp(pq[k][x], 0, 1))); for (let y = 0; y < Hd; y++) far[(y * Wd + x) * 3 + k] = v; }
+    let se = 0, tone = 0, nt = 0;
+    for (let i = 0; i < q.length; i++) se += (q[i] - src8[i]) ** 2;
+    for (let x = r * 2; x < Wd - r * 2; x++) {
+      const Yq = 0.2126 * pq[0][x] + 0.7152 * pq[1][x] + 0.0722 * pq[2][x], Ys = 0.2126 * ps[0][x] + 0.7152 * ps[1][x] + 0.0722 * ps[2][x];
+      tone += Math.abs(Lstar(Yq) - Lstar(Ys)); nt++;
+    }
+    const rows = [["원본 (8비트)", src8], [bits + "비트 · " + { none: "디더 없음", rand: "랜덤", bayer: "Bayer 8×8", fs: "Floyd–Steinberg" }[m] + (lin ? " · 선형광" : " · 인코딩 값"), q], ["멀리서 본 모습 (결과를 선형광에서 흐림)", far]];
+    ctx.font = textFont();
+    rows.forEach(([name, img], k) => {
+      const y = 4 + k * (rowH + labH);
+      ctx.fillStyle = k === 1 ? P.accent : P.dim; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(name, x0, y + 1);
+      const W = Wdev, H = Hdev, out = new Uint8ClampedArray(W * H * 3);
+      for (let yy = 0; yy < H; yy++) { const sy = (yy / z) | 0; for (let xx = 0; xx < W; xx++) { const si = (sy * Wd + ((xx / z) | 0)) * 3, di = (yy * W + xx) * 3; out[di] = img[si]; out[di + 1] = img[si + 1]; out[di + 2] = img[si + 2]; } }
+      put(ctx, Math.round(x0 * dpr), Math.round((y + labH) * dpr), W, H, out);
+    });
+    CB.stat("o-dt-lv", ((1 << bits)) + " (총 " + CB.fmt(Math.pow(2, 3 * bits), 3) + "색)");
+    CB.stat("o-dt-rms", Math.sqrt(se / q.length).toFixed(2));
+    CB.stat("o-dt-tone", (tone / Math.max(nt, 1)).toFixed(2));
+    CB.stat("o-dt-ms", ms.toFixed(1) + " ms");
+  }
+  const cvDT = CB.canvas("#cv-dt", drawDT, { height: 3 * (52 + 18) + 10 });
+
+  /* ---------------------------------------------------- 6. 감마 확인 */
+  const gcCode = CB.range("gc-code", (v) => String(v), () => cvGC.redraw());
+  const gcPat = CB.seg("gc-pat", () => cvGC.redraw()), gcFrac = CB.seg("gc-frac", () => cvGC.redraw()), gcHi = CB.seg("gc-hi", () => cvGC.redraw());
+  const gcPred = () => { const p = Number(gcFrac()), hi = Number(gcHi()); return { p, hi, srgb: 255 * enc(p * dec(hi / 255)), g22: hi * Math.pow(p, 1 / 2.2), g24: hi * Math.pow(p, 1 / 2.4) }; };
+  document.getElementById("gc-set").addEventListener("click", () => gcCode.set(Math.round(gcPred().srgb)));
+  function drawGC(ctx, w, h) {
+    fixWidth(ctx, w);
+    const P = CB.palette(), dpr = dprOf(ctx), c = gcCode(), pat = gcPat(), pr = gcPred();
+    const W = Math.round(w * dpr), H = Math.round((h - 40) * dpr), out = new Uint8ClampedArray(W * H * 3);
+    const px0 = Math.round(W * 0.3), px1 = Math.round(W * 0.7), py0 = Math.round(H * 0.22), py1 = Math.round(H * 0.78);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let v;
+      if (x >= px0 && x < px1 && y >= py0 && y < py1) v = c;
+      else if (pat === "lines") v = (pr.p === 0.5 ? y % 2 === 0 : y % 4 === 0) ? pr.hi : 0;
+      else v = (pr.p === 0.5 ? (x + y) % 2 === 0 : x % 2 === 0 && y % 2 === 0) ? pr.hi : 0;
+      const i = (y * W + x) * 3; out[i] = out[i + 1] = out[i + 2] = v;
+    }
+    put(ctx, 0, 0, W, H, out);
+    ctx.font = textFont(); ctx.fillStyle = P.dim; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(`주변: 밝은 픽셀 ${pr.p * 100}% (코드 ${pr.hi}/0 교대) · 가운데: 균일 코드 ${c}`, w / 2, h - 20);
+    const Yp = pr.p * dec(pr.hi / 255);
+    CB.stat("o-gc-y", Yp.toFixed(4) + " (sRGB 기준)");
+    CB.stat("o-gc-pred", pr.srgb.toFixed(1) + " · " + pr.g22.toFixed(1) + " · " + pr.g24.toFixed(1));
+    CB.stat("o-gc-gam", c > 0 && c < pr.hi ? "γ ≈ " + (Math.log(pr.p) / Math.log(c / pr.hi)).toFixed(2) : "—");
+  }
+  const cvGC = CB.canvas("#cv-gc", drawGC, { height: 280 });
+})();
+</script>
+</body>
+</html>
