@@ -1,0 +1,10 @@
+{
+  "id": "colorbook",
+  "title": "ColorBook",
+  "description": "빛의 스펙트럼에서 측색학과 색공간, 색차, 조명, 카메라·디스플레이·인쇄의 색 재현까지. CIE 표준 데이터를 활용한 시뮬레이터로 색을 정의하고 측정하고 재현하는 법을 배웁니다.",
+  "url": "https://colorbook.euiyun.com/",
+  "repo": "https://github.com/geniuskey/colorbook",
+  "field": "electronics",
+  "status": "published",
+  "domain": "colorbook.euiyun.com"
+}
