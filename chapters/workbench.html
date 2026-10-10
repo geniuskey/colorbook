@@ -304,7 +304,7 @@
     <h2>색 값 상호 변환기</h2>
     <p>코드 리뷰나 디자인 협업에서 가장 자주 나오는 질문은 “이 hex의 Lab은?”이나 “이 Lab을 sRGB로 표시하면?”이다. 변환 자체는 <a href="rgb.html">5장</a>(RGB↔XYZ), <a href="transfer.html">6장</a>(전달 함수), <a href="uniform.html">7장</a>(Lab·OKLab), <a href="adaptation.html">8장</a>(색순응)의 공식을 차례로 적용하는 것뿐이지만, 단계가 많아 실수하기 쉽다. 이 도구는 여덟 표현 중 어느 칸에 입력해도 나머지 일곱 칸을 즉시 갱신한다. 내부 기준값은 D65 백색 기준 XYZ(Y=1)이며, 모든 칸은 이 값에서 다시 계산된다.</p>
 
-    <div class="formula">$$\text{hex}\xrightarrow{\div255}\text{sRGB}'\xrightarrow{\text{EOTF}^{-1}}\text{RGB}_{lin}\xrightarrow{M_{sRGB}}\text{XYZ}_{D65}\xrightarrow{\text{CAT}(D65\to W)}\text{XYZ}_W\xrightarrow{f(\cdot)}L^*a^*b^*\xrightarrow{\text{극좌표}}L^*C^*_{ab}h_{ab}$$
+    <div class="formula">$$\text{hex}\xrightarrow{\div255}\text{sRGB}'\xrightarrow{\text{EOTF}}\text{RGB}_{lin}\xrightarrow{M_{sRGB}}\text{XYZ}_{D65}\xrightarrow{\text{CAT}(D65\to W)}\text{XYZ}_W\xrightarrow{f(\cdot)}L^*a^*b^*\xrightarrow{\text{극좌표}}L^*C^*_{ab}h_{ab}$$
       <div class="where">sRGB 디코딩: \(V\le0.04045\)이면 \(V/12.92\), 아니면 \(((V+0.055)/1.055)^{2.4}\) (IEC 61966-2-1). OKLab은 선형 sRGB에서 바로 계산된다(Ottosson 2020, D65 전제). Lab 기준 백색 W가 D65이면 CAT 단계는 항등 변환이다.</div>
     </div>
 
@@ -532,7 +532,7 @@
       <h3>예제 1 · 6500 K 백색 LED의 Duv가 +0.006이다. 무엇을 바꿔야 하나?</h3>
       <p class="q">청색 LED(450 nm, FWHM 20 nm) + 황색 형광체(FWHM 120 nm) 구조의 백색 LED가 CCT 6500 K, Duv +0.0060으로 측정됐다. 목표는 Duv 0이다. 형광체 조성이나 적색 성분을 어떻게 바꾸면 되는가?</p>
       <ol>
-        <li><b>현상 진단.</b> Duv &gt; 0은 흑체 궤적 위쪽, 즉 녹색 쪽이다(그림 19-2). 6500 K에서 궤적의 법선은 거의 +v 방향이므로, 시료가 같은 CCT의 흑체보다 v가 0.006 크다. u′v′로는 \(\Delta v'=1.5\times0.006=0.009\)에 해당한다.</li>
+        <li><b>현상 진단.</b> Duv &gt; 0은 흑체 궤적 위쪽, 즉 녹색 쪽이다(그림 19-2). 6500 K에서 양의 Duv 방향의 단위 법선은 1960 uv에서 약 (−0.809, +0.588)이다. 따라서 Duv +0.006은 Δu ≈ −0.00486, Δv ≈ +0.00353이며, u′v′ 거리는 약 0.0072다. Duv는 v 좌표 차이만을 뜻하지 않는다.</li>
         <li><b>모델 세우기.</b> 가우시안 두 개로 측정 스펙트럼을 근사한다. 수치 풀이로 청색 가중치 2.010, 형광체 중심 561.1 nm(가중치 1)에서 CCT 6500 K, Duv +0.0060, xy = (0.3121, 0.3339), LER 337.7 lm/W를 재현한다.</li>
         <li><b>해법 A: 적색 성분 추가.</b> 630 nm(FWHM 25 nm) 적색을 가중치 0.175만큼 더하고, 색온도를 지키려 청색을 2.195로 올리면 CCT 6500 K, Duv 0.0000, xy = (0.3135, 0.3237)이 된다. 이동량은 Δu′v′ = 0.0072다. LER은 327.0 lm/W로 3.2 % 떨어진다. 적색이 ȳ의 꼬리에 있어 시감 효율이 낮기 때문이다.</li>
         <li><b>해법 B: 형광체 피크 이동.</b> 적색 칩 없이 형광체 중심을 564.2 nm로 3 nm 장파장 쪽으로 옮기고 청색을 2.192로 맞춰도 Duv 0이 된다. LER은 330.0 lm/W로 손실이 2.3 %에 그친다. 대신 적색 성분이 부족해 연색성(특히 R9)은 해법 A보다 나쁠 것이다(<a href="lighting.html">10장</a>).</li>
@@ -610,14 +610,14 @@
     </table></div>
 
     <div class="callout warn"><strong>함정 모음</strong>
-      <p>① <b>Y 스케일 혼용</b>: XYZ는 Y=100인데 백색을 Y=1로 넣으면 L*가 400을 넘는다. ② <b>행/열 전치</b>: 행렬을 열 벡터 기준(\(\mathbf y=M\mathbf x\))으로 썼는지 행 벡터 기준(\(\mathbf y=\mathbf xM^T\))으로 썼는지 문서화한다. 셰이더·NumPy·MATLAB 관례가 다르다. ③ <b>클리핑 순서</b>: 가멋 밖 값은 선형 영역에서 처리하고 인코딩 전에 클리핑한다. 인코딩 뒤 클리핑하면 색상이 틀어진다. ④ <b>CCT 하나로 백색 지정</b>: 같은 6500 K에도 Duv에 따라 녹색·분홍 백색이 모두 존재한다. 백색 사양은 항상 (CCT, Duv) 또는 xy로 준다. ⑤ <b>ΔE 공식 미표기</b>: “ΔE 2 이내”는 ΔE76인지 ΔE00인지에 따라 전혀 다른 요구다.</p>
+      <p>① <b>Y 스케일 혼용</b>: XYZ는 Y=100인데 백색을 Y=1로 넣으면 L*가 400을 넘는다. ② <b>행/열 전치</b>: 행렬을 열 벡터 기준(\(\mathbf y=M\mathbf x\))으로 썼는지 행 벡터 기준(\(\mathbf y=\mathbf xM^T\))으로 썼는지 문서화한다. 셰이더·NumPy·MATLAB 관례가 다르다. ③ <b>클리핑 순서</b>: 색공간 행렬과 광량 연산 전에 클리핑하면 복구할 수 있는 가멋 밖 정보까지 잃는다. 변환·가멋 매핑을 마친 뒤 출력 범위를 제한한다. 단조 sRGB 인코딩과 채널별 [0,1] 클리핑만 비교하면 순서는 같은 결과를 낸다. 색상 이동의 원인은 채널별 클리핑 자체다. ④ <b>CCT 하나로 백색 지정</b>: 같은 6500 K에도 Duv에 따라 녹색·분홍 백색이 모두 존재한다. 백색 사양은 항상 (CCT, Duv) 또는 xy로 준다. ⑤ <b>ΔE 공식 미표기</b>: “ΔE 2 이내”는 ΔE76인지 ΔE00인지에 따라 전혀 다른 요구다.</p>
     </div>
   </section>
 
   <section class="keypoints" id="summary">
     <h2>핵심 정리</h2>
     <ol>
-      <li>모든 색 좌표는 XYZ 하나에서 갈라져 나온다. 투영 좌표(xy, u′v′)는 규약이 필요 없지만, 지각 좌표(Lab)는 기준 백색을, 장치 좌표(RGB)는 원색·백색·전달 함수를 필요로 한다.</li>
+      <li>모든 색 좌표는 XYZ 하나에서 갈라져 나온다. 투영 좌표(xy, u′v′)도 표준 관측자와 색도 좌표계가 필요하지만, 지각 좌표(Lab)는 기준 백색을, 장치 좌표(RGB)는 원색·백색·전달 함수를 필요로 한다.</li>
       <li>숫자를 넘길 때는 Y 스케일, 관측자(2°/10°), 기준 백색, 색순응 방법을 함께 적는다. sRGB 빨강의 Lab만 해도 D65와 D50(Bradford)에서 ΔE00 약 1이 차이 난다.</li>
       <li>정밀 CCT는 CIE 1960 uv에서 흑체 궤적 최근접점이고, Duv는 그 거리다. D65는 6504 K, Duv +0.0032. McCamy 근사는 궤적 근처 2,800–6,500 K에서만 10 K 이내 정확도이고 Duv를 주지 않는다.</li>
       <li>주파장은 기준 백색에 따라 바뀌고, 보라 계열은 주파장 대신 여색 파장으로 표기한다.</li>

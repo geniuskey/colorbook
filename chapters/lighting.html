@@ -151,9 +151,9 @@
         <text x="604" y="68" class="t">기준 광원 선택</text>
         <text x="604" y="98" class="t-dim">T &lt; 5000 K</text><text x="604" y="118" class="t-mono">→ 흑체(플랑크)</text>
         <text x="604" y="148" class="t-dim">T ≥ 5000 K</text><text x="604" y="168" class="t-mono">→ CIE 주광 D(T)</text>
-        <text x="604" y="200" class="t-dim">|Duv| ≤ 5.4×10⁻³</text>
+        <text x="604" y="200" class="t-dim">ΔC ≤ 5.4×10⁻³ (기준광원 거리)</text>
       </svg>
-      <figcaption><b>그림 10-2.</b> CIE 1960 UCS에서의 CCT와 Duv(개념도, 축척 과장). 시험 광원 점에서 플랑크 궤적에 내린 수선의 발이 CCT를 정하고, 수선의 길이가 |Duv|다. CIE 13.3은 \(\Delta C = 5.4\times10^{-3}\)보다 멀리 떨어진 광원에 대해서는 CRI가 의미 있게 정의되지 않는다고 본다.</figcaption>
+      <figcaption><b>그림 10-2.</b> CIE 1960 UCS에서의 CCT와 Duv(개념도, 축척 과장). 시험 광원 점에서 플랑크 궤적에 내린 수선의 발이 CCT를 정하고, 수선의 길이가 |Duv|다. CIE 13.3의 \(\Delta C = 5.4\times10^{-3}\)는 시험 광원과 선택한 기준 광원 사이의 1960 uv 거리다. 이 권고 한계를 넘으면 순응 보정과 CRI의 정확도가 낮아질 수 있다.</figcaption>
     </figure>
 
     <p>이 장의 스크립트는 CCT를 근사식(McCamy)이 아니라 정의대로 계산한다. 플랑크 함수 \(\texttt{CB.planck}\)를 2° 등색 함수로 적분해 역온도(mired, \(10^6/T\)) 0.5 간격으로 궤적 표를 만들고, 시험점과 가장 가까운 표 점을 찾은 뒤 이웃 세 점의 거리에 포물선을 맞춰 최소점을 보간한다(Ohno의 포물선 보간과 같은 발상). 그 결과 표준 광원 A는 2856 K, D65는 6504 K, \(D_{uv}=+0.0032\)로 계산된다. D65가 흑체 궤적보다 위(녹색 쪽)에 있다는 사실은 주광 궤적이 흑체 궤적과 다른 곡선이라는 뜻이다.</p>
@@ -174,7 +174,7 @@
         <div class="stat"><span class="k">기준 광원</span><span class="v" id="uv-ref">—</span></div>
         <div class="stat"><span class="k">판정</span><span class="v" id="uv-warn">—</span></div>
       </div>
-      <div class="sim-note">실선은 플랑크 궤적, 청록 점선은 CIE 주광 궤적, 회색 점선은 Duv = ±0.0054 경계다. 점들은 내장 표준 광원의 실제 색도다. 해볼 것: Duv를 +0.01로 올리면 같은 CCT라도 눈에 띄게 연두빛이 돈다. "역계산" 값이 슬라이더 값과 일치하는지 확인하라(구현 검증). LED-RGB1은 Duv ≈ +0.004로 흑체에서 꽤 떨어져 있다.</div>
+      <div class="sim-note">실선은 플랑크 궤적, 청록 점선은 CIE 주광 궤적, 회색 점선은 Duv = ±0.0054 보조선이다(주광 기준의 ΔC 한계와는 다르다). 점들은 내장 표준 광원의 실제 색도다. 해볼 것: Duv를 +0.01로 올리면 같은 CCT라도 눈에 띄게 연두빛이 돈다. "역계산" 값이 슬라이더 값과 일치하는지 확인하라(구현 검증). LED-RGB1은 Duv ≈ +0.004로 흑체에서 꽤 떨어져 있다.</div>
     </div>
 
     <div class="callout tip"><b>공학자 관점.</b> 같은 3000 K 표기라도 Duv가 +0.006인 LED와 −0.006인 LED는 나란히 놓으면 바로 구분된다. 최근 연구들은 실내 조명에서 Duv가 약간 음(궤적 아래)일 때 선호되는 경향을 보고한다. 그래서 LED 사양서에는 CCT와 함께 Duv 또는 색도 허용 영역(ANSI C78.377의 사각형, 맥아담 타원 단계)을 반드시 함께 적는다.</div>
@@ -318,14 +318,15 @@
   <!-- ============================================================ 6 -->
   <section id="tm30">
     <h2>TM-30과 CIE 224: 충실도와 색역을 분리하기</h2>
-    <p>ANSI/IES <span class="term">TM-30</span>(2015년 TM-30-15로 처음 발표, 이후 -18, -20으로 개정)과 <span class="term">CIE 224:2017</span>은 CRI의 문제를 정면으로 고쳤다. 핵심 변경은 네 가지다.</p>
+    <p>ANSI/IES <span class="term">TM-30</span>(2015년 TM-30-15로 처음 발표, 이후 -18, -20, -24로 개정)과 <span class="term">CIE 224:2017</span>은 CRI의 문제를 정면으로 고쳤다. 핵심 변경은 네 가지다.</p>
     <ul>
       <li><b>시험색 99개(CES, Colour Evaluation Samples).</b> 실제 물체(자연물, 피부, 섬유, 페인트, 인쇄물 등)의 반사율 데이터베이스에서 뽑아 색 공간과 파장 공간을 고르게 덮도록 고른 집합이다. 수가 많고 다양해 게이밍이 어렵다.</li>
       <li><b>CAM02-UCS 색공간과 CIE 1964 10° 관측자.</b> CIECAM02 기반의 균등 색공간(<a href="appearance.html">9장</a>)에서 색차를 재고, 순응도 그 모델 안에서 처리한다.</li>
       <li><b>기준 광원의 연속 전환.</b> 4000 K 이하는 흑체, 5000 K 이상은 CIE 주광, 그 사이는 두 스펙트럼을 비례 혼합한다. CRI처럼 5000 K에서 기준이 불연속으로 바뀌지 않는다.</li>
-      <li><b>충실도 \(R_f\)와 색역 \(R_g\)의 분리.</b> 하나의 숫자 대신 두 숫자와 그림(색 벡터 그래픽)으로 보고한다.</li>
+      <li><b>충실도 \(R_f\)와 색역 \(R_g\)의 분리.</b> TM-30은 두 숫자와 색 벡터 그래픽으로 보고한다. CIE 224:2017은 일반 색 충실도 지수 Rf를 정의하며, Rg와 색 벡터 그래픽은 TM-30의 추가 지표다.</li>
     </ul>
-    <div class="formula">$$R_f = 10\,\ln\!\Big(e^{(100 - c_f\,\overline{\Delta E'})/10} + 1\Big),\qquad c_f = 6.73$$
+    <p class="t-dim"><a href="https://cie.co.at/publications/cie-ps-0022025-cie-position-statement-colour-quality-metrics-2nd-edition" target="_blank" rel="noopener">CIE PS 002:2025</a>는 Rf의 도입과 관련 규정·사양·표준에서 Ra를 대체하는 방향을 권고했다. 기존 Ra 요구사항은 해당 규정이 실제로 개정되었는지 확인해 적용한다. 최신 TM-30 판은 <a href="https://store.ies.org/product/technical-memorandum-ies-method-for-evaluating-light-source-color-rendition/" target="_blank" rel="noopener">ANSI/IES TM-30-24</a>다.</p>
+    <div class="formula">$R_f = 10\,\ln\!\Big(e^{(100 - c_f\,\overline{\Delta E'})/10} + 1\Big),\qquad c_f = 6.73$$
     $$R_g = 100\cdot\frac{A_{\text{test}}}{A_{\text{ref}}}$$<div class="where">\(\overline{\Delta E'}\)는 99개 CES의 CAM02-UCS 평균 색차. 로그-지수 형태는 \(R_f\)를 0–100 범위로 부드럽게 눌러 음수가 나오지 않게 한다(CIE 224와 TM-30-18 이후 같은 식). \(A\)는 색상각을 16개 구간(bin)으로 나눠 구간별 평균 \(a', b'\)을 이은 다각형의 넓이다.</div></div>
 
     <figure class="diagram">
@@ -502,7 +503,7 @@
         <tr><td>CCT</td><td>최근접 흑체 온도</td><td>1960 uv 최근접점</td><td>2700, 3000, 4000, 5000, 6500 K</td></tr>
         <tr><td>Duv</td><td>흑체 궤적까지 부호 있는 거리</td><td>1960 uv</td><td>|Duv| ≤ 0.006 수준</td></tr>
         <tr><td>Ra / R9</td><td>CIE 13.3</td><td>이 장의 cri()</td><td>Ra ≥ 80, 고연색 Ra ≥ 90 · R9 ≥ 50</td></tr>
-        <tr><td>Rf / Rg</td><td>ANSI/IES TM-30, CIE 224</td><td>99 CES, CAM02-UCS</td><td>용도별 권장 범위</td></tr>
+        <tr><td>Rf / Rg</td><td>ANSI/IES TM-30 (CIE 224는 Rf)</td><td>99 CES, CAM02-UCS</td><td>용도별 권장 범위</td></tr>
         <tr><td>색도 편차 (SDCM)</td><td>맥아담 타원 단계 수</td><td>목표 색도 중심 타원</td><td>3단계 이내(동일 공간 내 균일)</td></tr>
       </tbody>
     </table></div>
@@ -516,10 +517,10 @@
     <h2>핵심 정리</h2>
     <ol>
       <li>연색성은 같은 CCT 기준 광원(5000 K 미만 흑체, 이상 CIE 주광) 대비 물체색 재현 충실도다. 백색점이 같아도 SPD가 다르면 물체색이 달라진다(광원 메타머리즘).</li>
-      <li>CCT·Duv는 CIE 1960 UCS에서 플랑크 궤적까지의 최근접 거리로 정의한다. \(|D_{uv}| > 0.0054\)이면 CRI는 의미가 없다. D65는 6504 K, Duv +0.0032다.</li>
+      <li>CCT·Duv는 CIE 1960 UCS에서 플랑크 궤적까지의 최근접 거리로 정의한다. CRI 정확도의 권고 한계는 기준 광원과의 색도 거리 ΔC ≤ 0.0054다. 5000 K 이상에서는 주광을 기준으로 하므로 |Duv|와 구별한다. D65는 6504 K, Duv +0.0032다.</li>
       <li>CIE 13.3: TCS 14개 → 1960 uv → \(c,d\) von Kries형 순응 → W*U*V* → \(R_i = 100-4.6\Delta E_i\), \(R_a\) = R1–R8 평균. 이 장의 구현은 FL2 64.2, FL7 90.2, FL11 82.8로 CIE 발표값과 일치한다.</li>
       <li>CRI는 저채도 8색, 구식 색공간, 방향 없는 색차 때문에 협대역 광원 평가에 약하다. 진한 빨강 R9를 반드시 따로 보라(FL2의 R9 = −84).</li>
-      <li>TM-30/CIE 224는 99 CES, CAM02-UCS, 연속 기준 광원으로 충실도 Rf와 색역 Rg를 분리하고, 색 벡터 그래픽으로 색상별 채도 이동을 보여 준다.</li>
+      <li>TM-30과 CIE 224의 Rf는 99 CES, CAM02-UCS, 연속 기준 광원을 쓴다. TM-30은 색역 Rg와 색 벡터 그래픽을 추가해 채도·색상 이동을 분리한다.</li>
       <li>pc-LED는 청색 칩 + 인광체다. 인광체 변환은 \(\lambda_p/\lambda_e\)의 스토크스 손실을 낳고, 적색 인광체를 깊게 할수록 R9는 오르지만 LER과 효율이 떨어진다(630 → 650 nm: LER 313 → 251).</li>
       <li>LER과 Ra는 맞선다. 좁은 피크는 LER을, 넓은 스펙트럼은 Ra를 높인다. 사양은 lm/W, CCT, Duv(또는 SDCM), Ra, R9를 함께 적는다.</li>
     </ol>
@@ -640,6 +641,7 @@
     const W = xyz(S), uvk = uv60(W);
     const { T, duv } = cctDuv(uvk);
     const Rf = refSPD(T), Wr = xyz(Rf), uvr = uv60(Wr);
+    const deltaC = Math.hypot(uvk[0] - uvr[0], uvk[1] - uvr[1]);
     const nk = 100 / W[1], nr = 100 / Wr[1];
     const [ck, dk] = cdc(uvk), [cr, dr] = cdc(uvr);
     const wuv = (Y, u, v) => { const Wst = 25 * Math.cbrt(Y) - 17; return [Wst, 13 * Wst * (u - uvr[0]), 13 * Wst * (v - uvr[1])]; };
@@ -658,7 +660,7 @@
     const area = (P) => { let s = 0; for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; s += p[1] * q[2] - q[1] * p[2]; } return Math.abs(s) / 2; };
     const Ga = 100 * area(test.slice(0, 8)) / area(ref.slice(0, 8));
     let sv = 0, s = 0; S.forEach((v, i) => { sv += v * VL[i]; s += v; });
-    return { T, duv, Ra, R, Ga, LER: 683 * sv / s, ref, test, refXYZ, testXYZ, refSPD: Rf, uv: uvk, Wk: W.map((v) => v * nk), Wr: Wr.map((v) => v * nr) };
+    return { T, duv, deltaC, Ra, R, Ga, LER: 683 * sv / s, ref, test, refXYZ, testXYZ, refSPD: Rf, uv: uvk, Wk: W.map((v) => v * nk), Wr: Wr.map((v) => v * nr) };
   }
 
   function ledSPD(o) {
@@ -789,12 +791,13 @@
       ctx.fillStyle = CB.rgb8css(CB.xy2display(xy)); ctx.strokeStyle = P.text; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(c.X(q[0]), c.Y(q[1]), 7, 0, 7); ctx.fill(); ctx.stroke();
       ctx.restore();
-      const back = cctDuv(q), ok = Math.abs(back.duv) <= 0.0054;
+      const back = cctDuv(q), refUV = uv60(xyz(refSPD(back.T)));
+      const deltaC = Math.hypot(q[0] - refUV[0], q[1] - refUV[1]), ok = deltaC <= 0.0054;
       set("uv-xy", xy.map((v) => v.toFixed(4)).join(", "));
       set("uv-uv", q.map((v) => v.toFixed(4)).join(", "));
       set("uv-cct", `${back.T.toFixed(0)} K / ${sgn(back.duv)}`);
       set("uv-ref", back.T < 5000 ? "흑체 (플랑크)" : "CIE 주광 D");
-      set("uv-warn", ok ? "유효 (|Duv| ≤ 0.0054)" : `<span class="bad-txt">CRI 정의 범위 밖</span>`);
+      set("uv-warn", ok ? `권고 한계 안 (ΔC ${deltaC.toFixed(4)})` : `<span class="bad-txt">ΔC ${deltaC.toFixed(4)}: CRI 정확도 주의</span>`);
     }, { aspect: 0.66, minHeight: 280, maxHeight: 520 });
   })();
 
@@ -837,7 +840,7 @@
       cvS.redraw(); cvB.redraw();
       const r = getRes(src), P = CB.palette();
       set("cri-cct", r.T.toFixed(0) + " K");
-      set("cri-duv", Math.abs(r.duv) > 0.0054 ? `<span class="bad-txt">${sgn(r.duv)} ⚠</span>` : sgn(r.duv));
+      set("cri-duv", r.deltaC > 0.0054 ? `<span class="bad-txt">${sgn(r.duv)} ⚠</span>` : sgn(r.duv));
       set("cri-ra", `<span style="color:${rcol(r.Ra, P)}">${r.Ra.toFixed(1)}</span>`);
       set("cri-r9", r.R[8].toFixed(0));
       set("cri-ref", r.T < 5000 ? "흑체 " + r.T.toFixed(0) + " K" : "주광 D " + r.T.toFixed(0) + " K");

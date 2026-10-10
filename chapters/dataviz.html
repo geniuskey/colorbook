@@ -84,7 +84,7 @@
         <text x="200" y="290" class="t-mono">0</text><text x="628" y="290" class="t-mono">1</text>
         <text x="420" y="290" text-anchor="middle" class="t-dim">부호화할 데이터 값</text>
       </svg>
-      <figcaption><b>그림 18-1.</b> 같은 데이터 값을 색의 세 좌표 중 하나로만 부호화한 경우. 색상 띠는 OKLCh에서 L=0.70, C=0.11로 고정해 계산한 순환 경로다(CIELAB L*는 63.5–66.8). 명도 축만이 크기 순서를 자연스럽게 전달하고, 가장 작은 공간 주파수까지 살아남는다.</figcaption>
+      <figcaption><b>그림 18-1.</b> 같은 데이터 값을 색의 세 좌표 중 하나로만 부호화한 경우. 색상 띠는 OKLCh에서 L=0.70, C=0.11로 고정해 계산한 순환 경로다(CIELAB L*는 63.5–66.8). 명도 축만이 크기 순서를 자연스럽게 전달하고, 가장 높은 공간 주파수(가는 선·작은 글자)까지 살아남는다.</figcaption>
     </figure>
 
     <p>이 장의 계산은 모두 sRGB(IEC 61966-2-1) 디스플레이를 가정하고, 색차는 D65 백색 기준 CIELAB의 CIEDE2000(CIE 015:2018, ISO/CIE 11664-6)으로 잰다. 즉 화면의 8비트 코드값 \(\to\) 디코딩 \(\to\) 선형 RGB \(\to\) XYZ \(\to\) L*a*b*라는 <a href="transfer.html">6장</a>·<a href="uniform.html">7장</a>의 파이프라인이 그대로 쓰인다.</p>
@@ -109,7 +109,7 @@
     <p>WCAG 2.x<span class="en">(Web Content Accessibility Guidelines, W3C)</span>는 텍스트 판독성을 <span class="term">상대 휘도</span><span class="en">(relative luminance)</span>의 비로 정의한다. 상대 휘도는 sRGB 코드값을 디코딩한 선형 값의 가중합, 즉 BT.709/sRGB 원색의 \(Y\) 행이다.</p>
     <div class="formula">$$Y = 0.2126\,R_{\text{lin}} + 0.7152\,G_{\text{lin}} + 0.0722\,B_{\text{lin}},\qquad C_{\text{lin}} = \begin{cases} C/12.92 & C \le 0.04045 \\ \left(\dfrac{C+0.055}{1.055}\right)^{2.4} & C > 0.04045\end{cases}$$
     $$\text{CR} = \frac{Y_{\max} + 0.05}{Y_{\min} + 0.05},\qquad 1 \le \text{CR} \le 21$$
-    <div class="where">여기서 \(C = \text{코드값}/255\). WCAG 2.x 원문은 문턱값을 0.03928로 적었으나 IEC 61966-2-1의 0.04045와 8비트 코드에서 결과 차이는 없다. 분모·분자의 0.05는 백색 Y=1 대비 5%의 주변 반사광(플레어)을 더한 것이다.</div></div>
+    <div class="where">여기서 \(C = \text{코드값}/255\). WCAG 상대 휘도 정의는 2021년 5월에 문턱값을 0.03928에서 IEC 61966-2-1과 같은 0.04045로 수정했다. <a href="https://www.w3.org/WAI/WCAG21/Understanding/relative-luminance.html" target="_blank" rel="noopener">현재 WCAG 2.1·2.2는 0.04045를 쓰며</a>, 이 변경은 8비트 코드의 결과에는 영향을 주지 않는다. 분모·분자의 0.05는 백색 Y=1 대비 5%의 주변 반사광(플레어)을 더한 것이다.</div></div>
     <p>대비비는 플레어를 더한 휘도의 <strong>비</strong>이므로 로그 휘도 축 위의 거리다. 흑(Y=0)과 백(Y=1)이 1.05/0.05 = 21:1을 만든다. 기준값은 다음과 같다.</p>
 
     <div class="table-wrap"><table>
@@ -185,7 +185,7 @@
     <p>WCAG 2.x 공식은 단순하고 재현 가능하다는 큰 장점이 있지만, 지각과 어긋나는 세 가지 구조적 한계가 있다.</p>
     <ul>
       <li><strong>극성 무시</strong><span class="en">(polarity)</span>: CR은 두 휘도의 비이므로 글자/배경을 바꿔도 같다. 그러나 밝은 배경의 어두운 글자와 어두운 배경의 밝은 글자는 같은 비에서도 판독성이 다르다(빛 번짐, 순응 상태 차이).</li>
-      <li><strong>어두운 영역의 과대평가</strong>: +0.05 플레어 항이 고정되어 있어 어두운 색끼리의 비가 실제 지각 차이보다 크게 나온다. 다크 모드에서 "기준은 통과했는데 읽기 힘든" 조합이 생기는 주원인이다.</li>
+      <li><strong>어두운 영역의 과대평가</strong>: 고정된 +0.05 플레어와 하나의 대칭적인 휘도비로 모든 순응 수준·극성·획 두께를 표현하기 어렵다. 따라서 대비비가 같아도 다크 모드의 가는 글자는 다르게 읽힐 수 있다. +0.05 자체는 양의 두 휘도의 원래 비를 줄이는 항이며, 그 항이 언제나 어두운 색의 대비를 부풀린다는 뜻은 아니다.</li>
       <li><strong>공간 주파수 무시</strong>: 폰트 크기와 굵기는 "대형 텍스트" 하나의 이진 구분으로만 반영된다. 실제 필요한 대비는 획 두께에 따라 연속적으로 변한다.</li>
     </ul>
     <p>WCAG 3의 후보로 개발 중인 <span class="term">APCA</span><span class="en">(Accessible Perceptual Contrast Algorithm)</span>는 휘도에 극성별로 다른 지수를 적용한 차이로 <span class="term">명도 대비 Lc</span><span class="en">(lightness contrast)</span>를 정의한다. 아래는 공개 구현 0.0.98G-4g의 상수 그대로다.</p>
